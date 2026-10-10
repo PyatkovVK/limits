@@ -1,0 +1,4 @@
+body[data-platform="linux"] main {
+  /* Keep line wrapping stable as the window grows and the scrollbar disappears. */
+  scrollbar-gutter: stable;
+}

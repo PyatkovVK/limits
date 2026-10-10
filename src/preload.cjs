@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('limits', {
   select: id => ipcRenderer.invoke('limits:select', id),
   language: language => ipcRenderer.invoke('limits:language', language),
   displayMode: mode => ipcRenderer.invoke('limits:display-mode', mode),
+  panelSize: height => ipcRenderer.invoke('limits:panel-size', height),
   hide: () => ipcRenderer.invoke('limits:hide'),
   open: () => ipcRenderer.invoke('limits:open'),
   quit: () => ipcRenderer.invoke('limits:quit'),

@@ -7,9 +7,9 @@ const { CodexClient } = require('./codex-client.cjs');
 const { Monitor } = require('./monitor.cjs');
 const { Accounts } = require('./accounts.cjs');
 const { selectedBucket, isStale } = require('./limits.cjs');
-const { widgetBounds } = require('./windows feature/taskbar.cjs');
-const { TaskbarWidget, taskbarHelperPath } = require('./windows feature/widget.cjs');
-const { TrayPresentation } = require('./windows feature/tray.cjs');
+const { widgetBounds } = require('./Windows feature/taskbar.cjs');
+const { TaskbarWidget, taskbarHelperPath } = require('./Windows feature/widget.cjs');
+const { TrayPresentation } = require('./Windows feature/tray.cjs');
 const { t: translate } = require('./renderer/i18n.js');
 
 const demo = process.argv.includes('--demo');
@@ -26,7 +26,7 @@ app.setAppUserModelId('dev.codexlimits.desktop');
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let window, macPanel, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
+let window, macPanel, linuxPanel, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
 let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray' };
 const t = key => (process.platform === 'darwin' ? require('./Mac feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: 30, demo };
@@ -35,6 +35,7 @@ let notified = new Set();
 function showPanel(anchor) {
   if (!window || window.isDestroyed()) return;
   if (macPanel) return macPanel.show(anchor);
+  if (linuxPanel) return linuxPanel.show();
   const bounds = process.platform === 'linux' ? null : anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
   const display = bounds?.width ? screen.getDisplayMatching(bounds) : screen.getPrimaryDisplay();
   const area = display.workArea;
@@ -169,6 +170,7 @@ async function setup() {
   if (process.platform === 'darwin') macPanel = require('./Mac feature/panel.cjs').createPanelController({ window, screen, getTrayBounds: () => trayPresentation.entries.map(entry => {
     try { return entry.tray.getBounds(); } catch { return null; }
   }) });
+  if (process.platform === 'linux') linuxPanel = require('./linux feature/panel.cjs').createPanelController({ window, screen });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
   handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
@@ -176,6 +178,7 @@ async function setup() {
   handle('limits:select', id => { if (typeof id === 'string') monitor?.select(id); });
   handle('limits:language', setLanguage);
   handle('limits:display-mode', setDisplayMode);
+  handle('limits:panel-size', height => linuxPanel?.resize(height) || false);
   handle('limits:hide', () => window.hide());
   handle('limits:quit', () => app.quit());
   async function openLogin(id) {
@@ -209,6 +212,7 @@ async function setup() {
     } catch { return { error: 'accountActionFailed' }; }
   });
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  if (linuxPanel) await window.webContents.executeJavaScript('window.limitsLinuxPanelReady');
   if (taskbarSupported) await createWidget();
   try {
       const root = app.getPath('userData');
@@ -407,4 +411,4 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; macPanel?.cancel(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
+app.on('before-quit', () => { quitting = true; macPanel?.cancel(); linuxPanel?.dispose(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });

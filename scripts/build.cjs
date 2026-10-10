@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '..');
 let plan;
 try { plan = buildPlan(process.argv[2], process.argv.slice(3)); }
 catch (error) { console.error(error.message); process.exit(1); }
-require('../src/windows feature/scripts/assets.cjs');
+require('../src/Windows feature/scripts/assets.cjs');
 const tempRoot = path.resolve(os.tmpdir());
 const output = fs.mkdtempSync(path.join(tempRoot, 'limits-build-'));
 const config = structuredClone(require('../package.json').build);

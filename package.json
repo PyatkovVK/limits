@@ -9,16 +9,16 @@
   "scripts": {
     "start": "npm run prepare:app && electron .",
     "demo": "npm run prepare:app && electron . --demo",
-    "test": "node --test test/*.test.cjs \"src/windows feature/test/*.test.cjs\" \"src/Mac feature/test/*.test.cjs\"",
+    "test": "node --test test/*.test.cjs \"src/Windows feature/test/*.test.cjs\" \"src/Mac feature/test/*.test.cjs\" \"src/linux feature/test/*.test.cjs\"",
     "doctor": "node scripts/doctor.cjs",
     "smoke": "npm run prepare:app && electron . --demo --smoke-test",
     "smoke:live": "npm run prepare:app && electron . --smoke-test",
-    "prepare:app": "node \"src/windows feature/scripts/assets.cjs\" && node \"src/windows feature/scripts/build-taskbar-helper.cjs\"",
-    "prepare:assets": "node \"src/windows feature/scripts/assets.cjs\"",
-    "build:win": "node \"src/windows feature/scripts/build-windows.cjs\"",
+    "prepare:app": "node \"src/Windows feature/scripts/assets.cjs\" && node \"src/Windows feature/scripts/build-taskbar-helper.cjs\"",
+    "prepare:assets": "node \"src/Windows feature/scripts/assets.cjs\"",
+    "build:win": "node \"src/Windows feature/scripts/build-windows.cjs\"",
     "build:mac": "node scripts/build.cjs mac",
     "build:linux": "node scripts/build.cjs linux",
-    "build:win:standalone": "node \"src/windows feature/scripts/build-windows.cjs\" --standalone"
+    "build:win:standalone": "node \"src/Windows feature/scripts/build-windows.cjs\" --standalone"
   },
   "devDependencies": {
     "@openai/codex": "0.162.1",
@@ -30,16 +30,17 @@
     "appId": "dev.codexlimits.desktop",
     "productName": "Limits",
     "directories": { "output": "release" },
-    "files": ["src/**/*", "!src/windows feature/native/**/*", "!src/windows feature/scripts/**/*", "!src/windows feature/test/**/*", "!src/windows feature/README.md", "!src/Mac feature/test/**/*", "!src/Mac feature/scripts/**/*", "!src/Mac feature/README.md", "assets/app.ico", "assets/app.png", "package.json", "LICENSE", "!node_modules/**/*"],
+    "files": ["src/**/*", "!src/Windows feature/native/**/*", "!src/Windows feature/scripts/**/*", "!src/Windows feature/test/**/*", "!src/Windows feature/README.md", "!src/Mac feature/test/**/*", "!src/Mac feature/scripts/**/*", "!src/Mac feature/README.md", "!src/linux feature/test/**/*", "!src/linux feature/README.md", "assets/app.ico", "assets/app.png", "package.json", "LICENSE", "!node_modules/**/*"],
     "extraResources": [
       { "from": "THIRD-PARTY-NOTICES.md", "to": "THIRD-PARTY-NOTICES.md" }
     ],
     "win": { "target": ["portable", "nsis"], "icon": "assets/app.ico", "signExecutable": false, "extraResources": [{ "from": "build/taskbar-helper.exe", "to": "taskbar-helper.exe" }] },
     "mac": { "target": ["dmg", "zip"], "icon": "assets/app.png", "category": "public.app-category.utilities", "artifactName": "Limits-${version}-${arch}.${ext}" },
     "linux": { "target": ["AppImage", "deb"], "icon": "assets/app.png", "category": "Utility", "maintainer": "Limits contributors", "artifactName": "Limits-${version}-${arch}.${ext}" },
+    "appImage": { "compression": "gzip" },
     "electronLanguages": ["en-US", "ru"],
     "compression": "maximum",
-    "nsis": { "oneClick": false, "perMachine": false, "allowElevation": false, "allowToChangeInstallationDirectory": true, "include": "src/windows feature/native/installer.nsh", "installerLanguages": ["en_US", "ru_RU"], "displayLanguageSelector": true, "artifactName": "Limits-Setup-${version}.${ext}" },
+    "nsis": { "oneClick": false, "perMachine": false, "allowElevation": false, "allowToChangeInstallationDirectory": true, "include": "src/Windows feature/native/installer.nsh", "installerLanguages": ["en_US", "ru_RU"], "displayLanguageSelector": true, "artifactName": "Limits-Setup-${version}.${ext}" },
     "portable": { "artifactName": "Limits-${version}-portable.${ext}" }
   }
 }
