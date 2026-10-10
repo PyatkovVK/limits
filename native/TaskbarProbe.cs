@@ -10,6 +10,8 @@ class TaskbarProbe {
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string cls, string name);
   [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
   [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+  [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr hwnd);
+  [DllImport("user32.dll", EntryPoint = "GetWindowLongW")] static extern int GetWindowLong(IntPtr hwnd, int index);
   [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hwnd, EnumProc callback, IntPtr parameter);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder text, int length);
   [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
@@ -37,7 +39,10 @@ class TaskbarProbe {
     IntPtr foreground = GetForegroundWindow(); Rect front;
     uint foregroundPid; GetWindowThreadProcessId(foreground, out foregroundPid);
     string cls = ClassName(foreground);
-    bool fullscreen = foregroundPid != owner && cls != "Progman" && cls != "WorkerW" && foreground != taskbar &&
+    // A maximized framed window can extend past all monitor edges (invisible resize borders).
+    // Only a borderless, non-maximized foreground window is a fullscreen candidate.
+    bool fullscreen = !IsZoomed(foreground) && (GetWindowLong(foreground, -16) & 0x00C00000) == 0 &&
+      foregroundPid != owner && cls != "Progman" && cls != "WorkerW" && foreground != taskbar &&
       GetWindowRect(foreground, out front) && front.Left <= monitor.Monitor.Left && front.Top <= monitor.Monitor.Top &&
       front.Right >= monitor.Monitor.Right && front.Bottom >= monitor.Monitor.Bottom;
     bool visible = IsWindowVisible(taskbar) && bar.Top < monitor.Monitor.Bottom - 8 && bar.Bottom > monitor.Monitor.Top + 8;

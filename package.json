@@ -1,6 +1,8 @@
 {
   "name": "limits",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "description": "Compact Codex subscription limits on the Windows taskbar",
+  "author": "Codex Limits contributors",
   "license": "MIT",
   "main": "src/main.cjs",
   "scripts": {
@@ -12,7 +14,8 @@
     "smoke:live": "npm run prepare:app && electron . --smoke-test",
     "prepare:app": "node scripts/assets.cjs && node scripts/build-taskbar-helper.cjs",
     "prepare:assets": "node scripts/assets.cjs",
-    "build:win": "node scripts/build-windows.cjs"
+    "build:win": "node scripts/build-windows.cjs",
+    "build:win:standalone": "node scripts/build-windows.cjs --standalone"
   },
   "devDependencies": {
     "@openai/codex": "0.162.1",
@@ -27,12 +30,12 @@
     "files": ["src/**/*", "assets/app.ico", "package.json", "LICENSE", "!node_modules/**/*"],
     "extraResources": [
       { "from": "build/taskbar-helper.exe", "to": "taskbar-helper.exe" },
-      { "from": "node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin", "to": "codex" },
-      { "from": "licenses/Apache-2.0.txt", "to": "codex/Apache-2.0.txt" },
-      { "from": "THIRD-PARTY-NOTICES.md", "to": "codex/THIRD-PARTY-NOTICES.md" }
+      { "from": "THIRD-PARTY-NOTICES.md", "to": "THIRD-PARTY-NOTICES.md" }
     ],
     "win": { "target": ["portable", "nsis"], "icon": "assets/app.ico", "signExecutable": false },
-    "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "artifactName": "Codex-Limits-Setup-${version}.${ext}" },
+    "electronLanguages": ["en-US", "ru"],
+    "compression": "maximum",
+    "nsis": { "oneClick": false, "perMachine": false, "allowElevation": false, "allowToChangeInstallationDirectory": true, "include": "native/installer.nsh", "installerLanguages": ["en_US", "ru_RU"], "displayLanguageSelector": true, "artifactName": "Codex-Limits-Setup-${version}.${ext}" },
     "portable": { "artifactName": "Codex-Limits-${version}-portable.${ext}" }
   }
 }

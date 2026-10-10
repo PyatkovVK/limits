@@ -11,17 +11,17 @@ button:focus-visible, select:focus-visible { outline: 1px solid white; outline-o
 .icon-button { background: none; border: 0; color: #999; font-size: 18px; width: 22px; -webkit-app-region: no-drag; }
 .connection { font-size: 9px; color: #aaa; }
 .connection.stale { color: #e6b36b; }
-main { padding: 13px 15px; max-height: calc(100vh - 38px); overflow-y: auto; }
-.account-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+main { padding: 10px 15px; max-height: calc(100vh - 38px); overflow-y: auto; }
+.account-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 #account { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plan { padding: 2px 5px; border: 1px solid #333; border-radius: 4px; font-size: 8px; text-transform: uppercase; color: #aaa; }
-.quota-card { padding: 12px 13px; border: 1px solid #1c1c1c; border-bottom: 0; }
+.quota-card { padding: 9px 13px; border: 1px solid #1c1c1c; border-bottom: 0; }
 .quota-card.short { border-radius: 13px 13px 0 0; padding-bottom: 13px; }
 .quota-card.weekly { border-radius: 0 0 13px 13px; border-bottom: 1px solid #1c1c1c; padding-top: 8px; }
-.period { font-size: 12px; font-weight: 650; margin-bottom: 4px; }
-.quota-meta { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; margin-bottom: 5px; }
+.period { font-size: 11px; font-weight: 650; }
+.quota-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 10px; margin-bottom: 6px; }
 .remaining-value { font-variant-numeric: tabular-nums; }
-progress { display: block; width: 100%; height: 6px; border: 0; border-radius: 1px; overflow: hidden; background: #292929; accent-color: #eee; }
+progress { display: block; width: 100%; height: 4px; border: 0; border-radius: 1px; overflow: hidden; background: #292929; accent-color: #eee; }
 progress::-webkit-progress-bar { background: #292929; }
 progress::-webkit-progress-value { background: #eee; }
 .low progress::-webkit-progress-value { background: #ff8686; }
@@ -30,7 +30,7 @@ body.stale progress::-webkit-progress-value { background: #888; }
 .refresh-button, .login-button { background: #111; border: 1px solid #333; border-radius: 6px; padding: 7px 12px; color: #ccc; font-size: 10px; }
 .refresh-button:hover, .login-button:hover { background: #222; }
 footer { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 9px; color: #777; }
-.interval { margin-left: auto; }
+.language { flex: none; width: 48px; padding: 3px; font-size: 9px; -webkit-app-region: no-drag; }
 .live-dot { width: 4px; height: 4px; border-radius: 50%; background: #aaa; }
 .footnote { color: #666; font-size: 9px; margin: 9px 0 0; }
 .notice { padding: 7px 10px; border: 1px solid #333; border-radius: 6px; font-size: 10px; margin-bottom: 10px; color: #aaa; }

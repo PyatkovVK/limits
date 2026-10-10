@@ -1,21 +1,16 @@
 :root { color-scheme: dark; font-family: 'Segoe UI', sans-serif; }
 * { box-sizing: border-box; }
-body { margin: 0; height: 100vh; display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 10px; padding: 3px 9px; background: #171717; color: #f4f4f4; border: 1px solid #292929; border-radius: 5px; overflow: hidden; }
+body { margin: 0; height: 100vh; display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 8px; padding: 3px 8px; background: #171717; color: #f4f4f4; border: 1px solid #292929; border-radius: 5px; overflow: hidden; }
 .account { display: flex; flex-direction: column; justify-content: center; min-width: 0; -webkit-app-region: drag; cursor: move; }
 #widget-account { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-#widget-plan { margin-top: 2px; font-size: 8px; color: #c1c1c1; text-transform: uppercase; letter-spacing: .4px; }
-#widget-status { font-size: 7px; color: #828282; }
-.quotas { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; border: 0; color: inherit; background: none; padding: 0; font: inherit; cursor: pointer; text-align: left; }
-.line { display: flex; align-items: baseline; gap: 5px; font-size: 8px; line-height: 12px; white-space: nowrap; }
-.line strong { font-size: 9px; font-weight: 600; flex: 1; }
-.line > span { color: #bdbdbd; }
-.line .remaining { color: #f3f3f3; }
+#widget-plan { margin-top: 2px; font-size: 8px; color: #aaa; text-transform: uppercase; letter-spacing: .3px; }
+.quotas { display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0; border: 0; color: inherit; background: none; padding: 0; font: inherit; cursor: pointer; text-align: left; }
+.quota { display: grid; grid-template-columns: 38px minmax(0, 1fr) 35px; align-items: center; gap: 5px; font-size: 9px; line-height: 10px; }
+.percentage { text-align: right; font-variant-numeric: tabular-nums; }
 progress { width: 100%; height: 3px; display: block; border: 0; border-radius: 1px; background: #333; accent-color: white; }
 progress::-webkit-progress-bar { background: #333; }
 progress::-webkit-progress-value { background: #f0f0f0; }
 body.stale progress::-webkit-progress-value { background: #888; }
-body.stale #widget-status { color: #ffc466; }
 body.low progress::-webkit-progress-value { background: #ff8686; }
 button:focus-visible { outline: 1px solid white; }
-@media (max-height: 40px) { body { padding-top: 1px; padding-bottom: 1px; } .quotas { gap: 2px; } .line { line-height: 11px; } #widget-status { display: none; } }
-@media (max-width: 460px) { body { grid-template-columns: 88px minmax(0,1fr); gap: 7px; } .line strong { font-size: 8px; } .line { font-size: 7px; gap: 3px; } }
+@media (max-width: 300px) { body { grid-template-columns: 85px minmax(0,1fr); gap: 6px; } .quota { grid-template-columns: 34px minmax(0,1fr) 32px; gap: 3px; font-size: 8px; } }

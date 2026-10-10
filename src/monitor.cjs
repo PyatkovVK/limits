@@ -34,11 +34,11 @@ class Monitor extends EventEmitter {
       if (method === 'account/login/completed') {
         this.loginId = null;
         if (params.success) { this.rerunRequested = Boolean(this.inflight); void this.refresh(); }
-        else this.publish({ status: 'error', error: 'Вход не завершён. Попробуйте ещё раз.' });
+        else this.publish({ status: 'error', error: 'loginIncomplete' });
       }
     });
     client.on('disconnected', () => {
-      if (!this.stopped) this.publish({ status: 'error', error: 'Связь с Codex потеряна. Повторяем подключение.' });
+      if (!this.stopped) this.publish({ status: 'error', error: 'disconnected' });
     });
   }
 
@@ -91,7 +91,7 @@ class Monitor extends EventEmitter {
     } catch (error) {
       this.emit('diagnostic', { stage, code: error.code || error.name });
       this.failures = Math.min(this.failures + 1, 4);
-      this.publish({ status: 'error', error: 'Не удалось получить лимиты. Проверьте интернет и вход в Codex. Повторяем автоматически.' });
+      this.publish({ status: 'error', error: 'refreshFailed' });
     } finally { this.publish({ refreshing: false }); }
     return this.state;
   }
