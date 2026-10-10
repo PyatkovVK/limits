@@ -110,6 +110,12 @@ class Monitor extends EventEmitter {
     if (this.state.buckets.some(bucket => bucket.id === id)) this.publish({ selectedId: id });
   }
 
+  async cancelLogin() {
+    if (this.loginId) await this.client.request('account/login/cancel', { loginId: this.loginId });
+    this.loginId = null;
+    this.publish({ status: this.state.account ? 'ready' : 'signed-out', error: null });
+  }
+
   stop() { this.stopped = true; clearTimeout(this.timer); this.client.stop(); }
 }
 

@@ -2,6 +2,11 @@
 (function (root) {
   const strings = {
     ru: {
+      accounts: 'Аккаунты', addAccount: '+ Добавить', inWidget: 'В виджете', useWidget: 'В виджет',
+      nickname: 'Имя в Limits', editAccount: 'Имя и подключение', save: 'Сохранить', removeAccount: 'Отключить', cancelLogin: 'Отменить вход',
+      accountsHint: 'В виджете — выбранный аккаунт. При добавлении выберите нужный аккаунт в браузере. Имя можно задать здесь.',
+      loginBusy: 'Завершите или отмените текущий вход перед подключением другого аккаунта.',
+      accountActionFailed: 'Не удалось изменить аккаунт. Попробуйте ещё раз.',
       short: 'Пятичасовой лимит', weekly: 'Недельный лимит', shortCompact: '5 ч', weeklyCompact: 'Неделя',
       connecting: 'Подключение', online: 'В сети', stale: 'Нет свежих данных', demo: 'ДЕМО',
       signingIn: 'Вход в браузере', signedOut: 'Нужен вход', account: 'Аккаунт Codex',
@@ -28,6 +33,11 @@
       refreshFailed: 'Не удалось получить лимиты. Проверьте интернет и вход в Codex. Повторяем автоматически.'
     },
     en: {
+      accounts: 'Accounts', addAccount: '+ Add', inWidget: 'In widget', useWidget: 'Use in widget',
+      nickname: 'Name in Limits', editAccount: 'Name and connection', save: 'Save', removeAccount: 'Disconnect', cancelLogin: 'Cancel sign-in',
+      accountsHint: 'The widget shows the selected account. Choose the right account in your browser when adding one. Set its name here.',
+      loginBusy: 'Complete or cancel the current sign-in before connecting another account.',
+      accountActionFailed: 'Could not update the account. Try again.',
       short: 'Five-hour limit', weekly: 'Weekly limit', shortCompact: '5 h', weeklyCompact: 'Week',
       connecting: 'Connecting', online: 'Online', stale: 'Data is out of date', demo: 'DEMO',
       signingIn: 'Signing in via browser', signedOut: 'Sign-in required', account: 'Codex account',

@@ -5,10 +5,11 @@ const { format } = require('../renderer/countdown.js');
 
 // Stable GUIDs let Windows keep icon visibility preferences across mode switches.
 const ids = { app: 'd46fa280-e375-4eaf-ae9e-e645c94ff7cb', short: 'b577427c-28cc-493a-8f24-a76e440ff62c', weekly: '1c682035-fb71-4ffd-99f1-a088946a6b35' };
-function tooltip(kind, { bucket, account, language = 'ru', stale, demo }, now = Date.now()) {
+function tooltip(kind, { bucket, account, displayName, language = 'ru', stale, demo }, now = Date.now()) {
   const quota = bucket?.[kind];
   const value = percentage(quota?.remaining);
   const lines = [`Limits · ${t(language, kind)}`, account?.email || t(language, 'connectAccount')];
+  if (displayName && displayName !== account?.email) lines.splice(1, 0, displayName);
   if (account?.planType) lines.push(`${bucket?.name || 'Codex'} · ${account.planType}`);
   lines.push(value === null ? t(language, 'noData') : `${quota.remaining}%`);
   if (Number.isFinite(quota?.resetsAt) && quota.resetsAt > 0 && quota.resetsAt < 8640000000000) {
@@ -25,7 +26,7 @@ class TrayPresentation {
     this.mode = null;
     this.entries = [];
   }
-  update({ mode, bucket, stale, dark = true, account, language, demo, menu }) {
+  update({ mode, bucket, stale, dark = true, account, displayName, language, demo, menu }) {
     if (this.mode !== mode) {
       const old = this.entries;
       this.entries = (mode === 'tray' ? ['short', 'weekly'] : ['app']).map(kind => {
@@ -46,7 +47,7 @@ class TrayPresentation {
         tray.setImage(entry.image);
         entry.signature = signature;
       }
-      const title = kind === 'app' ? t(language, 'tooltip') : tooltip(kind, { bucket, stale, account, language, demo });
+      const title = kind === 'app' ? t(language, 'tooltip') : tooltip(kind, { bucket, stale, account, displayName, language, demo });
       if (title !== entry.tooltip) { tray.setToolTip(title); entry.tooltip = title; }
       if (menuSignature !== entry.menuSignature) {
         tray.setContextMenu(this.Menu.buildFromTemplate(menu));

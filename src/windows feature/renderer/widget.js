@@ -11,7 +11,7 @@ function render(next) {
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > 90000;
   document.body.classList.toggle('stale', Boolean(stale));
   document.body.classList.toggle('low', !stale && [bucket?.short?.remaining, bucket?.weekly?.remaining].some(n => typeof n === 'number' && n <= 10));
-  setText($('widget-account'), next.account?.email || t('connectAccount'));
+  setText($('widget-account'), next.displayName || next.account?.email || t('connectAccount'));
   $('widget-account').title = next.account?.email || t('login');
   setText($('widget-plan'), next.demo ? t('demo') : `Codex${next.account?.planType ? ` · ${next.account.planType}` : ''}`);
   for (const kind of ['short', 'weekly']) {

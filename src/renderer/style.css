@@ -1,7 +1,7 @@
 :root { color-scheme: dark; font-family: 'Segoe UI', system-ui, sans-serif; }
 * { box-sizing: border-box; }
 body { margin: 0; color: #eee; background: #000; font-size: 12px; border: 1px solid #262626; }
-button, select { font: inherit; }
+button, select, input { font: inherit; }
 button { cursor: pointer; }
 button:disabled { opacity: .4; cursor: default; }
 button:focus-visible, select:focus-visible { outline: 1px solid white; outline-offset: 2px; }
@@ -41,3 +41,22 @@ select { flex: 1; min-width: 0; background: #111; border: 1px solid #333; border
 .other { margin-top: 8px; color: #999; font-size: 10px; }
 .display-settings { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 10px; }
 .display-settings select { font-size: 10px; }
+.accounts-section { border-top: 1px solid #202020; margin-top: 12px; padding-top: 10px; }
+.accounts-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.profile-card { border: 1px solid #262626; border-radius: 6px; padding: 9px; margin-top: 6px; }
+.profile-card.selected { border-color: #666; }
+.profile-heading { display: flex; align-items: center; gap: 8px; }
+.profile-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.profile-select, .profile-action { background: #111; color: #ccc; border: 1px solid #333; border-radius: 4px; padding: 4px 6px; font-size: 10px; }
+.profile-status { font-size: 9px; color: #999; margin-top: 4px; }
+.profile-quotas { margin: 8px 0; }
+.profile-quota { display: grid; grid-template-columns: 60px 1fr 32px; align-items: center; gap: 8px; margin-top: 6px; font-size: 10px; }
+.profile-quota span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.profile-quota time { margin-left: 4px; color: #aaa; font-size: 9px; }
+.profile-card.stale progress::-webkit-progress-value { background: #888; }
+.profile-card.fresh progress::-webkit-progress-value { background: #eee; }
+.profile-edit { margin-top: 8px; color: #999; font-size: 10px; }
+.profile-edit summary { cursor: pointer; }
+.profile-editor { display: flex; gap: 6px; margin-top: 6px; }
+.profile-editor input { min-width: 0; width: 100%; background: #111; color: #eee; border: 1px solid #333; border-radius: 4px; padding: 4px 6px; }
+.profile-buttons { display: flex; gap: 6px; margin-top: 6px; }

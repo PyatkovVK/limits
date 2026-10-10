@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const { findCodex } = require('./codex-path.cjs');
 const { CodexClient } = require('./codex-client.cjs');
 const { Monitor } = require('./monitor.cjs');
+const { Accounts } = require('./accounts.cjs');
 const { selectedBucket, isStale } = require('./limits.cjs');
 const { widgetBounds } = require('./windows feature/taskbar.cjs');
 const { TaskbarWidget, taskbarHelperPath } = require('./windows feature/widget.cjs');
@@ -80,7 +81,7 @@ function update() {
   if (quitting || !window || window.isDestroyed()) return;
   const bucket = selectedBucket(state);
   const stale = isStale(state);
-  trayPresentation?.update({ mode: widgetSettings.displayMode, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, language: widgetSettings.language, demo, menu: [
+  trayPresentation?.update({ mode: widgetSettings.displayMode, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: [
       { label: t('details'), click: showPanel },
       displayModeMenu(),
       { label: t('showWidget'), type: 'checkbox', checked: widgetSettings.visible, enabled: widgetSettings.displayMode === 'widget', click: item => { widgetSettings.visible = item.checked; saveWidgetSettings(); placeWidget(); } },
@@ -95,7 +96,7 @@ function update() {
     const value = bucket?.[kind]?.remaining ?? null;
     const label = t(kind === 'short' ? 'shortCompact' : 'weeklyCompact');
     if (!demo && !smoke && !stale && value !== null && value <= 10) {
-      const key = `${bucket.id}:${kind}:${bucket[kind].resetsAt}`;
+      const key = `${state.selectedProfileId}:${bucket.id}:${kind}:${bucket[kind].resetsAt}`;
       if (!notified.has(key)) {
         notified.add(key);
         if (notified.size > 100) notified = new Set([key]);
@@ -156,7 +157,7 @@ async function setup() {
     const width = saved.layoutVersion !== 1 && saved.width === 320 ? 280 : saved.width;
     widgetSettings = { visible: saved.visible !== false, width: [240, 280, 320, 400].includes(width) ? width : 280, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language, layoutVersion: 1, displayMode: saved.displayMode === 'tray' ? 'tray' : 'widget' };
   } catch { /* Defaults on first launch. */ }
-  window = new BrowserWindow({ width: 440, height: Math.min(360, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', autoHideMenuBar: true, webPreferences });
+  window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
   trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', 'app.ico')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
@@ -169,29 +170,52 @@ async function setup() {
   handle('limits:display-mode', setDisplayMode);
   handle('limits:hide', () => window.hide());
   handle('limits:quit', () => app.quit());
-  handle('limits:login', async () => {
-    if (!monitor) return { error: 'loginUnavailable' };
+  async function openLogin(id) {
+    if (!monitor || demo) return { error: 'loginUnavailable' };
     try {
-      const authUrl = await monitor.login();
+      const authUrl = await monitor.login(id);
       const url = new URL(authUrl);
       if (url.protocol !== 'https:' || !['auth.openai.com', 'auth.chatgpt.com', 'chatgpt.com'].includes(url.hostname)) throw new Error('Unexpected login URL');
       await shell.openExternal(url.href);
       return {};
-    } catch { return { error: 'loginFailed' }; }
+    } catch (error) {
+      if (error.code !== 'loginBusy') await monitor.cancelLogin(id || monitor.selectedProfileId).catch(() => {});
+      return { error: error.code === 'loginBusy' ? 'loginBusy' : 'loginFailed' };
+    }
+  }
+  handle('limits:login', openLogin);
+  handle('limits:profile-add', async () => {
+    if (!monitor || demo) return { error: 'loginUnavailable' };
+    if (monitor.loginActive) return { error: 'loginBusy' };
+    try { return await openLogin(monitor.add()); } catch { return { error: 'accountActionFailed' }; }
+  });
+  handle('limits:profile-action', async (action, id, value) => {
+    if (!monitor || typeof id !== 'string') return { error: 'accountActionFailed' };
+    try {
+      if (action === 'select') monitor.selectProfile(id);
+      else if (action === 'rename' && typeof value === 'string') monitor.rename(id, value);
+      else if (action === 'remove' && !demo) await monitor.remove(id);
+      else if (action === 'cancel' && !demo) await monitor.cancelLogin(id);
+      else return { error: 'accountActionFailed' };
+      return {};
+    } catch { return { error: 'accountActionFailed' }; }
   });
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   await createWidget();
-  if (demo) {
-    const now = Math.floor(Date.now() / 1000);
-    state = { ...state, demo: true, status: 'ready', account: { type: 'chatgpt', email: 'demo@example.com', planType: 'plus' }, updatedAt: Date.now(), buckets: [{ id: 'codex', name: 'Codex', short: { remaining: 72, used: 28, resetsAt: now + 8340 }, weekly: { remaining: 46, used: 54, resetsAt: now + 345600 }, other: [] }] };
-  } else {
-    try {
-      monitor = new Monitor(new CodexClient(findCodex({ resourcesPath: app.isPackaged ? process.resourcesPath : null })));
+  try {
+      const root = app.getPath('userData');
+      if (demo) {
+        const { DemoMonitor } = require('./demo-monitor.cjs');
+        monitor = new Accounts({ root, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
+      } else {
+        const binary = findCodex({ resourcesPath: app.isPackaged ? process.resourcesPath : null });
+        monitor = new Accounts({ root, createMonitor: (_profile, options) => new Monitor(new CodexClient(binary, options)) });
+      }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
-      monitor.on('state', next => { state = { ...next, demo: false }; update(); });
+      monitor.on('state', next => { state = { ...next, demo }; update(); });
+      state = { ...monitor.snapshot(), demo };
       void monitor.refresh();
-    } catch { state = { ...state, status: 'error', error: 'codexMissing' }; }
-  }
+  } catch { state = { ...state, status: 'error', error: 'codexMissing' }; }
   update();
   tick = setInterval(update, 15000);
   powerMonitor.on('resume', () => void monitor?.refresh());
@@ -306,6 +330,24 @@ async function setup() {
         displayModes.push({ language, trayIcons: currentTrays.length, clickOpensPanel: true, saved: true, widgetRestored: true });
       }
       setLanguage(originalLanguage);
+      const accountChecks = { profiles: state.profiles.length };
+      if (demo) {
+        const work = state.profiles[1].id;
+        await window.webContents.executeJavaScript(`window.limits.accountAction('select', '${work}').then(() => window.limits.get()).then(render)`);
+        await widget.webContents.executeJavaScript('window.limits.get().then(render)');
+        const workValues = await widget.webContents.executeJavaScript(`['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent)`);
+        if (workValues.join(',') !== '38,81') throw new Error('Switching account did not update the widget.');
+        setDisplayMode('tray');
+        if (!trayPresentation.entries.every(entry => entry.tooltip.includes('work@example.com'))) throw new Error('Tray did not switch accounts.');
+        await window.webContents.executeJavaScript(`window.limits.accountAction('rename', 'default', 'Sam').then(() => window.limits.accountAction('rename', '${work}', 'Sam')).then(() => window.limits.get()).then(render)`);
+        await widget.webContents.executeJavaScript('window.limits.get().then(render)');
+        const names = await window.webContents.executeJavaScript(`[...document.querySelectorAll('.profile-name')].map(el => el.textContent)`);
+        if (names.join('|') !== 'Sam (demo@example.com)|Sam (work@example.com)') throw new Error('Duplicate nicknames were not disambiguated.');
+        accountChecks.switched = true; accountChecks.names = names;
+        fs.writeFileSync(path.join(dir, 'panel-multiple-accounts.png'), (await window.webContents.capturePage()).toPNG());
+        await window.webContents.executeJavaScript(`window.limits.accountAction('rename', 'default', 'Personal').then(() => window.limits.accountAction('rename', '${work}', 'Work')).then(() => window.limits.accountAction('select', 'default')).then(() => window.limits.get()).then(render)`);
+        setDisplayMode('widget');
+      }
       if (process.argv.includes('--smoke-stability')) {
         const until = Date.now() + 65000;
         while (Date.now() < until) {
@@ -315,7 +357,7 @@ async function setup() {
       }
       setDisplayMode(originalMode);
       widgetSettings.visible = originalVisibility; placeWidget();
-      const completedReport = { ...report, widget: widgetReport, languages, displayModes, maximizedFullscreen: maximized.fullscreen, zorder, recovered, placementChanges: placement.changes, bounds: widget.getBounds(), taskbar: taskbarMetrics.bar };
+      const completedReport = { ...report, widget: widgetReport, languages, displayModes, accountChecks, maximizedFullscreen: maximized.fullscreen, zorder, recovered, placementChanges: placement.changes, bounds: widget.getBounds(), taskbar: taskbarMetrics.bar };
       fs.writeFileSync(path.join(dir, `${name}-smoke.json`), JSON.stringify(completedReport, null, 2));
       console.log('SMOKE_OK', JSON.stringify(completedReport));
       app.quit();
