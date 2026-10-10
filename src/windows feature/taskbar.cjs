@@ -3,7 +3,7 @@ const { spawn } = require('node:child_process');
 const { createInterface } = require('node:readline');
 const { EventEmitter } = require('node:events');
 
-function widgetBounds(metrics, { width = 320, xRatio = null } = {}) {
+function widgetBounds(metrics, { width = 280, xRatio = null } = {}) {
   if (!metrics?.available || !metrics.visible || metrics.fullscreen) return null;
   const bar = metrics.bar;
   if (bar.height > bar.width || bar.height < 30) return null;
@@ -87,4 +87,32 @@ class TaskbarProbe extends EventEmitter {
     this.finish({ available: false });
   }
 }
-module.exports = { TaskbarProbe, widgetBounds };
+
+// Cache both the requested and accepted bounds: Windows may clamp a frameless
+// window's height. Repeating that rejected resize on every poll causes flashing.
+class WidgetPlacement {
+  constructor(window) {
+    this.window = window;
+    this.requested = null;
+    this.actual = null;
+    this.changes = { bounds: 0, shows: 0, hides: 0 };
+  }
+  apply(metrics, settings) {
+    const target = this.window;
+    if (target.isDestroyed()) return;
+    const bounds = settings.visible ? widgetBounds(metrics, settings) : null;
+    if (!bounds) {
+      if (target.isVisible()) { target.hide(); this.changes.hides++; }
+      return;
+    }
+    const equal = (a, b) => a && b && ['x', 'y', 'width', 'height'].every(key => a[key] === b[key]);
+    if (!equal(this.requested, bounds) || !equal(this.actual, target.getBounds())) {
+      target.setBounds(bounds);
+      this.requested = bounds;
+      this.actual = target.getBounds();
+      this.changes.bounds++;
+    }
+    if (!target.isVisible()) { target.showInactive(); this.changes.shows++; }
+  }
+}
+module.exports = { TaskbarProbe, widgetBounds, WidgetPlacement };

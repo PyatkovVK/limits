@@ -2,6 +2,11 @@
 const $ = id => document.getElementById(id);
 let state = null;
 let actionError = null;
+function renderCountdown() {
+  if (!state) return;
+  const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets.find(item => item.id === 'codex') || state.buckets[0];
+  window.limitsCountdown.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
+}
 
 function render(next) {
   state = next;
@@ -9,6 +14,8 @@ function render(next) {
   const t = key => window.limitsI18n.t(language, key);
   window.limitsI18n.apply(language, document);
   $('language').value = language;
+  $('display-mode').value = next.displayMode || 'widget';
+  $('display-hint').textContent = t(next.displayMode === 'tray' ? 'trayFootnote' : 'footnote');
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > 90000;
   const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets.find(item => item.id === 'codex') || next.buckets[0];
   document.body.classList.toggle('stale', Boolean(stale));
@@ -46,6 +53,7 @@ function render(next) {
   $('login').disabled = next.demo || next.status === 'signing-in' || next.refreshing;
   $('login').textContent = t(next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : 'login');
   $('updated').textContent = next.updatedAt ? `${t('updated')} ${new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('waiting');
+  renderCountdown();
 }
 
 $('hide').addEventListener('click', () => window.limits.hide());
@@ -58,5 +66,7 @@ $('login').addEventListener('click', async () => {
 });
 $('bucket').addEventListener('change', () => window.limits.select($('bucket').value));
 $('language').addEventListener('change', async () => { render(await window.limits.language($('language').value)); });
+$('display-mode').addEventListener('change', async () => { render(await window.limits.displayMode($('display-mode').value)); });
 window.limits.subscribe(render);
 window.renderReady = window.limits.get().then(render);
+setInterval(renderCountdown, 1000);

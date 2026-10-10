@@ -4,7 +4,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 if (process.platform === 'win32') {
   const source = path.resolve(__dirname, '../native/TaskbarProbe.cs');
-  const output = path.resolve(__dirname, '../build/taskbar-helper.exe');
+  const output = path.resolve(__dirname, '../../../build/taskbar-helper.exe');
   const compiler = path.join(process.env.WINDIR || 'C:\\Windows', 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe');
   if (!fs.existsSync(compiler)) throw new Error('Windows .NET Framework C# compiler is missing.');
   if (!fs.existsSync(output) || fs.statSync(source).mtimeMs > fs.statSync(output).mtimeMs) {

@@ -12,11 +12,14 @@
       demoNotice: 'Демо · показаны примерные данные', bucket: 'Лимит', language: 'Язык',
       showWidget: 'Показывать блок на панели задач', resetPosition: 'Вернуть блок к системному трею',
       width: 'Ширина блока', startup: 'Запускать при входе в Windows', quit: 'Выйти из приложения',
-      tooltip: 'Codex Limits · панель задач', lowTitle: 'Codex: лимит заканчивается',
+      displayMode: 'Отображение', widgetMode: 'Виджет на панели задач', trayMode: 'Два значка в трее',
+      trayFootnote: 'Наведите на значок для подробностей. Нажмите, чтобы открыть лимиты.', resetsAt: 'Сброс',
+      tooltip: 'Limits · панель задач', lowTitle: 'Codex: лимит заканчивается',
       unsupported: 'Лимиты подписки доступны при входе через ChatGPT. Сейчас используется другой способ авторизации.',
       noLimits: 'Сервис пока не вернул данные о лимитах.', cached: 'Показаны последние полученные данные. Ожидаем обновление.',
       waiting: 'Ожидаем данные', updated: 'Обновлено в', noData: 'нет данных', minutes: 'мин',
-      codexMissing: 'Не найден Codex. Установите приложение Codex или Codex CLI, затем перезапустите Codex Limits.',
+      resetIn: 'До сброса', hoursMinutes: 'ч:мин', resetUnknown: 'Время сброса пока неизвестно', resetPending: 'Ожидаем подтверждения сброса от сервера',
+      codexMissing: 'Не найден Codex. Установите приложение Codex или Codex CLI, затем перезапустите Limits.',
       taskbarMissing: 'Панель задач временно недоступна. Восстанавливаем виджет.',
       loginUnavailable: 'Codex недоступен. Установите Codex и перезапустите приложение.',
       loginFailed: 'Не удалось открыть вход. Проверьте Codex и попробуйте ещё раз.',
@@ -35,11 +38,14 @@
       demoNotice: 'Demo · sample data', bucket: 'Limit', language: 'Language',
       showWidget: 'Show widget on taskbar', resetPosition: 'Move widget back beside the tray',
       width: 'Widget width', startup: 'Launch at Windows sign-in', quit: 'Quit application',
-      tooltip: 'Codex Limits · taskbar', lowTitle: 'Codex: limit running low',
+      displayMode: 'Display', widgetMode: 'Taskbar widget', trayMode: 'Two tray icons',
+      trayFootnote: 'Hover over an icon for details. Click to open your limits.', resetsAt: 'Resets at',
+      tooltip: 'Limits · taskbar', lowTitle: 'Codex: limit running low',
       unsupported: 'Subscription limits require ChatGPT sign-in. Codex currently uses another authentication method.',
       noLimits: 'The service has not returned limit data yet.', cached: 'Showing the last received data. Waiting for an update.',
       waiting: 'Waiting for data', updated: 'Updated at', noData: 'no data', minutes: 'min',
-      codexMissing: 'Codex was not found. Install the Codex app or Codex CLI, then restart Codex Limits.',
+      resetIn: 'Resets in', hoursMinutes: 'h:min', resetUnknown: 'Reset time is not available yet', resetPending: 'Waiting for the server to confirm the reset',
+      codexMissing: 'Codex was not found. Install the Codex app or Codex CLI, then restart Limits.',
       taskbarMissing: 'The taskbar is temporarily unavailable. Restoring the widget.',
       loginUnavailable: 'Codex is unavailable. Install Codex and restart this application.',
       loginFailed: 'Could not open sign-in. Check Codex and try again.',
@@ -53,9 +59,9 @@
     t(language, key) { return (strings[language] || strings.ru)[key] || key; },
     apply(language, doc) {
       doc.documentElement.lang = language;
-      doc.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = api.t(language, el.dataset.i18n); });
-      doc.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = api.t(language, el.dataset.i18nTitle); });
-      doc.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', api.t(language, el.dataset.i18nAria)); });
+      doc.querySelectorAll('[data-i18n]').forEach(el => { const text = api.t(language, el.dataset.i18n); if (el.textContent !== text) el.textContent = text; });
+      doc.querySelectorAll('[data-i18n-title]').forEach(el => { const text = api.t(language, el.dataset.i18nTitle); if (el.title !== text) el.title = text; });
+      doc.querySelectorAll('[data-i18n-aria]').forEach(el => { const text = api.t(language, el.dataset.i18nAria); if (el.getAttribute('aria-label') !== text) el.setAttribute('aria-label', text); });
     }
   };
   if (typeof module === 'object' && module.exports) module.exports = api;

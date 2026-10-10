@@ -1,21 +1,21 @@
 {
   "name": "limits",
-  "version": "0.3.0",
-  "description": "Compact Codex subscription limits on the Windows taskbar",
-  "author": "Codex Limits contributors",
+  "version": "0.4.0",
+  "description": "Compact AI usage limits on the Windows taskbar",
+  "author": "Limits contributors",
   "license": "MIT",
   "main": "src/main.cjs",
   "scripts": {
     "start": "npm run prepare:app && electron .",
     "demo": "npm run prepare:app && electron . --demo",
-    "test": "node --test test/*.test.cjs",
+    "test": "node --test test/*.test.cjs \"src/windows feature/test/*.test.cjs\"",
     "doctor": "node scripts/doctor.cjs",
     "smoke": "npm run prepare:app && electron . --demo --smoke-test",
     "smoke:live": "npm run prepare:app && electron . --smoke-test",
-    "prepare:app": "node scripts/assets.cjs && node scripts/build-taskbar-helper.cjs",
-    "prepare:assets": "node scripts/assets.cjs",
-    "build:win": "node scripts/build-windows.cjs",
-    "build:win:standalone": "node scripts/build-windows.cjs --standalone"
+    "prepare:app": "node \"src/windows feature/scripts/assets.cjs\" && node \"src/windows feature/scripts/build-taskbar-helper.cjs\"",
+    "prepare:assets": "node \"src/windows feature/scripts/assets.cjs\"",
+    "build:win": "node \"src/windows feature/scripts/build-windows.cjs\"",
+    "build:win:standalone": "node \"src/windows feature/scripts/build-windows.cjs\" --standalone"
   },
   "devDependencies": {
     "@openai/codex": "0.162.1",
@@ -25,9 +25,9 @@
   "overrides": { "sprintf-js": "1.1.4" },
   "build": {
     "appId": "dev.codexlimits.desktop",
-    "productName": "Codex Limits",
+    "productName": "Limits",
     "directories": { "output": "release" },
-    "files": ["src/**/*", "assets/app.ico", "package.json", "LICENSE", "!node_modules/**/*"],
+    "files": ["src/**/*", "!src/windows feature/native/**/*", "!src/windows feature/scripts/**/*", "!src/windows feature/test/**/*", "!src/windows feature/README.md", "assets/app.ico", "package.json", "LICENSE", "!node_modules/**/*"],
     "extraResources": [
       { "from": "build/taskbar-helper.exe", "to": "taskbar-helper.exe" },
       { "from": "THIRD-PARTY-NOTICES.md", "to": "THIRD-PARTY-NOTICES.md" }
@@ -35,7 +35,7 @@
     "win": { "target": ["portable", "nsis"], "icon": "assets/app.ico", "signExecutable": false },
     "electronLanguages": ["en-US", "ru"],
     "compression": "maximum",
-    "nsis": { "oneClick": false, "perMachine": false, "allowElevation": false, "allowToChangeInstallationDirectory": true, "include": "native/installer.nsh", "installerLanguages": ["en_US", "ru_RU"], "displayLanguageSelector": true, "artifactName": "Codex-Limits-Setup-${version}.${ext}" },
-    "portable": { "artifactName": "Codex-Limits-${version}-portable.${ext}" }
+    "nsis": { "oneClick": false, "perMachine": false, "allowElevation": false, "allowToChangeInstallationDirectory": true, "include": "src/windows feature/native/installer.nsh", "installerLanguages": ["en_US", "ru_RU"], "displayLanguageSelector": true, "artifactName": "Limits-Setup-${version}.${ext}" },
+    "portable": { "artifactName": "Limits-${version}-portable.${ext}" }
   }
 }

@@ -1,34 +1,38 @@
 'use strict';
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, powerMonitor, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { findCodex } = require('./codex-path.cjs');
 const { CodexClient } = require('./codex-client.cjs');
 const { Monitor } = require('./monitor.cjs');
 const { selectedBucket, isStale } = require('./limits.cjs');
-const { TaskbarProbe, widgetBounds } = require('./taskbar.cjs');
+const { widgetBounds } = require('./windows feature/taskbar.cjs');
+const { TaskbarWidget, taskbarHelperPath } = require('./windows feature/widget.cjs');
+const { TrayPresentation } = require('./windows feature/tray.cjs');
 const { t: translate } = require('./renderer/i18n.js');
 
 const demo = process.argv.includes('--demo');
 const smoke = process.argv.includes('--smoke-test');
-const artifactRoot = path.join(app.isPackaged ? process.cwd() : path.join(__dirname, '..'), 'artifacts');
-if (smoke) app.disableHardwareAcceleration();
+const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '..'), 'artifacts');
+if (smoke && !process.argv.includes('--smoke-gpu')) app.disableHardwareAcceleration();
 if (smoke) app.setPath('userData', path.join(artifactRoot, 'smoke-profile'));
 else if (demo) app.setPath('userData', path.join(app.getPath('appData'), 'Codex Limits Demo'));
-app.setName('Codex Limits');
+// Keep the existing settings and Windows upgrade identity across the rename.
+else app.setPath('userData', path.join(app.getPath('appData'), 'Codex Limits'));
+app.setName('Limits');
 app.setAppUserModelId('dev.codexlimits.desktop');
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let window, widget, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trays = [], quitting = false, tick, saveTimer;
-let widgetSettings = { visible: true, width: 320, xRatio: null, language: 'ru' };
+let window, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
+let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: 'widget' };
 const t = key => translate(widgetSettings.language, key);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: 30, demo };
 let notified = new Set();
 
-function showPanel() {
+function showPanel(anchor) {
   if (!window || window.isDestroyed()) return;
-  const bounds = widget?.isVisible() ? widget.getBounds() : trays[0]?.getBounds();
+  const bounds = anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
   const display = bounds?.width ? screen.getDisplayMatching(bounds) : screen.getPrimaryDisplay();
   const area = display.workArea;
   const [width, height] = window.getSize();
@@ -38,7 +42,7 @@ function showPanel() {
   window.show(); window.focus();
 }
 
-function publicState() { return { ...state, language: widgetSettings.language, stale: isStale(state), widgetError: taskbarUnavailable ? 'taskbarMissing' : null }; }
+function publicState() { return { ...state, language: widgetSettings.language, displayMode: widgetSettings.displayMode, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null }; }
 function persistWidgetSettings() {
   const target = path.join(app.getPath('userData'), 'widget-settings.json');
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -49,15 +53,7 @@ function saveWidgetSettings() {
   saveTimer = setTimeout(persistWidgetSettings, 200);
 }
 function placeWidget() {
-  if (!widget || widget.isDestroyed()) return;
-  const bounds = widgetSettings.visible ? widgetBounds(taskbarMetrics, widgetSettings) : null;
-  if (!bounds) { widget.hide(); return; }
-  const current = widget.getBounds();
-  if (Object.keys(bounds).some(key => current[key] !== bounds[key])) widget.setBounds(bounds);
-  if (!widget.isVisible()) widget.showInactive();
-  // Explorer can promote the taskbar in the topmost group. Restore our z-order without taking focus.
-  widget.setAlwaysOnTop(true, 'screen-saver');
-  widget.moveTop();
+  placement?.apply(taskbarMetrics, { ...widgetSettings, visible: widgetSettings.visible && widgetSettings.displayMode === 'widget' });
 }
 function resetWidget() { widgetSettings.xRatio = null; widgetSettings.visible = true; saveWidgetSettings(); placeWidget(); update(); }
 function setLanguage(language) {
@@ -65,6 +61,16 @@ function setLanguage(language) {
   widgetSettings.language = language;
   saveWidgetSettings(); update();
   return publicState();
+}
+function setDisplayMode(mode) {
+  if (!['widget', 'tray'].includes(mode)) return publicState();
+  widgetSettings.displayMode = mode;
+  if (mode === 'widget') widgetSettings.visible = true;
+  saveWidgetSettings(); placeWidget(); update();
+  return publicState();
+}
+function displayModeMenu() {
+  return { label: t('displayMode'), submenu: ['widget', 'tray'].map(mode => ({ label: t(mode === 'widget' ? 'widgetMode' : 'trayMode'), type: 'radio', checked: widgetSettings.displayMode === mode, click: () => setDisplayMode(mode) })) };
 }
 function languageMenu() {
   return { label: t('language'), submenu: ['ru', 'en'].map(language => ({ label: language === 'ru' ? 'Русский' : 'English', type: 'radio', checked: widgetSettings.language === language, click: () => setLanguage(language) })) };
@@ -74,19 +80,17 @@ function update() {
   if (quitting || !window || window.isDestroyed()) return;
   const bucket = selectedBucket(state);
   const stale = isStale(state);
-  trays.forEach(tray => {
-    tray.setToolTip(t('tooltip'));
-    tray.setContextMenu(Menu.buildFromTemplate([
+  trayPresentation?.update({ mode: widgetSettings.displayMode, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, language: widgetSettings.language, demo, menu: [
       { label: t('details'), click: showPanel },
-      { label: t('showWidget'), type: 'checkbox', checked: widgetSettings.visible, click: item => { widgetSettings.visible = item.checked; saveWidgetSettings(); placeWidget(); } },
-      { label: t('resetPosition'), click: resetWidget },
+      displayModeMenu(),
+      { label: t('showWidget'), type: 'checkbox', checked: widgetSettings.visible, enabled: widgetSettings.displayMode === 'widget', click: item => { widgetSettings.visible = item.checked; saveWidgetSettings(); placeWidget(); } },
+      { label: t('resetPosition'), enabled: widgetSettings.displayMode === 'widget', click: resetWidget },
       { label: t('refresh'), enabled: !demo && !state.refreshing, click: () => void monitor?.refresh() },
       languageMenu(),
       { type: 'separator' },
       { label: t('startup'), type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin, enabled: app.isPackaged && process.platform === 'win32' && !process.env.PORTABLE_EXECUTABLE_FILE && !smoke, click: item => app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--hidden'] }) },
       { label: t('quit'), click: () => app.quit() }
-    ]));
-  });
+    ] });
   for (const kind of ['short', 'weekly']) {
     const value = bucket?.[kind]?.remaining ?? null;
     const label = t(kind === 'short' ? 'shortCompact' : 'weeklyCompact');
@@ -105,47 +109,64 @@ function update() {
 function trusted(event) { return [window, widget].some(target => target && event.sender === target.webContents && event.senderFrame === target.webContents.mainFrame); }
 function handle(channel, fn) { ipcMain.handle(channel, (event, ...args) => { if (!trusted(event)) throw new Error('Unauthorized'); return fn(...args); }); }
 
+const webPreferences = { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true };
+const helperPath = taskbarHelperPath(app.isPackaged ? process.resourcesPath : null);
+function restrictWindow(target) {
+  target.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  target.webContents.on('will-navigate', event => event.preventDefault());
+  target.webContents.on('will-attach-webview', event => event.preventDefault());
+}
+function nativeHandleId(target) {
+  const handle = target.getNativeWindowHandle();
+  return handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
+}
+async function createWidget() {
+  widgetHost = new TaskbarWidget({ BrowserWindow, Menu, webPreferences, restrictWindow, getSettings: () => widgetSettings, resourcesPath: app.isPackaged ? process.resourcesPath : null, onMove: bounds => {
+    if (!taskbarMetrics?.bar) return;
+    widgetSettings.xRatio = (bounds.x - taskbarMetrics.bar.x) / taskbarMetrics.bar.width;
+    saveWidgetSettings(); placeWidget();
+  }, getMenu: () => [
+    { label: t('details'), click: showPanel },
+    displayModeMenu(),
+    { label: t('refresh'), enabled: !demo, click: () => void monitor?.refresh() },
+    { label: t('resetPosition'), click: resetWidget },
+    { label: t('width'), submenu: [240, 280, 320, 400].map(width => ({ label: `${width} px`, type: 'radio', checked: width === widgetSettings.width, click: () => { widgetSettings.width = width; saveWidgetSettings(); placeWidget(); } })) },
+    languageMenu(),
+    { type: 'separator' },
+    { label: t('quit'), click: () => app.quit() }
+  ] });
+  widgetHost.on('window', (created, createdPlacement) => { widget = created; placement = createdPlacement; });
+  widgetHost.on('probe', createdProbe => { probe = createdProbe; });
+  widgetHost.on('failure', error => console.error(error.message));
+  widgetHost.on('ready', update);
+  widgetHost.on('metrics', metrics => {
+    const availabilityChanged = taskbarUnavailable !== !metrics.available;
+    taskbarUnavailable = !metrics.available;
+    if (metrics.available) taskbarMetrics = { ...metrics, bar: screen.screenToDipRect(null, metrics.bar), tray: metrics.tray ? screen.screenToDipRect(null, metrics.tray) : null };
+    placeWidget();
+    if (availabilityChanged) update();
+  });
+  await widgetHost.start();
+}
+
 async function setup() {
   widgetSettings.language = app.getLocale().startsWith('ru') ? 'ru' : 'en';
   try {
     const saved = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget-settings.json'), 'utf8'));
-    widgetSettings = { visible: saved.visible !== false, width: [280, 320, 400].includes(saved.width) ? saved.width : 320, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language };
+    const width = saved.layoutVersion !== 1 && saved.width === 320 ? 280 : saved.width;
+    widgetSettings = { visible: saved.visible !== false, width: [240, 280, 320, 400].includes(width) ? width : 280, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language, layoutVersion: 1, displayMode: saved.displayMode === 'tray' ? 'tray' : 'widget' };
   } catch { /* Defaults on first launch. */ }
-  const webPreferences = { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true };
-  window = new BrowserWindow({ width: 440, height: Math.min(300, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', autoHideMenuBar: true, webPreferences });
-  widget = new BrowserWindow({ width: 320, height: 34, minHeight: 28, resizable: false, frame: false, thickFrame: false, show: false, skipTaskbar: true, focusable: false, alwaysOnTop: true, transparent: true, hasShadow: false, webPreferences });
-  widget.setAlwaysOnTop(true, 'screen-saver');
-  for (const target of [widget, window]) {
-    target.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-    target.webContents.on('will-navigate', event => event.preventDefault());
-    target.webContents.on('will-attach-webview', event => event.preventDefault());
-  }
-  widget.on('will-move', (event, bounds) => {
-    if (!taskbarMetrics?.bar) return;
-    event.preventDefault();
-    widgetSettings.xRatio = (bounds.x - taskbarMetrics.bar.x) / taskbarMetrics.bar.width;
-    saveWidgetSettings(); placeWidget();
-  });
-  widget.webContents.on('context-menu', () => Menu.buildFromTemplate([
-    { label: t('details'), click: showPanel },
-    { label: t('refresh'), enabled: !demo, click: () => void monitor?.refresh() },
-    { label: t('resetPosition'), click: resetWidget },
-    { label: t('width'), submenu: [280, 320, 400].map(width => ({ label: `${width} px`, type: 'radio', checked: width === widgetSettings.width, click: () => { widgetSettings.width = width; saveWidgetSettings(); placeWidget(); } })) },
-    languageMenu(),
-    { type: 'separator' },
-    { label: t('quit'), click: () => app.quit() }
-  ]).popup({ window: widget }));
+  window = new BrowserWindow({ width: 440, height: Math.min(360, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', autoHideMenuBar: true, webPreferences });
+  restrictWindow(window);
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
-  {
-    const tray = new Tray(nativeImage.createFromPath(path.join(__dirname, '..', 'assets', 'app.ico')).resize({ width: 16, height: 16 }));
-    tray.on('click', () => window.isVisible() ? window.hide() : showPanel());
-    trays.push(tray);
-  }
+  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', 'app.ico')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
+  nativeTheme.on('updated', update);
   handle('limits:get', publicState);
   handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
   handle('limits:open', showPanel);
   handle('limits:select', id => { if (typeof id === 'string') monitor?.select(id); });
   handle('limits:language', setLanguage);
+  handle('limits:display-mode', setDisplayMode);
   handle('limits:hide', () => window.hide());
   handle('limits:quit', () => app.quit());
   handle('limits:login', async () => {
@@ -158,17 +179,8 @@ async function setup() {
       return {};
     } catch { return { error: 'loginFailed' }; }
   });
-  await Promise.all([window.loadFile(path.join(__dirname, 'renderer', 'index.html')), widget.loadFile(path.join(__dirname, 'renderer', 'widget.html'))]);
-  const helperPath = app.isPackaged ? path.join(process.resourcesPath, 'taskbar-helper.exe') : path.join(__dirname, '..', 'build', 'taskbar-helper.exe');
-  probe = new TaskbarProbe(helperPath);
-  probe.on('metrics', metrics => {
-    taskbarUnavailable = !metrics.available;
-    // Keep the last known placement through a transient helper/Explorer failure.
-    if (metrics.available) taskbarMetrics = { ...metrics, bar: screen.screenToDipRect(null, metrics.bar), tray: metrics.tray ? screen.screenToDipRect(null, metrics.tray) : null };
-    placeWidget();
-    update();
-  });
-  await probe.start();
+  await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  await createWidget();
   if (demo) {
     const now = Math.floor(Date.now() / 1000);
     state = { ...state, demo: true, status: 'ready', account: { type: 'chatgpt', email: 'demo@example.com', planType: 'plus' }, updatedAt: Date.now(), buckets: [{ id: 'codex', name: 'Codex', short: { remaining: 72, used: 28, resetsAt: now + 8340 }, weekly: { remaining: 46, used: 54, resetsAt: now + 345600 }, other: [] }] };
@@ -186,6 +198,9 @@ async function setup() {
   if (smoke || !taskbarMetrics?.available) showPanel();
   if (smoke) {
     try {
+      const originalMode = widgetSettings.displayMode;
+      const originalVisibility = widgetSettings.visible;
+      setDisplayMode('widget');
       if (monitor) {
         await monitor.refresh();
         while (monitor.inflight) await monitor.inflight;
@@ -195,27 +210,28 @@ async function setup() {
       await widget.webContents.executeJavaScript('window.renderReady');
       await widget.webContents.executeJavaScript('window.limits.get().then(render)');
       const report = await window.webContents.executeJavaScript(`({ title: document.title, values: [...document.querySelectorAll('.remaining-value')].map(el => el.textContent), errorHidden: document.querySelector('#error').hidden, cards: document.querySelectorAll('.quota-card').length, isolated: typeof require === 'undefined' })`);
-      if ((demo ? report.values.join(',') !== '72,46' : state.status !== 'ready') || !report.errorHidden || report.cards !== 2 || !report.isolated) throw new Error(JSON.stringify({ ...report, status: state.status, auth: state.account?.type || null }));
+      if (report.title !== app.getName() || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready') || !report.errorHidden || report.cards !== 2 || !report.isolated) throw new Error(JSON.stringify({ ...report, status: state.status, auth: state.account?.type || null }));
       const widgetReport = await widget.webContents.executeJavaScript(`({ values: ['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent), accountVisible: !!document.getElementById('widget-account').textContent, bars: document.querySelectorAll('progress').length, isolated: typeof require === 'undefined', overflow: document.body.scrollWidth > innerWidth })`);
       if (!taskbarMetrics?.available || widgetReport.bars !== 2 || !widgetReport.accountVisible || !widgetReport.isolated || widgetReport.overflow || widgetReport.values.join(',') !== report.values.join(',')) throw new Error(JSON.stringify({ widgetReport, geometryAvailable: taskbarMetrics?.available }));
       const dir = artifactRoot;
       const name = demo ? 'panel' : 'panel-live';
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, `${name}-smoke.json`), JSON.stringify(report, null, 2));
       const originalLanguage = widgetSettings.language;
       const languages = [];
       for (const language of ['ru', 'en']) {
         await window.webContents.executeJavaScript(`window.limits.language('${language}').then(render)`);
         await widget.webContents.executeJavaScript('window.limits.get().then(render)');
-        const labels = await window.webContents.executeJavaScript(`({ language: document.documentElement.lang, short: document.querySelector('.short .period').textContent, refresh: document.getElementById('refresh').textContent, clean: !/До сброса|Осталось|каждые 30|Resets in|Remaining|every 30/.test(document.body.textContent) })`);
+        const labels = await window.webContents.executeJavaScript(`({ language: document.documentElement.lang, short: document.querySelector('.short [data-i18n="short"]').textContent, reset: document.getElementById('short-reset').textContent, refresh: document.getElementById('refresh').textContent, clean: !/До сброса|Осталось|каждые 30|Resets in|Remaining|every 30/.test(document.body.textContent) })`);
         if (labels.language !== language || labels.short !== translate(language, 'short') || labels.refresh !== translate(language, 'refresh') || !labels.clean) throw new Error(JSON.stringify(labels));
-        for (const width of [280, 320, 400]) {
+        const reset = await widget.webContents.executeJavaScript(`document.getElementById('short-reset').textContent`);
+        if (reset !== labels.reset || (demo && reset !== '2:19')) throw new Error('Short reset countdown is missing or inconsistent.');
+        for (const width of [240, 280, 320, 400]) {
           widgetSettings.width = width; placeWidget();
           await new Promise(resolve => setTimeout(resolve, 100));
           const layout = await widget.webContents.executeJavaScript(`({ language: document.documentElement.lang, overflow: document.body.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight, barWidths: [...document.querySelectorAll('progress')].map(el => el.getBoundingClientRect().width) })`);
           if (layout.language !== language || layout.overflow || layout.barWidths.some(width => width < 20)) throw new Error(JSON.stringify(layout));
         }
-        widgetSettings.width = 320; placeWidget();
+        widgetSettings.width = 280; placeWidget();
         await new Promise(resolve => setTimeout(resolve, 200));
         fs.writeFileSync(path.join(dir, `${name}-${language}.png`), (await window.webContents.capturePage()).toPNG());
         fs.writeFileSync(path.join(dir, `${name}-taskbar-${language}.png`), (await widget.webContents.capturePage()).toPNG());
@@ -232,14 +248,76 @@ async function setup() {
       const maximized = JSON.parse(result.stdout.trim());
       if (!maximized.available || maximized.fullscreen) throw new Error('Native probe classified a maximized window as fullscreen.');
       showPanel();
+      // Exercise Windows' owner ordering with our own simulated taskbar, without late repairs.
+      const simulatedTaskbar = new BrowserWindow({ width: 300, height: 40, show: false, focusable: false, frame: false, alwaysOnTop: true });
+      simulatedTaskbar.showInactive();
+      probe.stop();
+      const zorder = await new Promise((resolve, reject) => {
+        require('node:child_process').execFile(helperPath, ['--test-ownership', String(process.pid), nativeHandleId(widget), nativeHandleId(simulatedTaskbar)], { windowsHide: true, timeout: 5000 }, (error, stdout) => {
+          if (error) { reject(new Error('Native ownership ordering changed visibility, bounds or focus.')); return; }
+          try { resolve(JSON.parse(stdout.trim())); } catch (error) { reject(error); }
+        });
+      });
+      simulatedTaskbar.destroy();
+      await probe.start();
+      // Simulate repeated native taskbar observations, including Windows' clamped height.
+      const beforePlacement = { ...placement.changes };
+      for (let i = 0; i < 50; i++) placeWidget();
+      if (JSON.stringify(beforePlacement) !== JSON.stringify(placement.changes)) throw new Error('Repeated metrics changed the widget window.');
+      const retiredWidget = widget;
+      const simulatedOwner = new BrowserWindow({ width: 300, height: 40, show: false, focusable: false, frame: false, alwaysOnTop: true });
+      simulatedOwner.showInactive();
+      probe.stop();
+      await new Promise((resolve, reject) => {
+        require('node:child_process').execFile(helperPath, ['--test-owner-destroy', String(process.pid), nativeHandleId(widget), nativeHandleId(simulatedOwner)], { windowsHide: true, timeout: 5000 }, error => error ? reject(error) : resolve());
+      });
+      simulatedOwner.destroy();
+      const recoveryDeadline = Date.now() + 5000;
+      while (Date.now() < recoveryDeadline && (widget === retiredWidget || !widget?.isVisible() || !taskbarMetrics?.attached)) await new Promise(resolve => setTimeout(resolve, 50));
+      const recovered = retiredWidget.isDestroyed() && widget && widget !== retiredWidget && widget.isVisible() && taskbarMetrics?.attached;
+      if (!recovered) throw new Error('Widget did not recover after its native owner was destroyed.');
+      await widget.webContents.executeJavaScript('window.renderReady');
+      const recoveredValues = await widget.webContents.executeJavaScript(`['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent)`);
+      if (recoveredValues.join(',') !== report.values.join(',')) throw new Error('Recreated widget lost its account quotas.');
+      const displayModes = [];
+      for (const language of ['ru', 'en']) {
+        setLanguage(language);
+        await window.webContents.executeJavaScript(`window.limits.displayMode('tray').then(render)`);
+        if (widget.isVisible() || trayPresentation.entries.length !== 2) throw new Error('Tray mode did not replace the widget with two icons.');
+        const currentTrays = trayPresentation.entries.map(entry => entry.tray);
+        update();
+        if (currentTrays.some((tray, index) => trayPresentation.entries[index].tray !== tray)) throw new Error('Polling recreated tray icons.');
+        for (const entry of trayPresentation.entries) {
+          if (!entry.tooltip.includes(state.account.email) || !entry.tooltip.includes(translate(language, entry.kind))) throw new Error('Quota tray tooltip is incomplete.');
+          if (entry.image.isEmpty() || entry.image.getSize().width !== 16) throw new Error('Quota tray icon is missing.');
+          fs.writeFileSync(path.join(dir, `${name}-tray-${entry.kind}-${language}.png`), entry.image.toPNG());
+          window.hide();
+          entry.tray.emit('click');
+          if (!window.isVisible()) throw new Error('Clicking a quota tray icon did not open the panel.');
+        }
+        await window.webContents.executeJavaScript('window.limits.get().then(render)');
+        const displayLabel = await window.webContents.executeJavaScript(`document.getElementById('display-mode').selectedOptions[0].textContent`);
+        if (displayLabel !== translate(language, 'trayMode')) throw new Error('Display mode selection was not translated.');
+        fs.writeFileSync(path.join(dir, `${name}-tray-${language}.png`), (await window.webContents.capturePage()).toPNG());
+        persistWidgetSettings();
+        if (JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget-settings.json'), 'utf8')).displayMode !== 'tray') throw new Error('Tray mode was not saved.');
+        await window.webContents.executeJavaScript(`window.limits.displayMode('widget').then(render)`);
+        if (!widget.isVisible() || trayPresentation.entries.length !== 1) throw new Error('Switching back did not restore the taskbar widget.');
+        displayModes.push({ language, trayIcons: currentTrays.length, clickOpensPanel: true, saved: true, widgetRestored: true });
+      }
+      setLanguage(originalLanguage);
       if (process.argv.includes('--smoke-stability')) {
         const until = Date.now() + 65000;
         while (Date.now() < until) {
           await new Promise(resolve => setTimeout(resolve, 1000));
-          if (widgetBounds(taskbarMetrics, widgetSettings) && !widget.isVisible()) throw new Error('Taskbar widget disappeared.');
+          if (widgetSettings.displayMode === 'widget' && widgetBounds(taskbarMetrics, widgetSettings) && !widget.isVisible()) throw new Error('Taskbar widget disappeared.');
         }
       }
-      console.log('SMOKE_OK', JSON.stringify({ ...report, widget: widgetReport, languages, maximizedFullscreen: maximized.fullscreen, bounds: widget.getBounds(), taskbar: taskbarMetrics.bar }));
+      setDisplayMode(originalMode);
+      widgetSettings.visible = originalVisibility; placeWidget();
+      const completedReport = { ...report, widget: widgetReport, languages, displayModes, maximizedFullscreen: maximized.fullscreen, zorder, recovered, placementChanges: placement.changes, bounds: widget.getBounds(), taskbar: taskbarMetrics.bar };
+      fs.writeFileSync(path.join(dir, `${name}-smoke.json`), JSON.stringify(completedReport, null, 2));
+      console.log('SMOKE_OK', JSON.stringify(completedReport));
       app.quit();
     } catch (error) { console.error('SMOKE_FAILED', error.message); app.exit(1); }
   }
@@ -250,4 +328,4 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); probe?.stop(); monitor?.stop(); widget?.destroy(); trays.forEach(tray => tray.destroy()); trays = []; });
+app.on('before-quit', () => { quitting = true; clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });

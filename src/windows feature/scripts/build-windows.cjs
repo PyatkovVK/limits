@@ -8,12 +8,12 @@ const standalone = process.argv.includes('--standalone');
 if (standalone) require('./stage-codex.cjs');
 require('./build-taskbar-helper.cjs');
 require('./assets.cjs');
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(__dirname, '../../..');
 // Keep large unpacked binaries and compression intermediates off the project disk.
 const tempRoot = path.resolve(os.tmpdir());
-const output = fs.mkdtempSync(path.join(tempRoot, 'codex-limits-build-'));
+const output = fs.mkdtempSync(path.join(tempRoot, 'limits-build-'));
 console.log('Temporary build directory:', output);
-const config = structuredClone(require('../package.json').build);
+const config = structuredClone(require('../../../package.json').build);
 config.directories.output = output;
 // Reuse the pinned local Electron runtime instead of downloading another copy.
 config.electronDist = path.dirname(require.resolve('electron/dist/version'));
@@ -22,8 +22,8 @@ if (standalone) {
     { from: 'node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe', to: 'codex/codex.exe' },
     { from: 'licenses/Apache-2.0.txt', to: 'codex/Apache-2.0.txt' }
   );
-  config.nsis.artifactName = 'Codex-Limits-Standalone-Setup-${version}.${ext}';
-  config.portable.artifactName = 'Codex-Limits-Standalone-${version}-portable.${ext}';
+  config.nsis.artifactName = 'Limits-Standalone-Setup-${version}.${ext}';
+  config.portable.artifactName = 'Limits-Standalone-${version}-portable.${ext}';
 }
 const configPath = path.join(output, 'build-config.json');
 fs.writeFileSync(configPath, JSON.stringify(config));
@@ -53,7 +53,7 @@ for (const filename of fs.readdirSync(output)) {
 }
 // Verify the exact resolved temporary target before recursive cleanup.
 const resolvedOutput = path.resolve(output);
-if (!resolvedOutput.startsWith(tempRoot + path.sep) || !path.basename(resolvedOutput).startsWith('codex-limits-build-')) throw new Error('Unsafe temporary cleanup path');
+if (!resolvedOutput.startsWith(tempRoot + path.sep) || !path.basename(resolvedOutput).startsWith('limits-build-')) throw new Error('Unsafe temporary cleanup path');
 if (process.env.CODEX_LIMITS_KEEP_BUILD === '1') console.log('Unpacked build retained at:', resolvedOutput);
 else fs.rmSync(resolvedOutput, { recursive: true, force: true });
 console.log('Windows release ready:', release);
