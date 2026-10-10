@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { menuBitmap, png } = require('../tray-icon.cjs');
+const { menuBitmap, png } = require('../menu-image.cjs');
 
 test('Mac indicators have separate period labels and Retina representations', () => {
   assert.equal(menuBitmap({ remaining: 72 }).label, '5h 72%');

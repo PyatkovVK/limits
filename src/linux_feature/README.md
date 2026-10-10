@@ -11,7 +11,7 @@
 справа в рабочей области монитора.
 
 `tray-icon.cjs` рисует отдельные цветные значки `5h` и `7d`. Общий контроллер трея
-находится в `src/Windows feature/tray.cjs`, мониторинг и авторизация — в `src`.
+находится в `src/windows_feature/tray.cjs`, мониторинг и авторизация — в `src`.
 
 `npm test` включает `test/*.test.cjs` из этой папки. Проверка GUI выполняется
 `npm run smoke` и `npm run smoke:live`. На целевой системе проверены Linux Mint

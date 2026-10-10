@@ -106,7 +106,7 @@ function render(next) {
   document.body.dataset.theme = next.dark ? 'dark' : 'light';
   document.body.classList.toggle('reduced-transparency', Boolean(next.reducedTransparency));
   const language = next.language || 'ru';
-  const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsMacI18n.t(lang, key) : null) || window.limitsI18n.t(lang, key);
+  const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsApple?.translate(lang, key, next) : null) || window.limitsI18n.t(lang, key);
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);
   $('language').value = language;
@@ -114,7 +114,7 @@ function render(next) {
   const modes = next.displayModes || ['widget', 'tray'];
   for (const option of $('display-mode').options) option.hidden = option.disabled = !modes.includes(option.value);
   $('display-mode').closest('.display-settings').hidden = modes.length < 2;
-  $('display-hint').textContent = t(next.displayMode === 'tray' ? 'trayFootnote' : 'footnote');
+  $('display-hint').textContent = t(next.displayMode === 'notch' ? 'notchFootnote' : next.displayMode === 'tray' ? 'trayFootnote' : 'footnote');
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > 90000;
   const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets.find(item => item.id === 'codex') || next.buckets[0];
   document.body.classList.toggle('stale', Boolean(stale));
@@ -155,6 +155,7 @@ function render(next) {
   $('updated').textContent = next.updatedAt ? `${t('updated')} ${new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('waiting');
   renderAccounts(next, t);
   renderCountdown();
+  window.limitsApple?.render(next);
 }
 
 $('hide').addEventListener('click', () => window.limits.hide());

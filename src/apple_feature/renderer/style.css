@@ -92,3 +92,69 @@ body[data-platform="darwin"][data-theme="dark"].reduced-transparency { backgroun
 @media (prefers-contrast: more) {
   body[data-platform="darwin"] { --edge: #9299a8; --muted: var(--ink); }
 }
+
+/* The transparent native window stays stationary while only the island morphs. */
+body[data-platform="darwin"].apple-notch,
+body[data-platform="darwin"][data-theme="dark"].apple-notch {
+  --ink: #f4f5f8; --muted: #9b9ca9; --edge: rgba(255,255,255,.12);
+  --surface: rgba(255,255,255,.045); --control: rgba(255,255,255,.085);
+  --track: rgba(255,255,255,.13); --short: #78e7ca; --weekly: #b6a0ff;
+  --cap-height: 10px; --full-width: 460px; --full-height: 630px;
+  --closed-width: 148px; --closed-height: 30px; --peek-width: 340px; --peek-height: 126px;
+  color-scheme: dark; background: transparent; border: 0; border-radius: 0; box-shadow: none; display: block;
+}
+.apple-shell {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: var(--closed-width); height: var(--closed-height);
+  overflow: hidden; background: #050506; border-radius: 0 0 16px 16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.2), inset 0 -1px 0 rgba(255,255,255,.08);
+  transition: width 440ms cubic-bezier(.16,1,.3,1), height 440ms cubic-bezier(.16,1,.3,1), border-radius 440ms cubic-bezier(.16,1,.3,1), box-shadow 300ms;
+}
+.apple-cap { height: var(--cap-height); pointer-events: none; }
+body[data-notch-phase="peek"] .apple-shell { width: var(--peek-width); height: var(--peek-height); border-radius: 0 0 24px 24px; box-shadow: 0 12px 22px rgba(0,0,0,.3); }
+body[data-notch-phase="expanded"] .apple-shell { width: var(--full-width); height: var(--full-height); border-radius: 0 0 28px 28px; box-shadow: 0 12px 24px rgba(0,0,0,.35), inset 0 -1px 0 rgba(255,255,255,.1); }
+body[data-platform="darwin"].apple-notch .apple-trigger,
+body[data-platform="darwin"].apple-notch .apple-trigger:hover {
+  position: absolute; inset: 0; width: 100%; height: 100%; padding: 0;
+  border: 0; border-radius: inherit; background: transparent; color: var(--ink);
+  -webkit-app-region: no-drag;
+}
+.apple-mini { display: flex; gap: 5px; position: absolute; width: 100px; bottom: 5px; left: 50%; transform: translateX(-50%); transition: opacity 150ms; }
+body[data-platform="darwin"].apple-notch .apple-mini progress { height: 2px; }
+body[data-platform="darwin"].apple-notch .apple-mini-weekly::-webkit-progress-value { background: var(--weekly); }
+.apple-preview { position: absolute; top: calc(var(--cap-height) + 12px); left: 22px; right: 22px; opacity: 0; transform: translateY(-8px); transition: opacity 160ms, transform 300ms cubic-bezier(.16,1,.3,1); }
+.apple-preview-heading { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; letter-spacing: -.2px; margin-bottom: 18px; }
+#apple-hint { font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.apple-preview-row { display: grid; grid-template-columns: 76px 1fr 34px; align-items: center; gap: 12px; margin-top: 12px; text-align: left; font-variant-numeric: tabular-nums; font-size: 11px; }
+.apple-period { display: flex; align-items: center; gap: 9px; }
+#apple-short-reset { color: var(--muted); font-size: 10px; }
+.apple-preview-row > span:last-child { text-align: right; color: var(--ink); }
+body[data-platform="darwin"].apple-notch .apple-preview progress { height: 4px; }
+body[data-notch-phase="peek"] .apple-preview { opacity: 1; transform: translateY(0); transition-delay: 80ms; }
+body[data-notch-phase="peek"] .apple-mini,
+body[data-notch-phase="expanded"] .apple-mini { opacity: 0; }
+body[data-notch-phase="expanded"] .apple-trigger { pointer-events: none; }
+.apple-content {
+  position: absolute; top: var(--cap-height); left: 50%; width: var(--full-width); height: calc(var(--full-height) - var(--cap-height));
+  display: flex; flex-direction: column; opacity: 0; transform: translateX(-50%) translateY(-14px) scale(.975);
+  transform-origin: top center; pointer-events: none;
+  transition: opacity 140ms, transform 350ms cubic-bezier(.16,1,.3,1);
+}
+body[data-notch-phase="expanded"] .apple-content { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; transition-delay: 100ms; }
+body[data-platform="darwin"].apple-notch .titlebar { -webkit-app-region: no-drag; border-bottom: 0; height: 48px; }
+body[data-platform="darwin"].apple-notch .brand { font-size: 16px; letter-spacing: -.5px; }
+body[data-platform="darwin"].apple-notch main { padding-top: 6px; scrollbar-width: thin; }
+body[data-platform="darwin"].apple-notch .quota-card { background: linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.018)); }
+body[data-platform="darwin"].apple-notch .quota-card.short { border-top-color: rgba(120,231,202,.22); }
+body[data-platform="darwin"].apple-notch .quota-card.weekly { border-top-color: rgba(182,160,255,.22); }
+body[data-platform="darwin"].apple-notch .accounts-section { margin-top: 14px; padding-top: 12px; }
+body[data-platform="darwin"].apple-notch .profile-card { padding: 10px 12px; }
+body[data-platform="darwin"].apple-notch .footnote { line-height: 1.45; }
+body[data-platform="darwin"].apple-notch.stale .apple-mini progress::-webkit-progress-value { background: #949bab; }
+body.apple-notch.reduced-motion .apple-shell,
+body.apple-notch.reduced-motion .apple-content,
+body.apple-notch.reduced-motion .apple-preview,
+body.apple-notch.reduced-motion .apple-mini { transition-duration: 1ms; transition-delay: 0ms; }
+@media (prefers-reduced-motion: reduce) {
+  .apple-shell, .apple-content, .apple-preview, .apple-mini { transition-duration: 1ms !important; transition-delay: 0ms !important; }
+}

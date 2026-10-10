@@ -1,7 +1,7 @@
 'use strict';
 const { percentage, icon } = require('./tray-icon.cjs');
-const { icon: macIcon } = require('../Mac feature/tray-icon.cjs');
-const { icon: linuxIcon } = require('../linux feature/tray-icon.cjs');
+const { icon: macIcon } = require('../apple_feature/tray-icon.cjs');
+const { icon: linuxIcon } = require('../linux_feature/tray-icon.cjs');
 const { t } = require('../renderer/i18n.js');
 const { format } = require('../renderer/countdown.js');
 
@@ -33,7 +33,7 @@ class TrayPresentation {
     if (this.mode !== mode) {
       const old = this.entries;
       this.entries = (mode === 'tray' ? ['short', 'weekly'] : ['app']).map(kind => {
-        const image = kind === 'app' ? this.appIcon : this.quotaIcon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, stale, dark });
+        const image = kind === 'app' ? this.appIcon : this.quotaIcon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
         const tray = this.platform === 'linux' ? new this.Tray(image) : new this.Tray(image, ids[kind]);
         tray.on('click', () => this.onClick(tray, kind));
         const entry = { kind, tray, image };
@@ -46,9 +46,9 @@ class TrayPresentation {
     const menuSignature = JSON.stringify(menu);
     for (const entry of this.entries) {
       const { kind, tray } = entry;
-      const signature = JSON.stringify([percentage(bucket?.[kind]?.remaining), stale, dark]);
+      const signature = JSON.stringify([percentage(bucket?.[kind]?.remaining), stale, dark, this.platform === 'darwin' && kind === 'short' ? format(bucket?.short?.resetsAt) : null]);
       if (kind !== 'app' && signature !== entry.signature) {
-        entry.image = this.quotaIcon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, stale, dark });
+        entry.image = this.quotaIcon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
         tray.setImage(entry.image);
         entry.signature = signature;
       }
