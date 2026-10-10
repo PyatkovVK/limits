@@ -1,0 +1,35 @@
+# Dependencies and local lock file
+node_modules/
+/package-lock.json
+
+# Generated assets, builds and release artifacts
+/assets/app.ico
+release/
+build/
+artifacts/
+dist/
+out/
+coverage/
+*.exe
+*.dll
+*.pdb
+*.msi
+*.blockmap
+*.tsbuildinfo
+
+# Local caches, logs and temporary files
+.cache/
+.npm/
+*.log
+*.tmp
+*.bak
+
+# Local environment and editor settings
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini

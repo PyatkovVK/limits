@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Codex Limits</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <header class="titlebar"><div class="brand">Codex Limits</div><span id="connection" class="connection">Подключение</span><button id="hide" class="icon-button" aria-label="Закрыть подробности">×</button></header>
+  <main>
+    <div class="account-row"><span id="account">Подключаем аккаунт Codex…</span><span id="plan" class="plan" hidden></span></div>
+    <div id="demo" class="notice" hidden>Демо · показаны примерные данные</div>
+    <div id="error" class="notice warning" role="status" hidden></div>
+    <div id="bucket-row" hidden><label for="bucket">Лимит</label><select id="bucket"></select></div>
+    <section class="quota-card short">
+      <div class="period">Пятичасовой лимит</div>
+      <div class="quota-meta"><span>До сброса: <span id="short-reset">—</span></span><span>Осталось <span id="short-value" class="remaining-value">—</span>%</span></div>
+      <progress id="short-bar" max="100" value="0" aria-label="Остаток лимита за 5 часов"></progress>
+    </section>
+    <section class="quota-card weekly">
+      <div class="period">Недельный лимит</div>
+      <div class="quota-meta"><span>До сброса: <span id="weekly-reset">—</span></span><span>Осталось <span id="weekly-value" class="remaining-value">—</span>%</span></div>
+      <progress id="weekly-bar" max="100" value="0" aria-label="Остаток недельного лимита"></progress>
+    </section>
+    <div id="other" class="other" hidden></div>
+    <div class="actions"><button id="refresh" class="refresh-button"><span id="refresh-symbol">↻</span> Обновить</button><button id="login" class="login-button">Войти через ChatGPT ↗</button></div>
+    <footer><span class="live-dot"></span><span id="updated">Ожидаем данные</span><span class="interval">каждые 30 с</span></footer>
+    <p class="footnote">Блок на панели задач можно передвинуть за область аккаунта.</p>
+  </main>
+</body>
+</html>
