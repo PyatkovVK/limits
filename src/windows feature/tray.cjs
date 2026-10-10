@@ -1,5 +1,6 @@
 'use strict';
 const { percentage, icon } = require('./tray-icon.cjs');
+const { icon: macIcon } = require('../Mac feature/tray-icon.cjs');
 const { t } = require('../renderer/i18n.js');
 const { format } = require('../renderer/countdown.js');
 
@@ -30,7 +31,7 @@ class TrayPresentation {
     if (this.mode !== mode) {
       const old = this.entries;
       this.entries = (mode === 'tray' ? ['short', 'weekly'] : ['app']).map(kind => {
-        const image = kind === 'app' ? this.appIcon : icon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, stale, dark });
+        const image = kind === 'app' ? this.appIcon : (this.platform === 'darwin' ? macIcon : icon)(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, stale, dark });
         const tray = this.platform === 'linux' ? new this.Tray(image) : new this.Tray(image, ids[kind]);
         tray.on('click', () => this.onClick(tray, kind));
         const entry = { kind, tray, image };
@@ -45,7 +46,7 @@ class TrayPresentation {
       const { kind, tray } = entry;
       const signature = JSON.stringify([percentage(bucket?.[kind]?.remaining), stale, dark]);
       if (kind !== 'app' && signature !== entry.signature) {
-        entry.image = icon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, stale, dark });
+        entry.image = (this.platform === 'darwin' ? macIcon : icon)(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, stale, dark });
         tray.setImage(entry.image);
         entry.signature = signature;
       }

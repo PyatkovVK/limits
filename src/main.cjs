@@ -26,14 +26,15 @@ app.setAppUserModelId('dev.codexlimits.desktop');
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let window, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
+let window, macPanel, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
 let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray' };
-const t = key => translate(widgetSettings.language, key);
+const t = key => (process.platform === 'darwin' ? require('./Mac feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: 30, demo };
 let notified = new Set();
 
 function showPanel(anchor) {
   if (!window || window.isDestroyed()) return;
+  if (macPanel) return macPanel.show(anchor);
   const bounds = process.platform === 'linux' ? null : anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
   const display = bounds?.width ? screen.getDisplayMatching(bounds) : screen.getPrimaryDisplay();
   const area = display.workArea;
@@ -44,7 +45,7 @@ function showPanel(anchor) {
   window.show(); window.focus();
 }
 
-function publicState() { return { ...state, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: taskbarSupported ? ['widget', 'tray'] : ['tray'], stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null }; }
+function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: taskbarSupported ? ['widget', 'tray'] : ['tray'], stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null }; }
 function persistWidgetSettings() {
   const target = path.join(app.getPath('userData'), 'widget-settings.json');
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -161,10 +162,13 @@ async function setup() {
   } catch { /* Defaults on first launch. */ }
   if (!taskbarSupported) widgetSettings.displayMode = 'tray';
   if (process.platform === 'darwin') app.dock.hide();
-  window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', autoHideMenuBar: true, webPreferences });
+  window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('./Mac feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
   trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
+  if (process.platform === 'darwin') macPanel = require('./Mac feature/panel.cjs').createPanelController({ window, screen, getTrayBounds: () => trayPresentation.entries.map(entry => {
+    try { return entry.tray.getBounds(); } catch { return null; }
+  }) });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
   handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
@@ -223,7 +227,7 @@ async function setup() {
   update();
   tick = setInterval(update, 15000);
   powerMonitor.on('resume', () => void monitor?.refresh());
-  if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden'))) showPanel();
+  if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden'))) await showPanel();
   if (smoke && !taskbarSupported) {
     try {
       await monitor?.refresh();
@@ -231,6 +235,8 @@ async function setup() {
       await window.webContents.executeJavaScript('window.limits.get().then(render)');
       const report = await window.webContents.executeJavaScript(`({ values: [...document.querySelectorAll('.remaining-value')].map(el => el.textContent), isolated: typeof require === 'undefined', mode: document.getElementById('display-mode').value })`);
       if (!report.isolated || report.mode !== 'tray' || trayPresentation.entries.length !== 2 || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready')) throw new Error('Tray-only startup failed');
+      const firstPlacement = macPanel?.snapshot();
+      if (firstPlacement && (firstPlacement.fallback || !require('./Mac feature/panel.cjs').isMenuBarAnchor(firstPlacement.anchor, firstPlacement.display) || !window.isVisible() || window.getBounds().y !== firstPlacement.bounds.y)) throw new Error('Mac first launch did not open below a menu-bar indicator');
       for (const entry of trayPresentation.entries) {
         window.hide(); entry.tray.emit('click');
         if (!window.isVisible()) throw new Error('Tray click did not open the panel');
@@ -244,7 +250,8 @@ async function setup() {
         monitor.selectProfile('default');
       }
       fs.mkdirSync(artifactRoot, { recursive: true });
-      fs.writeFileSync(path.join(artifactRoot, 'tray-only-smoke.json'), JSON.stringify({ ...report, icons: 2, accountSwitch: demo, taskbarStarted: false }, null, 2));
+      const mac = process.platform === 'darwin' ? { ...await require('./Mac feature/smoke.cjs').verifyMacPanel({ window, trayPresentation, artifactRoot, demo }), firstPlacement } : null;
+      fs.writeFileSync(path.join(artifactRoot, 'tray-only-smoke.json'), JSON.stringify({ ...report, icons: 2, accountSwitch: demo, taskbarStarted: false, ...(mac ? { mac } : {}) }, null, 2));
       console.log('SMOKE_TRAY_OK', JSON.stringify(report)); app.quit();
     } catch (error) { console.error('SMOKE_FAILED', error.message); app.exit(1); }
     return;
@@ -400,4 +407,4 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
+app.on('before-quit', () => { quitting = true; macPanel?.cancel(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });

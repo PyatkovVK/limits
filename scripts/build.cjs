@@ -13,6 +13,7 @@ require('../src/windows feature/scripts/assets.cjs');
 const tempRoot = path.resolve(os.tmpdir());
 const output = fs.mkdtempSync(path.join(tempRoot, 'limits-build-'));
 const config = structuredClone(require('../package.json').build);
+if (process.argv[2] === 'mac') require('../src/Mac feature/scripts/build-config.cjs').configureMacBuild(config);
 config.directories.output = output;
 if (plan.arch === process.arch) config.electronDist = path.dirname(require.resolve('electron/dist/version'));
 const configPath = path.join(output, 'build-config.json');

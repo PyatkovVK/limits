@@ -67,11 +67,11 @@
   const api = {
     languages: Object.keys(strings),
     t(language, key) { return (strings[language] || strings.ru)[key] || key; },
-    apply(language, doc) {
+    apply(language, doc, translate = api.t) {
       doc.documentElement.lang = language;
-      doc.querySelectorAll('[data-i18n]').forEach(el => { const text = api.t(language, el.dataset.i18n); if (el.textContent !== text) el.textContent = text; });
-      doc.querySelectorAll('[data-i18n-title]').forEach(el => { const text = api.t(language, el.dataset.i18nTitle); if (el.title !== text) el.title = text; });
-      doc.querySelectorAll('[data-i18n-aria]').forEach(el => { const text = api.t(language, el.dataset.i18nAria); if (el.getAttribute('aria-label') !== text) el.setAttribute('aria-label', text); });
+      doc.querySelectorAll('[data-i18n]').forEach(el => { const text = translate(language, el.dataset.i18n); if (el.textContent !== text) el.textContent = text; });
+      doc.querySelectorAll('[data-i18n-title]').forEach(el => { const text = translate(language, el.dataset.i18nTitle); if (el.title !== text) el.title = text; });
+      doc.querySelectorAll('[data-i18n-aria]').forEach(el => { const text = translate(language, el.dataset.i18nAria); if (el.getAttribute('aria-label') !== text) el.setAttribute('aria-label', text); });
     }
   };
   if (typeof module === 'object' && module.exports) module.exports = api;

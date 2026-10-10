@@ -1,5 +1,5 @@
 'use strict';
-const zlib = require('node:zlib');
+const { encodePng, percentage } = require('../tray-image.cjs');
 
 const glyphs = {
   '0': ['111', '101', '101', '101', '111'], '1': ['010', '110', '010', '010', '111'],
@@ -10,9 +10,6 @@ const glyphs = {
   '—': ['000', '000', '111', '000', '000']
 };
 
-function percentage(value) {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.round(Math.min(100, Math.max(0, value))) : null;
-}
 function bitmap({ remaining = null, kind = 'short', stale = false, dark = true, size = 16 } = {}) {
   const pixels = Buffer.alloc(size * size * 4);
   const value = percentage(remaining);
@@ -39,22 +36,9 @@ function bitmap({ remaining = null, kind = 'short', stale = false, dark = true, 
   if (value !== null && value > 0) rect(1, 13, Math.max(1, Math.round(14 * value / 100)), 2, color);
   return { pixels, size, value, label, color };
 }
-function crc32(buffer) {
-  let crc = 0xffffffff;
-  for (const byte of buffer) { crc ^= byte; for (let i = 0; i < 8; i++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0); }
-  return (crc ^ 0xffffffff) >>> 0;
-}
-function chunk(name, data) {
-  const type = Buffer.from(name), length = Buffer.alloc(4), crc = Buffer.alloc(4);
-  length.writeUInt32BE(data.length); crc.writeUInt32BE(crc32(Buffer.concat([type, data])));
-  return Buffer.concat([length, type, data, crc]);
-}
 function png(options) {
   const { pixels, size } = bitmap(options);
-  const rows = Buffer.alloc(size * (size * 4 + 1));
-  for (let y = 0; y < size; y++) pixels.copy(rows, y * (size * 4 + 1) + 1, y * size * 4, (y + 1) * size * 4);
-  const header = Buffer.alloc(13); header.writeUInt32BE(size); header.writeUInt32BE(size, 4); header[8] = 8; header[9] = 6;
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', header), chunk('IDAT', zlib.deflateSync(rows)), chunk('IEND', Buffer.alloc(0))]);
+  return encodePng({ pixels, width: size, height: size });
 }
 function icon(nativeImage, options) {
   const image = nativeImage.createFromBuffer(png(options));

@@ -102,9 +102,13 @@ function renderCountdown() {
 
 function render(next) {
   state = next;
+  document.body.dataset.platform = next.platform || '';
+  document.body.dataset.theme = next.dark ? 'dark' : 'light';
+  document.body.classList.toggle('reduced-transparency', Boolean(next.reducedTransparency));
   const language = next.language || 'ru';
-  const t = key => window.limitsI18n.t(language, key);
-  window.limitsI18n.apply(language, document);
+  const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsMacI18n.t(lang, key) : null) || window.limitsI18n.t(lang, key);
+  const t = key => translate(language, key);
+  window.limitsI18n.apply(language, document, translate);
   $('language').value = language;
   $('display-mode').value = next.displayMode || 'widget';
   const modes = next.displayModes || ['widget', 'tray'];
