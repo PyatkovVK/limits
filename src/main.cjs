@@ -14,6 +14,7 @@ const { t: translate } = require('./renderer/i18n.js');
 
 const demo = process.argv.includes('--demo');
 const smoke = process.argv.includes('--smoke-test');
+const taskbarSupported = process.platform === 'win32' && !process.argv.includes('--smoke-tray-only');
 const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '..'), 'artifacts');
 if (smoke && !process.argv.includes('--smoke-gpu')) app.disableHardwareAcceleration();
 if (smoke) app.setPath('userData', path.join(artifactRoot, 'smoke-profile'));
@@ -26,14 +27,14 @@ const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
 let window, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
-let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: 'widget' };
+let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray' };
 const t = key => translate(widgetSettings.language, key);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: 30, demo };
 let notified = new Set();
 
 function showPanel(anchor) {
   if (!window || window.isDestroyed()) return;
-  const bounds = anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
+  const bounds = process.platform === 'linux' ? null : anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
   const display = bounds?.width ? screen.getDisplayMatching(bounds) : screen.getPrimaryDisplay();
   const area = display.workArea;
   const [width, height] = window.getSize();
@@ -43,7 +44,7 @@ function showPanel(anchor) {
   window.show(); window.focus();
 }
 
-function publicState() { return { ...state, language: widgetSettings.language, displayMode: widgetSettings.displayMode, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null }; }
+function publicState() { return { ...state, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: taskbarSupported ? ['widget', 'tray'] : ['tray'], stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null }; }
 function persistWidgetSettings() {
   const target = path.join(app.getPath('userData'), 'widget-settings.json');
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -65,6 +66,7 @@ function setLanguage(language) {
 }
 function setDisplayMode(mode) {
   if (!['widget', 'tray'].includes(mode)) return publicState();
+  if (!taskbarSupported) mode = 'tray';
   widgetSettings.displayMode = mode;
   if (mode === 'widget') widgetSettings.visible = true;
   saveWidgetSettings(); placeWidget(); update();
@@ -83,13 +85,13 @@ function update() {
   const stale = isStale(state);
   trayPresentation?.update({ mode: widgetSettings.displayMode, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: [
       { label: t('details'), click: showPanel },
-      displayModeMenu(),
+      ...(taskbarSupported ? [displayModeMenu(),
       { label: t('showWidget'), type: 'checkbox', checked: widgetSettings.visible, enabled: widgetSettings.displayMode === 'widget', click: item => { widgetSettings.visible = item.checked; saveWidgetSettings(); placeWidget(); } },
-      { label: t('resetPosition'), enabled: widgetSettings.displayMode === 'widget', click: resetWidget },
+      { label: t('resetPosition'), enabled: widgetSettings.displayMode === 'widget', click: resetWidget }] : []),
       { label: t('refresh'), enabled: !demo && !state.refreshing, click: () => void monitor?.refresh() },
       languageMenu(),
       { type: 'separator' },
-      { label: t('startup'), type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin, enabled: app.isPackaged && process.platform === 'win32' && !process.env.PORTABLE_EXECUTABLE_FILE && !smoke, click: item => app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--hidden'] }) },
+      ...(['win32', 'darwin'].includes(process.platform) ? [{ label: t('startup'), type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin, enabled: app.isPackaged && !process.env.PORTABLE_EXECUTABLE_FILE && !smoke, click: item => app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--hidden'] }) }] : []),
       { label: t('quit'), click: () => app.quit() }
     ] });
   for (const kind of ['short', 'weekly']) {
@@ -157,10 +159,12 @@ async function setup() {
     const width = saved.layoutVersion !== 1 && saved.width === 320 ? 280 : saved.width;
     widgetSettings = { visible: saved.visible !== false, width: [240, 280, 320, 400].includes(width) ? width : 280, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language, layoutVersion: 1, displayMode: saved.displayMode === 'tray' ? 'tray' : 'widget' };
   } catch { /* Defaults on first launch. */ }
+  if (!taskbarSupported) widgetSettings.displayMode = 'tray';
+  if (process.platform === 'darwin') app.dock.hide();
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
-  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', 'app.ico')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
+  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
   handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
@@ -201,7 +205,7 @@ async function setup() {
     } catch { return { error: 'accountActionFailed' }; }
   });
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  await createWidget();
+  if (taskbarSupported) await createWidget();
   try {
       const root = app.getPath('userData');
       if (demo) {
@@ -219,7 +223,32 @@ async function setup() {
   update();
   tick = setInterval(update, 15000);
   powerMonitor.on('resume', () => void monitor?.refresh());
-  if (smoke || !taskbarMetrics?.available) showPanel();
+  if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden'))) showPanel();
+  if (smoke && !taskbarSupported) {
+    try {
+      await monitor?.refresh();
+      await window.webContents.executeJavaScript('window.renderReady');
+      await window.webContents.executeJavaScript('window.limits.get().then(render)');
+      const report = await window.webContents.executeJavaScript(`({ values: [...document.querySelectorAll('.remaining-value')].map(el => el.textContent), isolated: typeof require === 'undefined', mode: document.getElementById('display-mode').value })`);
+      if (!report.isolated || report.mode !== 'tray' || trayPresentation.entries.length !== 2 || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready')) throw new Error('Tray-only startup failed');
+      for (const entry of trayPresentation.entries) {
+        window.hide(); entry.tray.emit('click');
+        if (!window.isVisible()) throw new Error('Tray click did not open the panel');
+      }
+      if (setDisplayMode('widget').displayMode !== 'tray' || widget) throw new Error('Windows widget was enabled in tray-only mode');
+      if (demo) {
+        monitor.selectProfile(state.profiles[1].id);
+        await window.webContents.executeJavaScript('window.limits.get().then(render)');
+        const values = await window.webContents.executeJavaScript(`['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent)`);
+        if (values.join(',') !== '38,81') throw new Error('Tray-only account switching failed');
+        monitor.selectProfile('default');
+      }
+      fs.mkdirSync(artifactRoot, { recursive: true });
+      fs.writeFileSync(path.join(artifactRoot, 'tray-only-smoke.json'), JSON.stringify({ ...report, icons: 2, accountSwitch: demo, taskbarStarted: false }, null, 2));
+      console.log('SMOKE_TRAY_OK', JSON.stringify(report)); app.quit();
+    } catch (error) { console.error('SMOKE_FAILED', error.message); app.exit(1); }
+    return;
+  }
   if (smoke) {
     try {
       const originalMode = widgetSettings.displayMode;
@@ -367,6 +396,7 @@ async function setup() {
 
 if (singleInstance) {
   app.on('second-instance', showPanel);
+  app.on('activate', () => showPanel());
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});

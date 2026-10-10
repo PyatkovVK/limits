@@ -21,8 +21,8 @@ function tooltip(kind, { bucket, account, displayName, language = 'ru', stale, d
   return lines.join('\n');
 }
 class TrayPresentation {
-  constructor({ Tray, Menu, nativeImage, appIcon, onClick }) {
-    Object.assign(this, { Tray, Menu, nativeImage, appIcon, onClick });
+  constructor({ Tray, Menu, nativeImage, appIcon, onClick, platform = process.platform }) {
+    Object.assign(this, { Tray, Menu, nativeImage, appIcon, onClick, platform });
     this.mode = null;
     this.entries = [];
   }
@@ -31,9 +31,11 @@ class TrayPresentation {
       const old = this.entries;
       this.entries = (mode === 'tray' ? ['short', 'weekly'] : ['app']).map(kind => {
         const image = kind === 'app' ? this.appIcon : icon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, stale, dark });
-        const tray = new this.Tray(image, ids[kind]);
+        const tray = this.platform === 'linux' ? new this.Tray(image) : new this.Tray(image, ids[kind]);
         tray.on('click', () => this.onClick(tray, kind));
-        return { kind, tray, image };
+        const entry = { kind, tray, image };
+        if (this.platform === 'darwin') tray.on('right-click', () => tray.popUpContextMenu(entry.contextMenu));
+        return entry;
       });
       this.mode = mode;
       old.forEach(entry => entry.tray.destroy());
@@ -50,12 +52,14 @@ class TrayPresentation {
       const title = kind === 'app' ? t(language, 'tooltip') : tooltip(kind, { bucket, stale, account, displayName, language, demo });
       if (title !== entry.tooltip) { tray.setToolTip(title); entry.tooltip = title; }
       if (menuSignature !== entry.menuSignature) {
-        tray.setContextMenu(this.Menu.buildFromTemplate(menu));
+        entry.contextMenu = this.Menu.buildFromTemplate(menu);
+        // Attaching a native macOS menu intercepts activation of the status item.
+        if (this.platform !== 'darwin') tray.setContextMenu(entry.contextMenu);
         entry.menuSignature = menuSignature;
       }
     }
   }
-  bounds() { return this.entries[0]?.tray.getBounds(); }
+  bounds() { return this.platform === 'linux' ? null : this.entries[0]?.tray.getBounds(); }
   destroy() { this.entries.forEach(entry => entry.tray.destroy()); this.entries = []; this.mode = null; }
 }
 module.exports = { TrayPresentation, tooltip };

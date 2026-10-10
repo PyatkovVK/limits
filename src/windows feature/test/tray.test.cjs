@@ -35,6 +35,7 @@ class FakeTray extends EventEmitter {
   setImage(image) { this.image = image; this.images++; }
   setToolTip(value) { this.tooltip = value; }
   setContextMenu(menu) { this.menu = menu; }
+  popUpContextMenu(menu) { this.popup = menu; }
   getBounds() { return { x: 10, y: 20, width: 16, height: 16 }; }
   destroy() { this.destroyed = true; }
 }
@@ -59,4 +60,21 @@ test('ordinary polls preserve tray objects and images; switching modes destroys 
   view.update(state);
   assert.ok(appTray.destroyed); assert.equal(view.entries.length, 2);
   view.destroy(); assert.equal(view.entries.length, 0);
+});
+test('Mac tray clicks open details while right-click opens the menu without intercepting activation', () => {
+  let clicks = 0;
+  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, platform: 'darwin', onClick: () => clicks++ });
+  view.update({ mode: 'tray', menu: [{ label: 'Quit' }] });
+  const tray = view.entries[0].tray;
+  assert.equal(tray.menu, undefined);
+  tray.emit('click'); tray.emit('right-click');
+  assert.equal(clicks, 1);
+  assert.deepEqual(tray.popup, [{ label: 'Quit' }]);
+});
+test('Linux tray skips Windows GUIDs and unsupported bounds API', () => {
+  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, platform: 'linux', onClick() {} });
+  view.update({ mode: 'tray', menu: [] });
+  assert.equal(view.entries[0].tray.id, undefined);
+  view.entries[0].tray.getBounds = () => { throw new Error('Unsupported API'); };
+  assert.equal(view.bounds(), null);
 });

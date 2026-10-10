@@ -1,8 +1,9 @@
 {
   "name": "limits",
   "version": "0.5.0",
-  "description": "Compact AI usage limits on the Windows taskbar",
+  "description": "Compact AI usage limits in your taskbar or system tray",
   "author": "Limits contributors",
+  "homepage": "https://github.com/PyatkovVK/limits",
   "license": "MIT",
   "main": "src/main.cjs",
   "scripts": {
@@ -15,6 +16,8 @@
     "prepare:app": "node \"src/windows feature/scripts/assets.cjs\" && node \"src/windows feature/scripts/build-taskbar-helper.cjs\"",
     "prepare:assets": "node \"src/windows feature/scripts/assets.cjs\"",
     "build:win": "node \"src/windows feature/scripts/build-windows.cjs\"",
+    "build:mac": "node scripts/build.cjs mac",
+    "build:linux": "node scripts/build.cjs linux",
     "build:win:standalone": "node \"src/windows feature/scripts/build-windows.cjs\" --standalone"
   },
   "devDependencies": {
@@ -27,12 +30,13 @@
     "appId": "dev.codexlimits.desktop",
     "productName": "Limits",
     "directories": { "output": "release" },
-    "files": ["src/**/*", "!src/windows feature/native/**/*", "!src/windows feature/scripts/**/*", "!src/windows feature/test/**/*", "!src/windows feature/README.md", "assets/app.ico", "package.json", "LICENSE", "!node_modules/**/*"],
+    "files": ["src/**/*", "!src/windows feature/native/**/*", "!src/windows feature/scripts/**/*", "!src/windows feature/test/**/*", "!src/windows feature/README.md", "assets/app.ico", "assets/app.png", "package.json", "LICENSE", "!node_modules/**/*"],
     "extraResources": [
-      { "from": "build/taskbar-helper.exe", "to": "taskbar-helper.exe" },
       { "from": "THIRD-PARTY-NOTICES.md", "to": "THIRD-PARTY-NOTICES.md" }
     ],
-    "win": { "target": ["portable", "nsis"], "icon": "assets/app.ico", "signExecutable": false },
+    "win": { "target": ["portable", "nsis"], "icon": "assets/app.ico", "signExecutable": false, "extraResources": [{ "from": "build/taskbar-helper.exe", "to": "taskbar-helper.exe" }] },
+    "mac": { "target": ["dmg", "zip"], "icon": "assets/app.png", "category": "public.app-category.utilities", "artifactName": "Limits-${version}-${arch}.${ext}" },
+    "linux": { "target": ["AppImage", "deb"], "icon": "assets/app.png", "category": "Utility", "maintainer": "Limits contributors", "artifactName": "Limits-${version}-${arch}.${ext}" },
     "electronLanguages": ["en-US", "ru"],
     "compression": "maximum",
     "nsis": { "oneClick": false, "perMachine": false, "allowElevation": false, "allowToChangeInstallationDirectory": true, "include": "src/windows feature/native/installer.nsh", "installerLanguages": ["en_US", "ru_RU"], "displayLanguageSelector": true, "artifactName": "Limits-Setup-${version}.${ext}" },

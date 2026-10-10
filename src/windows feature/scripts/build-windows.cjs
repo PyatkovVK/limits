@@ -3,6 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { spawnSync } = require('node:child_process');
+if (process.platform !== 'win32') {
+  console.error('Run npm run build:win on Windows.');
+  process.exit(1);
+}
 
 const standalone = process.argv.includes('--standalone');
 if (standalone) require('./stage-codex.cjs');
@@ -29,7 +33,7 @@ const configPath = path.join(output, 'build-config.json');
 fs.writeFileSync(configPath, JSON.stringify(config));
 console.log(standalone ? 'Standalone build: includes Codex CLI (without code-mode host).' : 'Compact build: uses installed Codex app or CLI.');
 const builder = path.join(path.dirname(require.resolve('electron-builder/package.json')), 'cli.js');
-const build = spawnSync(process.execPath, [builder, '--win', '--x64', `--config=${configPath}`], { cwd: root, stdio: 'inherit', windowsHide: true });
+const build = spawnSync(process.execPath, [builder, '--win', '--x64', '--publish=never', `--config=${configPath}`], { cwd: root, stdio: 'inherit', windowsHide: true });
 if (build.error || build.status !== 0) {
   console.error('Build failed; diagnostics retained at:', output);
   process.exit(build.status || 1);
