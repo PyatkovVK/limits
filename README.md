@@ -51,7 +51,7 @@ Ready-to-use packages include Electron and do not require Node.js.
 | Windows 10 / 11, x64 | `Limits-Setup-*.exe` to install; `Limits-*-portable.exe` without installation | Connection component included |
 | macOS, Apple Silicon | `Limits-*-arm64.dmg` or `Limits-*-arm64.zip` | Installed Codex app or native Codex CLI |
 | macOS, Intel | `Limits-*-x64.dmg` or `Limits-*-x64.zip` | Installed Codex app or native Codex CLI |
-| Linux, x64 | `Limits-*-x64.AppImage` or `Limits-*-x64.deb` | Native Codex CLI accessible to the app |
+| Linux, x64 | `Limits-*-x86_64.AppImage` or `Limits-*-amd64.deb` | Native Codex CLI accessible to the app |
 
 **Windows:** run the per-user installer or launch the portable EXE. No separate Codex installation is needed. Tray icons may initially appear under the arrow near the clock; drag them into the visible area if desired.
 

@@ -63,7 +63,11 @@ test('all push branches reach the gate, and builds and publication require its a
   assert.equal(workflow.jobs.build.needs, 'check-branch');
   assert.equal(workflow.jobs.build.if, "needs.check-branch.outputs.build == 'true'");
   assert.deepEqual(workflow.jobs.publish.needs, ['check-branch', 'build']);
-  assert.equal(workflow.jobs.publish.if, "needs.check-branch.outputs.publish == 'true'");
+  assert.equal(workflow.jobs.publish.if, "needs.check-branch.outputs.build == 'true'");
+  for (const name of ['Point the release tag at the built commit', 'Create or update the release and upload packages']) {
+    assert.equal(workflow.jobs.publish.steps.find(step => step.name === name).if, "needs.check-branch.outputs.publish == 'true'");
+  }
+  assert.equal(workflow.jobs.publish.steps.find(step => step.name === 'Verify all packages and calculate checksums').if, undefined);
   assert.equal(workflow.jobs['check-branch'].outputs.publish, '${{ steps.branch.outputs.publish }}');
   // The only job on an unrelated branch performs no checkout or dependency install.
   assert.equal(workflow.jobs['check-branch'].steps.length, 1);
@@ -75,6 +79,34 @@ test('every release OS runs the full portable test suite', () => {
   assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'win'));
   assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'mac'));
   assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'linux'));
+});
+
+test('publication expects the filenames electron-builder generates for all eight packages', () => {
+  const pkg = require('../package.json');
+  // Initialize the public entrypoint before loading packager classes with cyclic imports.
+  require('app-builder-lib');
+  const { PlatformPackager } = require('app-builder-lib/out/platformPackager');
+  const { Arch } = require('builder-util');
+  const definitions = [
+    ['win', 'portable', 'exe', Arch.x64], ['win', 'nsis', 'exe', Arch.x64],
+    ['mac', 'dmg', 'dmg', Arch.arm64], ['mac', 'zip', 'zip', Arch.arm64],
+    ['mac', 'dmg', 'dmg', Arch.x64], ['mac', 'zip', 'zip', Arch.x64],
+    ['linux', 'appImage', 'AppImage', Arch.x64], ['linux', 'deb', 'deb', Arch.x64],
+  ];
+  const actual = definitions.map(([platform, target, extension, arch]) => {
+    const packager = Object.create(PlatformPackager.prototype);
+    Object.defineProperties(packager, {
+      config: { value: pkg.build },
+      platformSpecificBuildOptions: { value: pkg.build[platform] },
+      platform: { value: { buildConfigurationKey: platform } },
+      appInfo: { value: { version: pkg.version, name: pkg.name, productName: pkg.build.productName, sanitizedProductName: pkg.build.productName } },
+    });
+    return packager.expandArtifactNamePattern(pkg.build[target], extension, arch);
+  });
+  const script = workflow.jobs.publish.steps.find(step => step.name === 'Verify all packages and calculate checksums').run;
+  const list = /packages=\(([\s\S]*?)\)/.exec(script)[1];
+  const expected = [...list.matchAll(/"([^"]+)"/g)].map(match => match[1].replaceAll('$version', pkg.version));
+  assert.deepEqual(expected.sort(), actual.sort());
 });
 
 test('release builds allow absent certificates and receive signing secrets only in the packaging step', () => {
