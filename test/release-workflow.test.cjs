@@ -9,9 +9,9 @@ const workflow = yaml.load(fs.readFileSync(path.join(__dirname, '../.github/work
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const gate = new AsyncFunction('context', 'core', workflow.jobs['check-branch'].steps[0].with.script);
 
-async function checkBranch(ref, payload = {}) {
+async function checkBranch(ref, payload = {}, eventName = 'push') {
   const outputs = {};
-  await gate({ ref, payload }, {
+  await gate({ ref, payload, eventName }, {
     setOutput: (key, value) => { outputs[key] = value; },
     info: () => {},
   });
@@ -36,6 +36,16 @@ test('1.0-fix builds packages for testing without publishing a release', async (
   assert.deepEqual(await checkBranch('refs/heads/1.0-fix', { deleted: true }), { build: 'false' });
 });
 
+test('pull requests into 1.0-fix build test packages without publication', async () => {
+  const payload = { pull_request: { base: { ref: '1.0-fix' }, head: { ref: 'codex/fix-macos-signing-env' } } };
+  assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'pull_request'), {
+    build: 'true', publish: 'false', branch: 'codex/fix-macos-signing-env', version: '', tag: '', prerelease: 'true',
+  });
+  assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'workflow_dispatch'), { build: 'false' });
+  payload.pull_request.base.ref = 'main';
+  assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'pull_request'), { build: 'false' });
+});
+
 test('other branches, tags and branch deletions exit successfully without building', async () => {
   for (const branch of ['create-mvp', 'develop', 'feature/2.1', 'release/2.1', 'fix-1.0', '1.0-fix/feature', '1.0-fix\n', 'v2.1', '2', '2.1-beta', '2.1.3.4', '02.1', 'main/feature', '2.1\n']) {
     assert.deepEqual(await checkBranch(`refs/heads/${branch}`), { build: 'false' }, branch);
@@ -49,6 +59,7 @@ test('other branches, tags and branch deletions exit successfully without buildi
 test('all push branches reach the gate, and builds and publication require its approval', () => {
   assert.deepEqual(workflow.on.push.branches, ['**']);
   assert.ok(Object.hasOwn(workflow.on, 'workflow_dispatch'));
+  assert.deepEqual(workflow.on.pull_request.branches, ['1.0-fix']);
   assert.equal(workflow.jobs.build.needs, 'check-branch');
   assert.equal(workflow.jobs.build.if, "needs.check-branch.outputs.build == 'true'");
   assert.deepEqual(workflow.jobs.publish.needs, ['check-branch', 'build']);

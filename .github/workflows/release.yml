@@ -5,6 +5,9 @@ on:
     branches:
       - '**'
   workflow_dispatch:
+  pull_request:
+    branches:
+      - '1.0-fix'
 
 permissions:
   contents: read
@@ -34,19 +37,21 @@ jobs:
             const match = /^refs\/heads\/((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)$/.exec(context.ref);
             const isMain = context.ref === 'refs/heads/main';
             const isFix = context.ref === 'refs/heads/1.0-fix';
-            const build = (isMain || isFix || Boolean(match)) && context.payload.deleted !== true;
+            const isTestPull = context.eventName === 'pull_request' && context.payload.pull_request?.base.ref === '1.0-fix';
+            const testBuild = isFix || isTestPull;
+            const build = (isMain || testBuild || Boolean(match)) && context.payload.deleted !== true;
             core.setOutput('build', String(build));
             if (!build) {
               core.info(`Skipping ${context.ref}: no build or publication is needed.`);
               return;
             }
-            const branch = isMain ? 'main' : isFix ? '1.0-fix' : match[1];
-            const version = isMain || isFix ? '' : (branch.split('.').length === 2 ? `${branch}.0` : branch);
-            core.setOutput('publish', String(!isFix));
+            const branch = isTestPull ? context.payload.pull_request.head.ref : isMain ? 'main' : isFix ? '1.0-fix' : match[1];
+            const version = isMain || testBuild ? '' : (branch.split('.').length === 2 ? `${branch}.0` : branch);
+            core.setOutput('publish', String(!testBuild));
             core.setOutput('branch', branch);
             core.setOutput('version', version);
-            core.setOutput('tag', isFix ? '' : isMain ? 'latest' : `v${branch}`);
-            core.setOutput('prerelease', String(isMain || isFix));
+            core.setOutput('tag', testBuild ? '' : isMain ? 'latest' : `v${branch}`);
+            core.setOutput('prerelease', String(isMain || testBuild));
             core.info(`Building ${branch} for Windows, macOS and Linux.`);
 
   build:
