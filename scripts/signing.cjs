@@ -35,4 +35,12 @@ function configureSigning(config, target, env = process.env) {
   }
   return release;
 }
-module.exports = { configureSigning };
+function signingEnvironment(env = process.env) {
+  const result = { ...env };
+  // The builder treats an empty certificate link as a path to the project directory.
+  for (const key of ['CSC_LINK', 'WIN_CSC_LINK', 'CSC_INSTALLER_LINK']) {
+    if (result[key] === '') delete result[key];
+  }
+  return result;
+}
+module.exports = { configureSigning, signingEnvironment };
