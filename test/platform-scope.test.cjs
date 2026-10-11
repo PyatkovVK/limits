@@ -10,6 +10,7 @@ const i18n = require('../src/common/renderer/i18n.js');
 const { buildPlan } = require('../scripts/build-plan.cjs');
 const { configureAppleBuild } = require('../src/apple_feature/scripts/build-config.cjs');
 const { offerSignIn } = require('../src/windows_feature/onboarding.cjs');
+const { signingEnvironment } = require('../scripts/signing.cjs');
 
 test('Mac and Linux build entrypoint preserves existing resources without importing the Windows runtime', () => {
   for (const [target, platform, arch] of [['mac', 'darwin', 'arm64'], ['mac', 'darwin', 'x64'], ['linux', 'linux', 'x64'], ['linux', 'linux', 'arm64']]) {
@@ -22,7 +23,7 @@ test('Mac and Linux build entrypoint preserves existing resources without import
       'node:os': { tmpdir: () => path.dirname(output) },
       'node:child_process': { spawnSync: () => ({ status: 0 }) },
       './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch }) },
-      './signing.cjs': { configureSigning: () => false },
+      './signing.cjs': { configureSigning: () => false, signingEnvironment },
       '../src/windows_feature/scripts/assets.cjs': {},
       '../package.json': pkg,
       '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
@@ -71,8 +72,8 @@ test('packaging reaches electron-builder with an absent Electron dist and only r
         'node:path': path, 'node:os': { tmpdir: () => path.dirname(output) },
         'node:child_process': { spawnSync: (_exe, args) => { builderArgs = args; return { status: 0 }; } },
         './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch: hostArch }) },
-        './signing.cjs': { configureSigning: () => false },
-        '../../../scripts/signing.cjs': { configureSigning: () => false },
+        './signing.cjs': { configureSigning: () => false, signingEnvironment },
+        '../../../scripts/signing.cjs': { configureSigning: () => false, signingEnvironment },
         '../package.json': pkg, '../../../package.json': pkg,
         '../src/windows_feature/scripts/assets.cjs': {}, './assets.cjs': {}, './build-taskbar-helper.cjs': {},
         '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },

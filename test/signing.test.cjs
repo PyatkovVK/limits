@@ -2,7 +2,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { configureSigning } = require('../scripts/signing.cjs');
+const { configureSigning, signingEnvironment } = require('../scripts/signing.cjs');
+const { spawnSync } = require('node:child_process');
 const { verifySigning } = require('../scripts/verify-signing.cjs');
 const signResources = require('../scripts/sign-windows-resources.cjs');
 const { configureAppleBuild } = require('../src/apple_feature/scripts/build-config.cjs');
@@ -73,6 +74,31 @@ test('release workflow can build without certificates while configured signing r
   assert.equal(signedMac.mac.notarize, true);
   await validateConfiguration(signedMac);
   assert.throws(() => configureSigning(config(), 'mac', { ...env, CSC_NAME: '-' }), /Developer ID/);
+});
+
+test('builder receives absent certificate links instead of empty file paths from Actions', () => {
+  const script = `
+    require('app-builder-lib');
+    const { PlatformPackager } = require('app-builder-lib/out/platformPackager');
+    const packager = { info: { config: {} }, platformSpecificBuildOptions: {} };
+    console.log(JSON.stringify([
+      PlatformPackager.prototype.getCscLink.call(packager),
+      PlatformPackager.prototype.getCscLink.call(packager, 'WIN_CSC_LINK')
+    ]));
+  `;
+  for (const links of [
+    { CSC_LINK: '', WIN_CSC_LINK: '', CSC_INSTALLER_LINK: '' },
+    { CSC_LINK: 'mac-certificate', WIN_CSC_LINK: 'win-certificate', CSC_INSTALLER_LINK: 'installer-certificate' }
+  ]) {
+    const source = { ...process.env, ...links, CSC_KEY_PASSWORD: '' };
+    const env = signingEnvironment(source);
+    assert.equal(source.CSC_LINK, links.CSC_LINK);
+    assert.equal(env.CSC_KEY_PASSWORD, '');
+    assert.equal(env.CSC_INSTALLER_LINK, links.CSC_INSTALLER_LINK || undefined);
+    const result = spawnSync(process.execPath, ['-e', script], { env, cwd: path.resolve(__dirname, '..'), encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), [links.CSC_LINK || null, links.WIN_CSC_LINK || null]);
+  }
 });
 
 test('Windows extraResources must both be signed successfully', async () => {
