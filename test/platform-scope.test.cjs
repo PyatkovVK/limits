@@ -10,6 +10,7 @@ const i18n = require('../src/common/renderer/i18n.js');
 const { buildPlan } = require('../scripts/build-plan.cjs');
 const { configureAppleBuild } = require('../src/apple_feature/scripts/build-config.cjs');
 const { offerSignIn } = require('../src/windows_feature/onboarding.cjs');
+const { signingEnvironment } = require('../scripts/signing.cjs');
 
 test('Mac and Linux build entrypoint preserves existing resources without importing the Windows runtime', () => {
   for (const [target, platform, arch] of [['mac', 'darwin', 'arm64'], ['mac', 'darwin', 'x64'], ['linux', 'linux', 'x64'], ['linux', 'linux', 'arm64']]) {
@@ -17,12 +18,12 @@ test('Mac and Linux build entrypoint preserves existing resources without import
     const config = structuredClone(pkg.build);
     const output = path.resolve('artifacts', 'limits-build-scope-test');
     const modules = {
-      'node:fs': { mkdtempSync: () => output, mkdirSync() {}, readdirSync: () => [], rmSync() {}, writeFileSync: (_file, data) => { captured = JSON.parse(data); } },
+      'node:fs': { existsSync: () => true, mkdtempSync: () => output, mkdirSync() {}, readdirSync: () => [], rmSync() {}, writeFileSync: (_file, data) => { captured = JSON.parse(data); } },
       'node:path': path,
       'node:os': { tmpdir: () => path.dirname(output) },
       'node:child_process': { spawnSync: () => ({ status: 0 }) },
       './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch }) },
-      './signing.cjs': { configureSigning: () => false },
+      './signing.cjs': { configureSigning: () => false, signingEnvironment },
       '../src/windows_feature/scripts/assets.cjs': {},
       '../package.json': pkg,
       '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
@@ -40,9 +41,66 @@ test('Mac and Linux build entrypoint preserves existing resources without import
     });
     if (target === 'mac') configureAppleBuild(config, {});
     config.directories.output = output;
-    config.electronDist = path.dirname(requireMock.resolve('electron/dist/version'));
+    config.electronDist = path.join(path.dirname(requireMock.resolve('electron/package.json')), 'dist');
     assert.deepEqual(captured, config);
     assert.ok(![...captured.extraResources, ...(captured[target].extraResources || [])].some(file => file.to.startsWith('codex/')));
+  }
+});
+
+test('packaging reaches electron-builder with an absent Electron dist and only reuses native runtimes', async () => {
+  const { validateConfiguration } = require('app-builder-lib/out/util/config/config');
+  const { getElectronVersion } = require('app-builder-lib/out/electron/electronVersion');
+  for (const [target, platform, hostArch, targetArch] of [
+    ['linux', 'linux', 'x64', 'x64'], ['linux', 'linux', 'x64', 'arm64'],
+    ['mac', 'darwin', 'arm64', 'arm64'], ['mac', 'darwin', 'arm64', 'x64'],
+    ['mac', 'darwin', 'x64', 'x64'],
+    ['win', 'win32', 'x64', 'x64'], ['win', 'win32', 'arm64', 'x64']
+  ]) {
+    for (const installed of [false, true]) {
+      const script = target === 'win' ? '../src/windows_feature/scripts/build-windows.cjs' : '../scripts/build.cjs';
+      const filename = path.resolve(__dirname, script);
+      const output = path.resolve('artifacts', 'limits-build-electron-test');
+      const electronDist = path.resolve('node_modules', 'electron', 'dist');
+      let captured;
+      let builderArgs;
+      const modules = {
+        'node:fs': {
+          existsSync(file) { assert.equal(file, path.join(electronDist, 'version')); return installed; },
+          mkdtempSync: () => output, mkdirSync() {}, readdirSync: () => [], rmSync() {},
+          writeFileSync: (_file, data) => { captured = JSON.parse(data); }
+        },
+        'node:path': path, 'node:os': { tmpdir: () => path.dirname(output) },
+        'node:child_process': { spawnSync: (_exe, args) => { builderArgs = args; return { status: 0 }; } },
+        './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch: hostArch }) },
+        './signing.cjs': { configureSigning: () => false, signingEnvironment },
+        '../../../scripts/signing.cjs': { configureSigning: () => false, signingEnvironment },
+        '../package.json': pkg, '../../../package.json': pkg,
+        '../src/windows_feature/scripts/assets.cjs': {}, './assets.cjs': {}, './build-taskbar-helper.cjs': {},
+        '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
+        '../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
+        '../../../scripts/bundle-codex.cjs': { bundleCodex() {} }
+      };
+      const requireMock = name => {
+        assert.ok(Object.hasOwn(modules, name), `Unexpected build dependency: ${name}`);
+        return modules[name];
+      };
+      requireMock.resolve = name => {
+        // Only package metadata is guaranteed to exist after npm install Electron 44.
+        assert.ok(['electron/package.json', 'electron-builder/package.json'].includes(name), name);
+        return path.resolve('node_modules', name);
+      };
+      vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
+        require: requireMock, __dirname: path.dirname(filename), structuredClone,
+        process: { argv: ['node', filename, ...(target === 'win' ? [] : [target, `--${targetArch}`])],
+          platform, arch: hostArch, execPath: process.execPath, env: {}, exit(code) { assert.fail(`Build exited: ${code}`); } },
+        console: { log() {}, error: assert.fail }
+      });
+      assert.equal(captured.electronDist, installed && hostArch === targetArch ? electronDist : undefined);
+      assert.deepEqual(Array.from(builderArgs), [path.resolve('node_modules', 'electron-builder', 'cli.js'),
+        `--${target}`, `--${targetArch}`, '--publish=never', `--config=${path.join(output, 'build-config.json')}`]);
+      await validateConfiguration(captured);
+      assert.equal(await getElectronVersion(path.resolve(__dirname, '..'), captured), pkg.devDependencies.electron);
+    }
   }
 });
 

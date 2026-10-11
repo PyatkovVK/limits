@@ -5,6 +5,9 @@ on:
     branches:
       - '**'
   workflow_dispatch:
+  pull_request:
+    branches:
+      - '1.0-fix'
 
 permissions:
   contents: read
@@ -20,30 +23,35 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.branch.outputs.build }}
+      publish: ${{ steps.branch.outputs.publish }}
       branch: ${{ steps.branch.outputs.branch }}
       version: ${{ steps.branch.outputs.version }}
       tag: ${{ steps.branch.outputs.tag }}
       prerelease: ${{ steps.branch.outputs.prerelease }}
     steps:
-      - name: Allow main and version branches only
+      - name: Select release and test builds
         id: branch
         uses: actions/github-script@v9
         with:
           script: |
             const match = /^refs\/heads\/((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)$/.exec(context.ref);
             const isMain = context.ref === 'refs/heads/main';
-            const build = (isMain || Boolean(match)) && context.payload.deleted !== true;
+            const isFix = context.ref === 'refs/heads/1.0-fix';
+            const isTestPull = context.eventName === 'pull_request' && context.payload.pull_request?.base.ref === '1.0-fix';
+            const testBuild = isFix || isTestPull;
+            const build = (isMain || testBuild || Boolean(match)) && context.payload.deleted !== true;
             core.setOutput('build', String(build));
             if (!build) {
               core.info(`Skipping ${context.ref}: no build or publication is needed.`);
               return;
             }
-            const branch = isMain ? 'main' : match[1];
-            const version = isMain ? '' : (branch.split('.').length === 2 ? `${branch}.0` : branch);
+            const branch = isTestPull ? context.payload.pull_request.head.ref : isMain ? 'main' : isFix ? '1.0-fix' : match[1];
+            const version = isMain || testBuild ? '' : (branch.split('.').length === 2 ? `${branch}.0` : branch);
+            core.setOutput('publish', String(!testBuild));
             core.setOutput('branch', branch);
             core.setOutput('version', version);
-            core.setOutput('tag', isMain ? 'latest' : `v${branch}`);
-            core.setOutput('prerelease', String(isMain));
+            core.setOutput('tag', testBuild ? '' : isMain ? 'latest' : `v${branch}`);
+            core.setOutput('prerelease', String(isMain || testBuild));
             core.info(`Building ${branch} for Windows, macOS and Linux.`);
 
   build:
@@ -98,6 +106,7 @@ jobs:
       - name: Build packages
         env:
           CODEX_LIMITS_RELEASE: '1'
+          CODEX_LIMITS_ALLOW_UNSIGNED: '1'
           WIN_CSC_LINK: ${{ matrix.target == 'win' && secrets.WIN_CSC_LINK || '' }}
           WIN_CSC_KEY_PASSWORD: ${{ matrix.target == 'win' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
           CSC_LINK: ${{ matrix.target == 'mac' && secrets.MAC_CSC_LINK || '' }}
@@ -128,7 +137,7 @@ jobs:
   publish:
     name: Publish GitHub Release
     needs: [check-branch, build]
-    if: needs.check-branch.outputs.build == 'true'
+    if: needs.check-branch.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

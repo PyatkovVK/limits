@@ -17,10 +17,14 @@ const tempRoot = path.resolve(os.tmpdir());
 const output = fs.mkdtempSync(path.join(tempRoot, 'limits-build-'));
 console.log('Temporary build directory:', output);
 const config = structuredClone(require('../../../package.json').build);
-const signedRelease = require('../../../scripts/signing.cjs').configureSigning(config, 'win');
+const { configureSigning, signingEnvironment } = require('../../../scripts/signing.cjs');
+const signedRelease = configureSigning(config, 'win');
 config.directories.output = output;
-// Reuse the pinned local Electron runtime instead of downloading another copy.
-config.electronDist = path.dirname(require.resolve('electron/dist/version'));
+// Electron 44 may not have downloaded its runtime yet. Otherwise let the builder fetch it.
+if (process.arch === 'x64') {
+  const electronDist = path.join(path.dirname(require.resolve('electron/package.json')), 'dist');
+  if (fs.existsSync(path.join(electronDist, 'version'))) config.electronDist = electronDist;
+}
 require('../../../scripts/bundle-codex.cjs').bundleCodex(config, { platform: 'win32', arch: 'x64' });
 if (standalone) {
   // Preserve the legacy command's filenames; every build now includes the runtime.
@@ -31,7 +35,7 @@ const configPath = path.join(output, 'build-config.json');
 fs.writeFileSync(configPath, JSON.stringify(config));
 console.log('Includes the Codex app-server runtime; no separate Codex installation is required.');
 const builder = path.join(path.dirname(require.resolve('electron-builder/package.json')), 'cli.js');
-const build = spawnSync(process.execPath, [builder, '--win', '--x64', '--publish=never', `--config=${configPath}`], { cwd: root, stdio: 'inherit', windowsHide: true });
+const build = spawnSync(process.execPath, [builder, '--win', '--x64', '--publish=never', `--config=${configPath}`], { cwd: root, env: signingEnvironment(), stdio: 'inherit', windowsHide: true });
 if (build.error || build.status !== 0) {
   console.error('Build failed; diagnostics retained at:', output);
   process.exit(build.status || 1);

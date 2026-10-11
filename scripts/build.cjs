@@ -17,14 +17,20 @@ if (process.argv[2] === 'mac') {
   require('../src/apple_feature/scripts/build-helper.cjs').buildHelper();
   require('../src/apple_feature/scripts/build-config.cjs').configureAppleBuild(config);
 }
-const signedRelease = require('./signing.cjs').configureSigning(config, process.argv[2]);
+const { configureSigning, signingEnvironment } = require('./signing.cjs');
+const signedRelease = configureSigning(config, process.argv[2]);
 config.directories.output = output;
-if (plan.arch === process.arch) config.electronDist = path.dirname(require.resolve('electron/dist/version'));
+// Electron 44 downloads its runtime lazily; a fresh npm install may have no dist yet.
+// Let electron-builder download it unless a matching local runtime is available.
+if (plan.arch === process.arch) {
+  const electronDist = path.join(path.dirname(require.resolve('electron/package.json')), 'dist');
+  if (fs.existsSync(path.join(electronDist, 'version'))) config.electronDist = electronDist;
+}
 const configPath = path.join(output, 'build-config.json');
 fs.writeFileSync(configPath, JSON.stringify(config));
 console.log('Temporary build directory:', output);
 const builder = path.join(path.dirname(require.resolve('electron-builder/package.json')), 'cli.js');
-const result = spawnSync(process.execPath, [builder, ...plan.args, `--config=${configPath}`], { cwd: root, stdio: 'inherit', windowsHide: true });
+const result = spawnSync(process.execPath, [builder, ...plan.args, `--config=${configPath}`], { cwd: root, env: signingEnvironment(), stdio: 'inherit', windowsHide: true });
 if (result.error || result.status !== 0) {
   console.error('Build failed; diagnostics retained at:', output);
   process.exit(result.status || 1);

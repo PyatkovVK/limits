@@ -92,13 +92,13 @@ Build on the target OS after installing dependencies:
 
 macOS and Linux default to the current Node.js architecture if none is specified. Linux also accepts `--arm64` for local builds; the release matrix publishes Linux x64. `npm run build:win:standalone` is a compatibility command for the same bundled Windows app with the older Standalone filenames.
 
-Finished packages are written to `release/`; local build commands do not publish anything. Intermediate files use the OS temporary directory, which needs about 2 GB of free space. Local Windows builds without signing credentials are unsigned. Local macOS builds use ad hoc signing unless a certificate is configured. Public release builds require signing and macOS notarization as described below.
+Finished packages are written to `release/`; local build commands do not publish anything. Intermediate files use the OS temporary directory, which needs about 2 GB of free space. Windows builds without signing credentials are unsigned. macOS builds use ad hoc signing unless a certificate is configured. Signing and macOS notarization follow the policy below.
 
 ### Signing releases
 
-The release workflow sets `CODEX_LIMITS_RELEASE=1`. Windows and macOS builds then require signing credentials and verify the packaged application before copying packages for publication. Missing credentials or failed verification stop the release; they do not fall back to unsigned or ad hoc output. Existing downloads are not re-signed by this configuration change.
+The release workflow sets `CODEX_LIMITS_RELEASE=1` and `CODEX_LIMITS_ALLOW_UNSIGNED=1`. Without a certificate, it produces unsigned Windows packages and ad hoc signed macOS packages without notarization. Once a certificate is configured, signing and verification are mandatory; macOS also requires complete notarization credentials. Failed signing, incomplete notarization credentials, or failed verification stop the release. Remove `CODEX_LIMITS_ALLOW_UNSIGNED=1` to require certificates for every Windows and macOS release. Existing downloads are not re-signed by this configuration change.
 
-Configure these GitHub Actions secrets before running a release:
+Configure these GitHub Actions secrets to enable signed releases:
 
 | Platform | Secrets |
 | --- | --- |
@@ -111,7 +111,7 @@ Local development builds without `CODEX_LIMITS_RELEASE=1` remain available witho
 
 ## Automated releases
 
-The [Build and release workflow](../.github/workflows/release.yml) runs on pushes and manual dispatch. Only `main` and exact numeric branches such as `1.0` or `1.0.0` build and publish. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
+The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix`. Only `main` and exact numeric branches such as `1.0` or `1.0.0` build and publish. The `1.0-fix` branch and pull requests into it build all four targets and upload packages as workflow artifacts for testing, without publishing a release. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
 
 - `main` publishes the updating `latest` prerelease using the version in `package.json`.
 - A numeric branch publishes `v<branch>`. A two-part branch such as `1.0` produces package version `1.0.0`.
