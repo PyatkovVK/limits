@@ -51,7 +51,7 @@
 | Windows 10 / 11, x64 | `Limits-Setup-*.exe` для установки; `Limits-*-portable.exe` без установки | Компонент подключения включён |
 | macOS, Apple Silicon | `Limits-*-arm64.dmg` или `Limits-*-arm64.zip` | Установленное приложение Codex или нативный Codex CLI |
 | macOS, Intel | `Limits-*-x64.dmg` или `Limits-*-x64.zip` | Установленное приложение Codex или нативный Codex CLI |
-| Linux, x64 | `Limits-*-x64.AppImage` или `Limits-*-x64.deb` | Нативный Codex CLI, доступный приложению |
+| Linux, x64 | `Limits-*-x86_64.AppImage` или `Limits-*-amd64.deb` | Нативный Codex CLI, доступный приложению |
 
 **Windows:** запустите установщик для текущего пользователя или откройте portable EXE. Отдельная установка Codex не нужна. Значки трея могут появиться под стрелкой возле часов — при желании перетащите их в видимую область.
 

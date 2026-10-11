@@ -135,9 +135,9 @@ jobs:
           retention-days: 7
 
   publish:
-    name: Publish GitHub Release
+    name: Verify packages and publish release
     needs: [check-branch, build]
-    if: needs.check-branch.outputs.publish == 'true'
+    if: needs.check-branch.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -172,8 +172,8 @@ jobs:
             "Limits-$version-arm64.zip"
             "Limits-$version-x64.dmg"
             "Limits-$version-x64.zip"
-            "Limits-$version-x64.AppImage"
-            "Limits-$version-x64.deb"
+            "Limits-$version-x86_64.AppImage"
+            "Limits-$version-amd64.deb"
           )
           cd release
           for package in "${packages[@]}"; do
@@ -184,6 +184,7 @@ jobs:
           done
           sha256sum "${packages[@]}" > SHA256SUMS.txt
       - name: Point the release tag at the built commit
+        if: needs.check-branch.outputs.publish == 'true'
         uses: actions/github-script@v9
         with:
           script: |
@@ -197,6 +198,7 @@ jobs:
             }
             await github.rest.git.updateRef({ ...context.repo, ref, sha: context.sha, force: true });
       - name: Create or update the release and upload packages
+        if: needs.check-branch.outputs.publish == 'true'
         shell: bash
         run: |
           notes_file="$RUNNER_TEMP/release-notes.md"

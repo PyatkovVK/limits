@@ -55,11 +55,11 @@ Unit tests can run on any supported OS because platform dependencies are mocked.
 For AppImage, replace the placeholder with the exact downloaded filename:
 
 ```sh
-chmod +x './Limits-<version>-x64.AppImage'
-CODEX_LIMITS_CODEX_PATH='/absolute/path/to/codex' './Limits-<version>-x64.AppImage'
+chmod +x './Limits-<version>-x86_64.AppImage'
+CODEX_LIMITS_CODEX_PATH='/absolute/path/to/codex' './Limits-<version>-x86_64.AppImage'
 ```
 
-For DEB on a compatible Debian-based distribution, use `sudo apt install ./Limits-<version>-x64.deb`, replacing `<version>` first.
+For DEB on a compatible Debian-based distribution, use `sudo apt install ./Limits-<version>-amd64.deb`, replacing `<version>` first.
 
 On Linux, Codex must be visible in the graphical app's `PATH` or configured explicitly. Automatic discovery inside VS Code extensions is not implemented on Linux. macOS also searches supported app bundles, Homebrew, nvm, and user directories.
 
@@ -111,7 +111,7 @@ Local development builds without `CODEX_LIMITS_RELEASE=1` remain available witho
 
 ## Automated releases
 
-The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix`. Only `main` and exact numeric branches such as `1.0` or `1.0.0` build and publish. The `1.0-fix` branch and pull requests into it build all four targets and upload packages as workflow artifacts for testing, without publishing a release. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
+The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix`. Only `main` and exact numeric branches such as `1.0` or `1.0.0` build and publish. The `1.0-fix` branch and pull requests into it build all four targets, upload packages as workflow artifacts, and verify all eight packages and their checksums, without publishing a release. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
 
 - `main` publishes the updating `latest` prerelease using the version in `package.json`.
 - A numeric branch publishes `v<branch>`. A two-part branch such as `1.0` produces package version `1.0.0`.
