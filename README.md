@@ -126,5 +126,6 @@ These are ideas for future work, not current features:
 - Automatic updates, with a modal dialog offering to install a new version when one is available.
 - Configurable low-usage and approaching-reset notifications.
 - Broader Linux desktop support and Linux autostart.
+- Try to connect send notify about Codex reset.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
