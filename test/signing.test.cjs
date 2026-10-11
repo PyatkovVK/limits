@@ -38,6 +38,43 @@ test('signed release configurations validate and never serialize signing secrets
     assert.ok(!JSON.stringify(mac).includes('dummy-private-certificate')); await validateConfiguration(mac);
   }
 });
+test('release workflow can build without certificates while configured signing remains mandatory', async () => {
+  const { validateConfiguration } = require('app-builder-lib/out/util/config/config');
+  const env = { CODEX_LIMITS_RELEASE: '1', CODEX_LIMITS_ALLOW_UNSIGNED: '1' };
+  const win = config();
+  assert.equal(configureSigning(win, 'win', env), false);
+  assert.equal(win.win.signExecutable, false);
+  assert.equal(win.win.forceCodeSigning, false);
+  assert.equal(win.afterPack, undefined);
+  await validateConfiguration(win);
+  const mac = config();
+  configureAppleBuild(mac, env);
+  assert.equal(configureSigning(mac, 'mac', env), false);
+  assert.equal(mac.mac.identity, '-');
+  assert.equal(mac.mac.forceCodeSigning, false);
+  assert.equal(mac.mac.hardenedRuntime, false);
+  assert.equal(mac.mac.notarize, false);
+  await validateConfiguration(mac);
+
+  const signedWin = config();
+  assert.equal(configureSigning(signedWin, 'win', { ...env, WIN_CSC_LINK: 'dummy-certificate' }), true);
+  assert.equal(signedWin.win.signExecutable, true);
+  assert.equal(signedWin.win.forceCodeSigning, true);
+  assert.ok(signedWin.afterPack);
+  await validateConfiguration(signedWin);
+  const certificate = { ...env, CSC_LINK: 'dummy-certificate' };
+  assert.throws(() => configureSigning(config(), 'mac', certificate), /notarization/);
+  const signedMac = config();
+  configureAppleBuild(signedMac, certificate);
+  assert.equal(configureSigning(signedMac, 'mac', { ...certificate,
+    APPLE_ID: 'dummy', APPLE_APP_SPECIFIC_PASSWORD: 'dummy', APPLE_TEAM_ID: 'dummy' }), true);
+  assert.equal(signedMac.mac.forceCodeSigning, true);
+  assert.equal(signedMac.mac.hardenedRuntime, true);
+  assert.equal(signedMac.mac.notarize, true);
+  await validateConfiguration(signedMac);
+  assert.throws(() => configureSigning(config(), 'mac', { ...env, CSC_NAME: '-' }), /Developer ID/);
+});
+
 test('Windows extraResources must both be signed successfully', async () => {
   // Load the builder entry point before a platform implementation to avoid its circular imports.
   require('app-builder-lib');

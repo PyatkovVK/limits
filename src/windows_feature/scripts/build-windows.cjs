@@ -19,8 +19,11 @@ console.log('Temporary build directory:', output);
 const config = structuredClone(require('../../../package.json').build);
 const signedRelease = require('../../../scripts/signing.cjs').configureSigning(config, 'win');
 config.directories.output = output;
-// Reuse the pinned local Electron runtime instead of downloading another copy.
-config.electronDist = path.dirname(require.resolve('electron/dist/version'));
+// Electron 44 may not have downloaded its runtime yet. Otherwise let the builder fetch it.
+if (process.arch === 'x64') {
+  const electronDist = path.join(path.dirname(require.resolve('electron/package.json')), 'dist');
+  if (fs.existsSync(path.join(electronDist, 'version'))) config.electronDist = electronDist;
+}
 require('../../../scripts/bundle-codex.cjs').bundleCodex(config, { platform: 'win32', arch: 'x64' });
 if (standalone) {
   // Preserve the legacy command's filenames; every build now includes the runtime.

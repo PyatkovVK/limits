@@ -19,7 +19,12 @@ if (process.argv[2] === 'mac') {
 }
 const signedRelease = require('./signing.cjs').configureSigning(config, process.argv[2]);
 config.directories.output = output;
-if (plan.arch === process.arch) config.electronDist = path.dirname(require.resolve('electron/dist/version'));
+// Electron 44 downloads its runtime lazily; a fresh npm install may have no dist yet.
+// Let electron-builder download it unless a matching local runtime is available.
+if (plan.arch === process.arch) {
+  const electronDist = path.join(path.dirname(require.resolve('electron/package.json')), 'dist');
+  if (fs.existsSync(path.join(electronDist, 'version'))) config.electronDist = electronDist;
+}
 const configPath = path.join(output, 'build-config.json');
 fs.writeFileSync(configPath, JSON.stringify(config));
 console.log('Temporary build directory:', output);

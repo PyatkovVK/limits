@@ -3,15 +3,24 @@ const path = require('node:path');
 function configureSigning(config, target, env = process.env) {
   if (!['win', 'mac', 'linux'].includes(target)) throw new Error('Unknown signing target');
   const release = env.CODEX_LIMITS_RELEASE === '1';
+  const allowUnsigned = env.CODEX_LIMITS_ALLOW_UNSIGNED === '1';
   if (target === 'win') {
     const certificate = env.WIN_CSC_LINK || env.CSC_LINK;
-    if (release && !certificate) throw new Error('Signed Windows releases require WIN_CSC_LINK (or CSC_LINK).');
+    if (release && !certificate && !allowUnsigned) throw new Error('Signed Windows releases require WIN_CSC_LINK (or CSC_LINK).');
     config.win.signExecutable = Boolean(certificate);
-    config.win.forceCodeSigning = Boolean(certificate) || release;
+    config.win.forceCodeSigning = Boolean(certificate) || (release && !allowUnsigned);
     if (certificate) config.afterPack = path.join(__dirname, 'sign-windows-resources.cjs');
+    return release && Boolean(certificate);
   }
   if (target === 'mac' && release) {
-    if (!env.CSC_LINK && !env.CSC_NAME) throw new Error('Signed macOS releases require CSC_LINK or CSC_NAME.');
+    if (!env.CSC_LINK && !env.CSC_NAME) {
+      if (!allowUnsigned) throw new Error('Signed macOS releases require CSC_LINK or CSC_NAME.');
+      config.mac.identity = '-';
+      config.mac.forceCodeSigning = false;
+      config.mac.hardenedRuntime = false;
+      config.mac.notarize = false;
+      return false;
+    }
     if (config.mac.identity === '-' || config.mac.identity === null || env.CSC_NAME === '-') throw new Error('macOS releases require a Developer ID identity.');
     const notarization = [
       ['APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER'],

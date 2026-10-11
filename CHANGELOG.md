@@ -4,7 +4,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
-No additional changes recorded yet.
+- Fix packaging after a fresh dependency install when Electron has not downloaded its runtime yet.
+- Allow automated Windows and macOS releases without configured signing certificates; configured certificates still require successful signing and verification.
 
 ## 1.0.0
 
