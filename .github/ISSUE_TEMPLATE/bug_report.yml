@@ -1,0 +1,67 @@
+name: Bug report / Ошибка
+description: Report a problem with Limits / Сообщить о проблеме
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English and Russian reports are welcome. Search existing issues first.
+        Hide personal information in screenshots. Never attach auth.json, tokens, API keys, or account storage.
+        Можно писать по-русски. Скройте личные данные; не прикладывайте файлы авторизации, токены или ключи.
+  - type: input
+    id: version
+    attributes:
+      label: App version / Версия приложения
+      description: Use the release tag or package filename; for source builds, include the commit.
+      placeholder: "Release tag or commit / Тег релиза или коммит"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system / ОС
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment / Окружение
+      description: OS version and CPU architecture; on Linux, desktop environment and X11 or Wayland.
+      placeholder: "Windows 11 x64 / macOS arm64 / Linux Mint, XFCE, X11, x64"
+    validations:
+      required: true
+  - type: input
+    id: mode
+    attributes:
+      label: Package and display mode / Пакет и режим отображения
+      placeholder: "Portable + taskbar widget / DMG + notch / AppImage + tray"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Шаги воспроизведения
+      placeholder: |
+        1. Launch Limits
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / Ожидаемое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / Фактическое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots and diagnostics / Скриншоты и диагностика
+      description: Can you reproduce it with npm run demo? Attach screenshots or relevant diagnostics after removing personal data.
