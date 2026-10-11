@@ -123,6 +123,7 @@ These are ideas for future work, not current features:
 
 - Claude Code integration, subject to availability of a suitable usage data source.
 - DeepSeek integration, subject to availability of a suitable usage data source.
+- Automatic updates, with a modal dialog offering to install a new version when one is available.
 - Configurable low-usage and approaching-reset notifications.
 - Broader Linux desktop support and Linux autostart.
 
