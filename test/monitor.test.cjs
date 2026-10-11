@@ -29,6 +29,35 @@ test('logout and account switch remove old percentages', async t => {
   client.account = null; await monitor.refresh(); assert.equal(monitor.state.status, 'signed-out'); assert.deepEqual(monitor.state.buckets, []);
   client.account = { type: 'apiKey' }; await monitor.refresh(); assert.equal(monitor.state.status, 'unsupported'); assert.deepEqual(monitor.state.buckets, []);
 });
+
+test('a fresh account offers browser sign-in and loads limits after authentication completes', async t => {
+  const { client, monitor } = setup(t);
+  client.account = null;
+  const requests = [];
+  const request = client.request.bind(client);
+  client.request = async (method, params) => {
+    requests.push({ method, params });
+    if (method === 'account/login/start') return { loginId: 'login-1', authUrl: 'https://auth.openai.com/test' };
+    if (method === 'account/login/cancel') return {};
+    return request(method);
+  };
+  await monitor.refresh();
+  assert.equal(monitor.state.status, 'signed-out');
+  assert.equal(monitor.state.error, null);
+  assert.equal(client.count, 0);
+  assert.equal(await monitor.login(), 'https://auth.openai.com/test');
+  assert.equal(monitor.state.status, 'signing-in');
+  assert.deepEqual(requests.find(item => item.method === 'account/login/start').params, { type: 'chatgpt' });
+  await monitor.cancelLogin();
+  assert.equal(monitor.state.status, 'signed-out');
+  assert.deepEqual(requests.find(item => item.method === 'account/login/cancel').params, { loginId: 'login-1' });
+  await monitor.login();
+  client.account = { type: 'chatgpt', email: 'test@example.com', planType: 'plus' };
+  client.emit('notification', 'account/login/completed', { success: true });
+  while (monitor.inflight) await monitor.inflight;
+  assert.equal(monitor.state.status, 'ready');
+  assert.equal(monitor.state.buckets[0].short.remaining, 60);
+});
 test('updates from a different bucket preserve other bucket data', async t => {
   const { client, monitor } = setup(t); await monitor.refresh();
   client.emit('notification', 'account/rateLimits/updated', { rateLimits: { limitId: 'other', primary: { usedPercent: 5, windowDurationMins: 300 } } });

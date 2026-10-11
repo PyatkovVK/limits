@@ -50,6 +50,14 @@ test('all push branches reach the gate, and builds and publication require its a
   assert.equal(workflow.jobs['check-branch'].steps.length, 1);
 });
 
+test('every release OS runs the full portable test suite', () => {
+  const runTests = workflow.jobs.build.steps.find(step => step.name === 'Run tests');
+  assert.equal(runTests.run, 'npm test');
+  assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'win'));
+  assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'mac'));
+  assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'linux'));
+});
+
 test('release tag points to the built commit on both initial and repeated publication', async () => {
   const tagStep = workflow.jobs.publish.steps.find(step => step.name === 'Point the release tag at the built commit');
   const updateTag = new AsyncFunction('context', 'github', 'process', tagStep.with.script);

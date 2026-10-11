@@ -64,9 +64,31 @@
       refreshFailed: 'Could not read limits. Check your connection and Codex sign-in. Retrying automatically.'
     }
   };
+  // Only Windows ships the connection component; other platforms keep their wording.
+  const windowsStrings = {
+    ru: {
+      account: 'Аккаунт ChatGPT',
+      codexMissing: 'Не найден компонент подключения. Переустановите Limits.',
+      loginUnavailable: 'Вход временно недоступен. Перезапустите Limits.',
+      loginFailed: 'Не удалось открыть вход. Попробуйте ещё раз.',
+      disconnected: 'Соединение потеряно. Повторяем подключение.',
+      refreshFailed: 'Не удалось получить лимиты. Проверьте интернет и вход в ChatGPT. Повторяем автоматически.'
+    },
+    en: {
+      account: 'ChatGPT account',
+      codexMissing: 'The connection component was not found. Reinstall Limits.',
+      loginUnavailable: 'Sign-in is temporarily unavailable. Restart Limits.',
+      loginFailed: 'Could not open sign-in. Try again.',
+      unsupported: 'Subscription limits require ChatGPT sign-in. Another authentication method is currently in use.',
+      disconnected: 'Connection was lost. Reconnecting.',
+      refreshFailed: 'Could not read limits. Check your connection and ChatGPT sign-in. Retrying automatically.'
+    }
+  };
   const api = {
     languages: Object.keys(strings),
-    t(language, key) { return (strings[language] || strings.ru)[key] || key; },
+    t(language, key, platform) {
+      return (platform === 'win32' ? (windowsStrings[language] || windowsStrings.ru)[key] : null) || (strings[language] || strings.ru)[key] || key;
+    },
     apply(language, doc, translate = api.t) {
       doc.documentElement.lang = language;
       doc.querySelectorAll('[data-i18n]').forEach(el => { const text = translate(language, el.dataset.i18n); if (el.textContent !== text) el.textContent = text; });

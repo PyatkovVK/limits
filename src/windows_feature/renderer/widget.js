@@ -5,8 +5,9 @@ const setText = (element, text) => { if (element.textContent !== text) element.t
 function renderCountdown() { window.limitsCountdown.render($('short-reset'), resetAt, language); }
 function render(next) {
   language = next.language || 'ru';
-  const t = key => window.limitsI18n.t(language, key);
-  window.limitsI18n.apply(language, document);
+  const translate = (lang, key) => window.limitsI18n.t(lang, key, 'win32');
+  const t = key => translate(language, key);
+  window.limitsI18n.apply(language, document, translate);
   const bucket = next.buckets.find(b => b.id === next.selectedId) || next.buckets.find(b => b.id === 'codex') || next.buckets[0];
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > 90000;
   document.body.classList.toggle('stale', Boolean(stale));

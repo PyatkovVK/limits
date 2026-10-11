@@ -28,7 +28,7 @@ if (!singleInstance) app.quit();
 
 let window, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
 let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray' };
-const t = key => (process.platform === 'darwin' ? require('../apple_feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key);
+const t = key => (process.platform === 'darwin' ? require('../apple_feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key, process.platform);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: 30, demo };
 let notified = new Set();
 
@@ -253,6 +253,7 @@ async function setup() {
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
       monitor.on('state', next => { state = { ...next, demo }; update(); });
+      if (process.platform === 'win32' && !demo && !smoke) require('../windows_feature/onboarding.cjs').offerSignIn(monitor, showPanel);
       state = { ...monitor.snapshot(), demo };
       void monitor.refresh();
   } catch { state = { ...state, status: 'error', error: 'codexMissing' }; }

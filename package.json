@@ -13,6 +13,7 @@
     "doctor": "node scripts/doctor.cjs",
     "smoke": "npm run prepare:app && electron . --demo --smoke-test",
     "smoke:live": "npm run prepare:app && electron . --smoke-test",
+    "smoke:onboarding": "npm run prepare:app && electron scripts/smoke-onboarding.cjs",
     "prepare:app": "node \"src/windows_feature/scripts/assets.cjs\" && node \"src/windows_feature/scripts/build-taskbar-helper.cjs\" && node \"src/apple_feature/scripts/build-helper.cjs\"",
     "prepare:assets": "node \"src/windows_feature/scripts/assets.cjs\"",
     "build:win": "node \"src/windows_feature/scripts/build-windows.cjs\"",

@@ -40,9 +40,9 @@ class FakeTray extends EventEmitter {
   destroy() { this.destroyed = true; }
 }
 const nativeImage = { createFromBuffer(buffer) { return { buffer, addRepresentation() {} }; } };
-test('ordinary polls preserve tray objects and images; switching modes destroys only the previous set', () => {
+for (const platform of ['win32', 'darwin', 'linux']) test(`ordinary polls preserve tray objects and images; switching modes destroys only the previous set (${platform})`, () => {
   const clicks = [];
-  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, onClick: (_, kind) => clicks.push(kind) });
+  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, platform, onClick: (_, kind) => clicks.push(kind) });
   const state = { mode: 'tray', bucket: { short: { remaining: 27 }, weekly: { remaining: 64 } }, language: 'ru', stale: false, menu: [{ label: 'Exit' }] };
   view.update(state);
   const original = view.entries.map(entry => entry.tray);

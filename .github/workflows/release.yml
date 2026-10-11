@@ -60,22 +60,18 @@ jobs:
             os: windows-latest
             target: win
             arch: x64
-            feature: windows_feature
           - name: macOS Apple Silicon
             os: macos-15
             target: mac
             arch: arm64
-            feature: apple_feature
           - name: macOS Intel
             os: macos-15-intel
             target: mac
             arch: x64
-            feature: apple_feature
           - name: Linux x64
             os: ubuntu-24.04
             target: linux
             arch: x64
-            feature: linux_feature
     defaults:
       run:
         shell: bash
@@ -83,7 +79,6 @@ jobs:
       RELEASE_VERSION: ${{ needs.check-branch.outputs.version }}
       BUILD_TARGET: ${{ matrix.target }}
       BUILD_ARCH: ${{ matrix.arch }}
-      TEST_FEATURE: ${{ matrix.feature }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -99,7 +94,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Run tests
-        run: node --test "test/*.test.cjs" "src/$TEST_FEATURE/test/*.test.cjs"
+        run: npm test
       - name: Build packages
         run: |
           if [[ "$BUILD_TARGET" == 'win' ]]; then
@@ -192,13 +187,13 @@ jobs:
             title='Limits main (latest build)'
           fi
           cat > "$notes_file" <<EOF
-          Сборки ветки \`$RELEASE_BRANCH\` для Windows x64, macOS Apple Silicon / Intel и Linux x64.
+          Builds from branch \`$RELEASE_BRANCH\` for Windows x64, macOS Apple Silicon / Intel, and Linux x64.
 
-          Коммит: $GITHUB_SHA
+          Commit: $GITHUB_SHA
 
-          Windows: portable EXE и установщик. macOS: DMG и ZIP для каждой архитектуры. Linux: AppImage и DEB.
+          Windows: portable EXE and installer. macOS: DMG and ZIP for each architecture. Linux: AppImage and DEB.
 
-          Контрольные суммы файлов: \`SHA256SUMS.txt\`.
+          File checksums: \`SHA256SUMS.txt\`.
           EOF
           if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
             gh release edit "$RELEASE_TAG" --title "$title" --notes-file "$notes_file" --draft --prerelease="$RELEASE_PRERELEASE"

@@ -9,7 +9,6 @@ if (process.platform !== 'win32') {
 }
 
 const standalone = process.argv.includes('--standalone');
-if (standalone) require('./stage-codex.cjs');
 require('./build-taskbar-helper.cjs');
 require('./assets.cjs');
 const root = path.resolve(__dirname, '../../..');
@@ -21,17 +20,15 @@ const config = structuredClone(require('../../../package.json').build);
 config.directories.output = output;
 // Reuse the pinned local Electron runtime instead of downloading another copy.
 config.electronDist = path.dirname(require.resolve('electron/dist/version'));
+require('../../../scripts/bundle-codex.cjs').bundleCodex(config, { platform: 'win32', arch: 'x64' });
 if (standalone) {
-  config.extraResources.push(
-    { from: 'node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe', to: 'codex/codex.exe' },
-    { from: 'licenses/Apache-2.0.txt', to: 'codex/Apache-2.0.txt' }
-  );
+  // Preserve the legacy command's filenames; every build now includes the runtime.
   config.nsis.artifactName = 'Limits-Standalone-Setup-${version}.${ext}';
   config.portable.artifactName = 'Limits-Standalone-${version}-portable.${ext}';
 }
 const configPath = path.join(output, 'build-config.json');
 fs.writeFileSync(configPath, JSON.stringify(config));
-console.log(standalone ? 'Standalone build: includes Codex CLI (without code-mode host).' : 'Compact build: uses installed Codex app or CLI.');
+console.log('Includes the Codex app-server runtime; no separate Codex installation is required.');
 const builder = path.join(path.dirname(require.resolve('electron-builder/package.json')), 'cli.js');
 const build = spawnSync(process.execPath, [builder, '--win', '--x64', '--publish=never', `--config=${configPath}`], { cwd: root, stdio: 'inherit', windowsHide: true });
 if (build.error || build.status !== 0) {
