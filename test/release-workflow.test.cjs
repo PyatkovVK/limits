@@ -18,10 +18,15 @@ async function checkBranch(ref, payload = {}, eventName = 'push') {
   return outputs;
 }
 
-test('release gate allows main and exact numeric version branches', async () => {
-  assert.deepEqual(await checkBranch('refs/heads/main'), {
-    build: 'true', publish: 'true', branch: 'main', version: '', tag: 'latest', prerelease: 'true',
-  });
+test('main builds and verifies packages without creating a release or tag', async () => {
+  for (const event of ['push', 'workflow_dispatch']) {
+    assert.deepEqual(await checkBranch('refs/heads/main', {}, event), {
+      build: 'true', publish: 'false', branch: 'main', version: '', tag: '', prerelease: 'true',
+    });
+  }
+});
+
+test('release gate publishes exact numeric version branches', async () => {
   for (const [branch, version] of [['1.0', '1.0.0'], ['2.1', '2.1.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
     assert.deepEqual(await checkBranch(`refs/heads/${branch}`), {
       build: 'true', publish: 'true', branch, version, tag: `v${branch}`, prerelease: 'false',
@@ -124,7 +129,7 @@ test('release tag points to the built commit on both initial and repeated public
   const tagStep = workflow.jobs.publish.steps.find(step => step.name === 'Point the release tag at the built commit');
   const updateTag = new AsyncFunction('context', 'github', 'process', tagStep.with.script);
   const context = { repo: { owner: 'owner', repo: 'limits' }, sha: 'built-commit' };
-  for (const tag of ['latest', 'v2.1']) {
+  for (const tag of ['v1.0', 'v2.1']) {
     for (const exists of [true, false]) {
       const calls = [];
       const github = { rest: { git: {
@@ -143,5 +148,5 @@ test('release tag points to the built commit on both initial and repeated public
   }
   await assert.rejects(updateTag(context, { rest: { git: {
     getRef: async () => { throw Object.assign(new Error('Forbidden'), { status: 403 }); },
-  } } }, { env: { RELEASE_TAG: 'latest' } }), /Forbidden/);
+  } } }, { env: { RELEASE_TAG: 'v1.0' } }), /Forbidden/);
 });

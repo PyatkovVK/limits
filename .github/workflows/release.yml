@@ -39,6 +39,7 @@ jobs:
             const isFix = context.ref === 'refs/heads/1.0-fix';
             const isTestPull = context.eventName === 'pull_request' && context.payload.pull_request?.base.ref === '1.0-fix';
             const testBuild = isFix || isTestPull;
+            const publish = Boolean(match) && !isTestPull;
             const build = (isMain || testBuild || Boolean(match)) && context.payload.deleted !== true;
             core.setOutput('build', String(build));
             if (!build) {
@@ -47,10 +48,10 @@ jobs:
             }
             const branch = isTestPull ? context.payload.pull_request.head.ref : isMain ? 'main' : isFix ? '1.0-fix' : match[1];
             const version = isMain || testBuild ? '' : (branch.split('.').length === 2 ? `${branch}.0` : branch);
-            core.setOutput('publish', String(!testBuild));
+            core.setOutput('publish', String(publish));
             core.setOutput('branch', branch);
             core.setOutput('version', version);
-            core.setOutput('tag', testBuild ? '' : isMain ? 'latest' : `v${branch}`);
+            core.setOutput('tag', publish ? `v${branch}` : '');
             core.setOutput('prerelease', String(isMain || testBuild));
             core.info(`Building ${branch} for Windows, macOS and Linux.`);
 
@@ -203,9 +204,6 @@ jobs:
         run: |
           notes_file="$RUNNER_TEMP/release-notes.md"
           title="Limits $RELEASE_BRANCH"
-          if [[ "$RELEASE_BRANCH" == 'main' ]]; then
-            title='Limits main (latest build)'
-          fi
           cat > "$notes_file" <<EOF
           Builds from branch \`$RELEASE_BRANCH\` for Windows x64, macOS Apple Silicon / Intel, and Linux x64.
 

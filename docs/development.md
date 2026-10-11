@@ -111,9 +111,9 @@ Local development builds without `CODEX_LIMITS_RELEASE=1` remain available witho
 
 ## Automated releases
 
-The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix`. Only `main` and exact numeric branches such as `1.0` or `1.0.0` build and publish. The `1.0-fix` branch and pull requests into it build all four targets, upload packages as workflow artifacts, and verify all eight packages and their checksums, without publishing a release. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
+The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix`. Only exact numeric branches such as `1.0` or `1.0.0` build and publish releases. The `main` and `1.0-fix` branches and pull requests into `1.0-fix` build all four targets, upload packages as workflow artifacts, and verify all eight packages and their checksums, without publishing a release or creating a tag. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
 
-- `main` publishes the updating `latest` prerelease using the version in `package.json`.
+- `main` uses the version in `package.json` and saves packages in Actions artifacts for seven days; it does not create a `latest` release or tag.
 - A numeric branch publishes `v<branch>`. A two-part branch such as `1.0` produces package version `1.0.0`.
 - The version override happens inside CI, without a version commit to the branch.
 - All four build targets must pass tests and packaging before publication.
