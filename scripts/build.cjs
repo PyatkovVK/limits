@@ -17,6 +17,7 @@ if (process.argv[2] === 'mac') {
   require('../src/apple_feature/scripts/build-helper.cjs').buildHelper();
   require('../src/apple_feature/scripts/build-config.cjs').configureAppleBuild(config);
 }
+const signedRelease = require('./signing.cjs').configureSigning(config, process.argv[2]);
 config.directories.output = output;
 if (plan.arch === process.arch) config.electronDist = path.dirname(require.resolve('electron/dist/version'));
 const configPath = path.join(output, 'build-config.json');
@@ -28,6 +29,7 @@ if (result.error || result.status !== 0) {
   console.error('Build failed; diagnostics retained at:', output);
   process.exit(result.status || 1);
 }
+if (signedRelease) require('./verify-signing.cjs').verifySigning(output, process.argv[2], plan.arch);
 const release = path.join(root, 'release');
 fs.mkdirSync(release, { recursive: true });
 for (const filename of fs.readdirSync(output)) {

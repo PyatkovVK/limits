@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { findCodex } = require('../src/common/codex-path.cjs');
+const { AUTH_ENV_VARIABLES } = require('../src/common/accounts.cjs');
 if (process.platform !== 'win32') throw new Error('Run the Windows onboarding check on Windows.');
 
 const parent = path.resolve(__dirname, '../artifacts');
@@ -12,7 +13,9 @@ fs.mkdirSync(parent, { recursive: true });
 const root = fs.mkdtempSync(path.join(parent, 'onboarding-smoke-'));
 process.env.CODEX_HOME = path.join(root, 'codex-home');
 fs.mkdirSync(process.env.CODEX_HOME);
-for (const key of ['OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_LIMITS_CODEX_PATH']) delete process.env[key];
+for (const key of Object.keys(process.env)) {
+  if ([...AUTH_ENV_VARIABLES, 'CODEX_LIMITS_CODEX_PATH'].includes(key.toUpperCase())) delete process.env[key];
+}
 process.env.PATH = '';
 const resourcesPath = process.argv.find(arg => arg.startsWith('--resources='))?.slice('--resources='.length);
 if (resourcesPath) process.env.CODEX_LIMITS_CODEX_PATH = findCodex({ resourcesPath, env: { PATH: '' }, resolvePackage() { throw new Error('No npm packages'); } });

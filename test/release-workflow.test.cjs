@@ -58,6 +58,15 @@ test('every release OS runs the full portable test suite', () => {
   assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'linux'));
 });
 
+test('release builds require signing and receive certificates only in the packaging step', () => {
+  const step = workflow.jobs.build.steps.find(item => item.name === 'Build packages');
+  assert.equal(step.env.CODEX_LIMITS_RELEASE, '1');
+  assert.ok(step.env.WIN_CSC_LINK.includes('secrets.WIN_CSC_LINK'));
+  assert.ok(step.env.CSC_LINK.includes('secrets.MAC_CSC_LINK'));
+  for (const key of ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID']) assert.ok(step.env[key].includes(`secrets.${key}`));
+  assert.equal(workflow.jobs.build.env.CSC_LINK, undefined);
+});
+
 test('release tag points to the built commit on both initial and repeated publication', async () => {
   const tagStep = workflow.jobs.publish.steps.find(step => step.name === 'Point the release tag at the built commit');
   const updateTag = new AsyncFunction('context', 'github', 'process', tagStep.with.script);

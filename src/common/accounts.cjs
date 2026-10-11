@@ -4,13 +4,15 @@ const { randomUUID } = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { isStale } = require('./limits.cjs');
+// Keep this list aligned with Codex's supported host-owned auth selectors.
+const AUTH_ENV_VARIABLES = Object.freeze(['OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN',
+  'OPENAI_FEDERATION_RULE_ID', 'OPENAI_IDENTITY_TOKEN_FILE', 'OPENAI_WORKLOAD_IDENTITY_CONTEXT']);
 
 const nickname = value => typeof value === 'string' ? value.replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 80) : '';
 function clientOptions(root, profile, env = process.env) {
   if (profile.id === 'default') return { env };
   const isolated = { ...env, CODEX_HOME: path.join(root, 'accounts', profile.id) };
-  delete isolated.OPENAI_API_KEY;
-  delete isolated.CODEX_API_KEY;
+  for (const key of Object.keys(isolated)) if (AUTH_ENV_VARIABLES.includes(key.toUpperCase())) delete isolated[key];
   return { env: isolated, args: ['-c', 'cli_auth_credentials_store="file"', 'app-server', '--listen', 'stdio://'] };
 }
 
@@ -21,6 +23,8 @@ class Accounts extends EventEmitter {
     this.file = path.join(root, 'accounts.json');
     this.monitors = new Map();
     this.loginActive = null;
+    this.loginAttempt = null;
+    this.removing = new Map();
     let saved;
     if (!initialProfiles) {
       try { saved = JSON.parse(fs.readFileSync(this.file, 'utf8')); } catch { /* First launch. */ }
@@ -41,12 +45,7 @@ class Accounts extends EventEmitter {
     this.monitors.set(profile.id, monitor);
     monitor.on('state', () => this.publish());
     monitor.on('diagnostic', info => this.emit('diagnostic', { ...info, profileId: profile.id }));
-    monitor.client.on('notification', method => {
-      if (method === 'account/login/completed' && this.loginActive === profile.id) { this.loginActive = null; this.publish(); }
-    });
-    monitor.client.on('disconnected', () => {
-      if (this.loginActive === profile.id) { this.loginActive = null; this.publish(); }
-    });
+    monitor.on('login-ended', attempt => this.finishLogin(attempt));
     return monitor;
   }
   snapshot() {
@@ -96,19 +95,39 @@ class Accounts extends EventEmitter {
   }
   async login(id = this.selectedProfileId) {
     const monitor = this.monitors.get(id);
-    if (!monitor) throw new Error('Unknown profile');
-    if (this.loginActive && this.loginActive !== id) { const error = new Error('Login in progress'); error.code = 'loginBusy'; throw error; }
+    if (!monitor || this.removing.has(id)) throw new Error('Unknown profile');
+    const busy = () => { const error = new Error('Login in progress'); error.code = 'loginBusy'; throw error; };
+    if (this.loginActive && (this.loginActive !== id || this.loginAttempt?.phase !== 'active')) busy();
     if (this.loginActive === id) await this.cancelLogin(id);
-    this.loginActive = id; this.publish();
-    try { return await monitor.login(); }
-    catch (error) { this.loginActive = null; this.publish(); throw error; }
+    // Another profile or removal can take over while cancellation is awaiting RPC.
+    if (this.loginActive) busy();
+    if (this.removing.has(id) || this.monitors.get(id) !== monitor) throw new Error('Unknown profile');
+    const attempt = { cancelled: false, phase: 'preparing' };
+    this.loginAttempt = attempt; this.loginActive = id; this.publish();
+    try {
+      const authUrl = await monitor.login(attempt);
+      return this.loginAttempt === attempt && !attempt.cancelled ? authUrl : null;
+    } catch (error) { this.finishLogin(attempt); throw error; }
   }
-  async cancelLogin(id) {
+  finishLogin(attempt) {
+    if (this.loginAttempt !== attempt) return;
+    this.loginAttempt = null; this.loginActive = null; this.publish();
+  }
+  async cancelLogin(id, expectedAttempt = this.loginAttempt) {
     const monitor = this.monitors.get(id);
-    if (!monitor || this.loginActive !== id) return;
-    await monitor.cancelLogin(); this.loginActive = null; this.publish();
+    if (!monitor || this.loginActive !== id || this.loginAttempt !== expectedAttempt) return;
+    const attempt = this.loginAttempt;
+    attempt.cancelled = true; attempt.phase = 'cancelling';
+    try { await monitor.cancelLogin(); }
+    finally { this.finishLogin(attempt); }
   }
-  async remove(id) {
+  remove(id) {
+    if (this.removing.has(id)) return this.removing.get(id);
+    const removal = this.removeProfile(id);
+    this.removing.set(id, removal);
+    return removal.finally(() => this.removing.delete(id));
+  }
+  async removeProfile(id) {
     if (id === 'default') throw new Error('The shared Codex account is managed by Codex');
     const monitor = this.monitors.get(id);
     if (!monitor) return;
@@ -122,4 +141,4 @@ class Accounts extends EventEmitter {
   }
   stop() { this.monitors.forEach(monitor => monitor.stop()); }
 }
-module.exports = { Accounts, clientOptions };
+module.exports = { Accounts, clientOptions, AUTH_ENV_VARIABLES };

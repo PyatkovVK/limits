@@ -96,6 +96,15 @@ jobs:
       - name: Run tests
         run: npm test
       - name: Build packages
+        env:
+          CODEX_LIMITS_RELEASE: '1'
+          WIN_CSC_LINK: ${{ matrix.target == 'win' && secrets.WIN_CSC_LINK || '' }}
+          WIN_CSC_KEY_PASSWORD: ${{ matrix.target == 'win' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+          CSC_LINK: ${{ matrix.target == 'mac' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.target == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ matrix.target == 'mac' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ matrix.target == 'mac' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ matrix.target == 'mac' && secrets.APPLE_TEAM_ID || '' }}
         run: |
           if [[ "$BUILD_TARGET" == 'win' ]]; then
             npm run build:win

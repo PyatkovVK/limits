@@ -53,7 +53,7 @@ test('a fresh account offers browser sign-in and loads limits after authenticati
   assert.deepEqual(requests.find(item => item.method === 'account/login/cancel').params, { loginId: 'login-1' });
   await monitor.login();
   client.account = { type: 'chatgpt', email: 'test@example.com', planType: 'plus' };
-  client.emit('notification', 'account/login/completed', { success: true });
+  client.emit('notification', 'account/login/completed', { loginId: 'login-1', success: true });
   while (monitor.inflight) await monitor.inflight;
   assert.equal(monitor.state.status, 'ready');
   assert.equal(monitor.state.buckets[0].short.remaining, 60);

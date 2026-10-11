@@ -35,7 +35,7 @@
     "extraResources": [
       { "from": "THIRD-PARTY-NOTICES.md", "to": "THIRD-PARTY-NOTICES.md" }
     ],
-    "win": { "target": ["portable", "nsis"], "icon": "assets/app.ico", "signExecutable": false, "extraResources": [{ "from": "build/taskbar-helper.exe", "to": "taskbar-helper.exe" }] },
+    "win": { "target": ["portable", "nsis"], "icon": "assets/app.ico", "signExecutable": true, "extraResources": [{ "from": "build/taskbar-helper.exe", "to": "taskbar-helper.exe" }] },
     "mac": { "target": ["dmg", "zip"], "icon": "assets/app.png", "category": "public.app-category.utilities", "artifactName": "Limits-${version}-${arch}.${ext}" },
     "linux": { "target": ["AppImage", "deb"], "icon": "assets/app.png", "category": "Utility", "maintainer": "Limits contributors", "artifactName": "Limits-${version}-${arch}.${ext}" },
     "appImage": { "compression": "gzip" },

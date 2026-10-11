@@ -17,6 +17,7 @@ const tempRoot = path.resolve(os.tmpdir());
 const output = fs.mkdtempSync(path.join(tempRoot, 'limits-build-'));
 console.log('Temporary build directory:', output);
 const config = structuredClone(require('../../../package.json').build);
+const signedRelease = require('../../../scripts/signing.cjs').configureSigning(config, 'win');
 config.directories.output = output;
 // Reuse the pinned local Electron runtime instead of downloading another copy.
 config.electronDist = path.dirname(require.resolve('electron/dist/version'));
@@ -35,6 +36,7 @@ if (build.error || build.status !== 0) {
   console.error('Build failed; diagnostics retained at:', output);
   process.exit(build.status || 1);
 }
+if (signedRelease) require('../../../scripts/verify-signing.cjs').verifySigning(output, 'win', 'x64');
 const release = path.join(root, 'release');
 fs.mkdirSync(release, { recursive: true });
 const unpacked = path.join(output, 'win-unpacked');

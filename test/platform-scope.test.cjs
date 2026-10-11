@@ -22,6 +22,7 @@ test('Mac and Linux build entrypoint preserves existing resources without import
       'node:os': { tmpdir: () => path.dirname(output) },
       'node:child_process': { spawnSync: () => ({ status: 0 }) },
       './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch }) },
+      './signing.cjs': { configureSigning: () => false },
       '../src/windows_feature/scripts/assets.cjs': {},
       '../package.json': pkg,
       '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },

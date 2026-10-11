@@ -200,14 +200,18 @@ async function setup() {
   handle('limits:quit', () => app.quit());
   async function openLogin(id) {
     if (!monitor || demo) return { error: 'loginUnavailable' };
+    const profileId = id === undefined ? monitor.selectedProfileId : id;
+    let attempt;
     try {
-      const authUrl = await monitor.login(id);
+      const authUrl = await monitor.login(profileId);
+      if (!authUrl) return {}; // Cancelled or completed while the start request was pending.
+      attempt = monitor.loginAttempt;
       const url = new URL(authUrl);
       if (url.protocol !== 'https:' || !['auth.openai.com', 'auth.chatgpt.com', 'chatgpt.com'].includes(url.hostname)) throw new Error('Unexpected login URL');
       await shell.openExternal(url.href);
       return {};
     } catch (error) {
-      if (error.code !== 'loginBusy') await monitor.cancelLogin(id || monitor.selectedProfileId).catch(() => {});
+      if (attempt) await monitor.cancelLogin(profileId, attempt).catch(() => {});
       return { error: error.code === 'loginBusy' ? 'loginBusy' : 'loginFailed' };
     }
   }

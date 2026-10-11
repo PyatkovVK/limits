@@ -92,7 +92,22 @@ Build on the target OS after installing dependencies:
 
 macOS and Linux default to the current Node.js architecture if none is specified. Linux also accepts `--arm64` for local builds; the release matrix publishes Linux x64. `npm run build:win:standalone` is a compatibility command for the same bundled Windows app with the older Standalone filenames.
 
-Finished packages are written to `release/`; local build commands do not publish anything. Intermediate files use the OS temporary directory, which needs about 2 GB of free space. Windows packages are unsigned. Local macOS builds use ad hoc signing; Developer ID and notarization require separate setup.
+Finished packages are written to `release/`; local build commands do not publish anything. Intermediate files use the OS temporary directory, which needs about 2 GB of free space. Local Windows builds without signing credentials are unsigned. Local macOS builds use ad hoc signing unless a certificate is configured. Public release builds require signing and macOS notarization as described below.
+
+### Signing releases
+
+The release workflow sets `CODEX_LIMITS_RELEASE=1`. Windows and macOS builds then require signing credentials and verify the packaged application before copying packages for publication. Missing credentials or failed verification stop the release; they do not fall back to unsigned or ad hoc output. Existing downloads are not re-signed by this configuration change.
+
+Configure these GitHub Actions secrets before running a release:
+
+| Platform | Secrets |
+| --- | --- |
+| Windows | `WIN_CSC_LINK` (certificate accepted by electron-builder), `WIN_CSC_KEY_PASSWORD` |
+| macOS | `MAC_CSC_LINK` (Developer ID Application certificate), `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
+
+The Windows resource hook signs the taskbar helper and bundled Codex executable as well as the application and installers. Verification requires valid Authenticode signatures from the same certificate. macOS releases enable hardened runtime and notarization, include the native helper in signing, and verify Developer ID, the app bundle, Gatekeeper acceptance and its stapled ticket. Linux retains its existing packaging path.
+
+Local development builds without `CODEX_LIMITS_RELEASE=1` remain available without certificates. Windows builds enable signing when `WIN_CSC_LINK` or `CSC_LINK` is provided. Local macOS signing follows the existing certificate configuration. For a local macOS release, the signing preflight also accepts the complete `APPLE_API_KEY` / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER` or `APPLE_KEYCHAIN` / `APPLE_KEYCHAIN_PROFILE` notarization groups supported by electron-builder. Never commit certificates, private keys or passwords. See [electron-builder v26 signing documentation](https://www.electron.build/v26/docs/features/code-signing/).
 
 ## Automated releases
 

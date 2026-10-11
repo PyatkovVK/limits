@@ -59,7 +59,7 @@ Ready-to-use packages include Electron and do not require Node.js.
 
 **Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. Codex must be in the app's `PATH`; see [configuration](docs/development.md#configuration) to specify its location manually.
 
-**Platform notes:** Linux Mint 22.2 Zara, XFCE 4.18, X11, x64 is the tested Linux environment. Other desktops need testing; tray behavior varies. Linux autostart is not implemented. Windows packages are unsigned; local macOS builds use ad hoc signing, with Developer ID signing and notarization configured separately.
+**Platform notes:** Linux Mint 22.2 Zara, XFCE 4.18, X11, x64 is the tested Linux environment. Other desktops need testing; tray behavior varies. Linux autostart is not implemented.
 
 ## Screenshots
 

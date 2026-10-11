@@ -11,6 +11,7 @@ class CodexClient extends EventEmitter {
     this.sequence = 0;
     this.child = null;
     this.starting = null;
+    this.generation = 0;
   }
 
   start() {
@@ -23,10 +24,12 @@ class CodexClient extends EventEmitter {
   async connect() {
     const child = spawn(this.binary, this.args, { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: this.env });
     this.child = child;
+    this.generation++;
     // Never forward stderr: it may contain account or authentication details.
     child.stderr.resume();
     const lines = createInterface({ input: child.stdout });
     lines.on('line', line => {
+      if (this.child !== child) return;
       let message;
       try { message = JSON.parse(line); } catch { return; }
       if (message.method && message.id !== undefined) {
@@ -47,6 +50,8 @@ class CodexClient extends EventEmitter {
       if (this.child !== child) return;
       this.child = null;
       lines.close();
+      child.stdin.destroy();
+      child.kill();
       for (const pending of this.pending.values()) {
         clearTimeout(pending.timer);
         pending.reject(error);
@@ -54,6 +59,7 @@ class CodexClient extends EventEmitter {
       this.pending.clear();
       this.emit('disconnected', error);
     };
+    this.disconnect = disconnect;
     child.on('error', () => disconnect(new Error('Не удалось запустить Codex App Server.')));
     child.on('exit', () => disconnect(new Error('Соединение с Codex закрыто. Повторяем подключение.')));
     child.stdin.on('error', () => disconnect(new Error('Соединение с Codex потеряно.')));
@@ -61,7 +67,7 @@ class CodexClient extends EventEmitter {
       await this.request('initialize', { clientInfo: { name: 'limits', title: 'Limits', version: require('../../package.json').version } });
       this.write({ method: 'initialized', params: {} });
     } catch (error) {
-      this.stop();
+      disconnect(error);
       throw error;
     }
   }
@@ -75,9 +81,7 @@ class CodexClient extends EventEmitter {
     const id = ++this.sequence;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pending.delete(id);
-        reject(new Error('Codex не ответил вовремя. Проверяем соединение.'));
-        this.stop();
+        this.stop(new Error('Codex не ответил вовремя. Проверяем соединение.'));
       }, this.timeout);
       this.pending.set(id, { resolve, reject, timer });
       try { this.write({ id, method, ...(params === undefined ? {} : { params }) }); }
@@ -85,12 +89,8 @@ class CodexClient extends EventEmitter {
     });
   }
 
-  stop() {
-    const child = this.child;
-    this.child = null;
-    for (const pending of this.pending.values()) { clearTimeout(pending.timer); pending.reject(new Error('Codex остановлен.')); }
-    this.pending.clear();
-    if (child) { child.stdin.destroy(); child.kill(); }
+  stop(error = new Error('Codex остановлен.')) {
+    if (this.child) this.disconnect(error);
   }
 }
 

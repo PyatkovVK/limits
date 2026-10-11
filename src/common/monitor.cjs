@@ -12,6 +12,8 @@ class Monitor extends EventEmitter {
     this.inflight = null;
     this.stopped = false;
     this.loginId = null;
+    this.loginAttempt = null;
+    this.loginTask = null;
     this.accountRevision = 0;
     this.rerunRequested = false;
     client.on('notification', (method, params) => {
@@ -32,12 +34,22 @@ class Monitor extends EventEmitter {
         void this.refresh();
       }
       if (method === 'account/login/completed') {
-        this.loginId = null;
-        if (params.success) { this.rerunRequested = Boolean(this.inflight); void this.refresh(); }
-        else this.publish({ status: 'error', error: 'loginIncomplete' });
+        const attempt = this.loginAttempt;
+        if (!attempt || attempt.cancelled || typeof params.loginId !== 'string') return;
+        // A response and notification may be parsed in the same stdout batch.
+        if (attempt.phase === 'starting' && !attempt.loginId) {
+          attempt.completions.set(params.loginId, params);
+          if (attempt.completions.size > 16) attempt.completions.delete(attempt.completions.keys().next().value);
+        }
+        else this.completeLogin(attempt, params);
       }
     });
     client.on('disconnected', () => {
+      if (this.loginAttempt) {
+        this.loginAttempt.cancelled = true;
+        this.finishLogin(this.loginAttempt);
+      }
+      this.loginId = null;
       if (!this.stopped) this.publish({ status: 'error', error: 'disconnected' });
     });
   }
@@ -96,14 +108,66 @@ class Monitor extends EventEmitter {
     return this.state;
   }
 
-  async login() {
-    await this.refresh();
-    await this.client.start();
-    if (this.loginId) await this.client.request('account/login/cancel', { loginId: this.loginId });
-    const result = await this.client.request('account/login/start', { type: 'chatgpt' });
-    this.loginId = result.loginId;
-    this.publish({ status: 'signing-in', error: null });
-    return result.authUrl;
+  login(attempt = { cancelled: false, phase: 'preparing' }) {
+    if (this.loginAttempt || this.loginTask) return Promise.reject(Object.assign(new Error('Login in progress'), { code: 'loginBusy' }));
+    this.loginAttempt = attempt;
+    const task = this.startLogin(attempt);
+    this.loginTask = task;
+    return task.finally(() => { if (this.loginTask === task) this.loginTask = null; });
+  }
+
+  async startLogin(attempt) {
+    const current = () => !this.stopped && !attempt.cancelled && this.loginAttempt === attempt;
+    try {
+      await this.refresh();
+      if (!current()) return null;
+      await this.client.start();
+      if (!current()) return null;
+      attempt.phase = 'starting';
+      attempt.generation = this.client.generation;
+      attempt.completions = new Map();
+      const result = await this.client.request('account/login/start', { type: 'chatgpt' });
+      if (!current()) {
+        if (attempt.cancelled && result.loginId) await this.cancelRemoteLogin(result.loginId, attempt.generation);
+        return null;
+      }
+      if (typeof result.loginId !== 'string' || !result.loginId || typeof result.authUrl !== 'string') throw new Error('Invalid login response');
+      attempt.loginId = result.loginId; attempt.phase = 'active';
+      this.loginId = result.loginId;
+      this.publish({ status: 'signing-in', error: null });
+      const completion = attempt.completions.get(result.loginId);
+      attempt.completions.clear();
+      if (completion) this.completeLogin(attempt, completion);
+      return current() ? result.authUrl : null;
+    } catch (error) {
+      this.finishLogin(attempt);
+      if (attempt.cancelled) return null;
+      throw error;
+    } finally {
+      if (!current()) this.finishLogin(attempt);
+    }
+  }
+
+  completeLogin(attempt, params) {
+    if (params.loginId !== attempt.loginId || this.loginAttempt !== attempt) return;
+    this.finishLogin(attempt);
+    if (params.success) { this.rerunRequested = Boolean(this.inflight); void this.refresh(); }
+    else this.publish({ status: 'error', error: 'loginIncomplete' });
+  }
+
+  finishLogin(attempt) {
+    if (this.loginAttempt !== attempt) return;
+    this.loginAttempt = null; this.loginId = null;
+    this.emit('login-ended', attempt);
+  }
+
+  async cancelRemoteLogin(loginId, generation) {
+    if (this.client.generation !== generation) return;
+    try { await this.client.request('account/login/cancel', { loginId }); }
+    catch (error) {
+      if (this.client.generation === generation) this.client.stop();
+      throw error;
+    }
   }
 
   select(id) {
@@ -111,12 +175,24 @@ class Monitor extends EventEmitter {
   }
 
   async cancelLogin() {
-    if (this.loginId) await this.client.request('account/login/cancel', { loginId: this.loginId });
+    const attempt = this.loginAttempt;
+    if (!attempt) return;
+    attempt.cancelled = true; attempt.phase = 'cancelling';
+    const loginId = this.loginId;
+    const task = this.loginTask;
     this.loginId = null;
     this.publish({ status: this.state.account ? 'ready' : 'signed-out', error: null });
+    try {
+      if (loginId) await this.cancelRemoteLogin(loginId, attempt.generation);
+      if (task) await task;
+    } finally { this.finishLogin(attempt); }
   }
 
-  stop() { this.stopped = true; clearTimeout(this.timer); this.client.stop(); }
+  stop() {
+    this.stopped = true; clearTimeout(this.timer);
+    if (this.loginAttempt) { this.loginAttempt.cancelled = true; this.finishLogin(this.loginAttempt); }
+    this.client.stop();
+  }
 }
 
 module.exports = { Monitor };

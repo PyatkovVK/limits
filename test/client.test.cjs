@@ -21,9 +21,13 @@ test('RPC errors reject the matching request', async t => {
   assert.equal(value.pending.size, 0);
 });
 test('timeout closes the process and allows reconnect', async t => {
-  const value = client(t, 500); await value.start(); await assert.rejects(value.request('hang'), /вовремя/);
+  const value = client(t, 500); await value.start();
+  let disconnects = 0; value.on('disconnected', () => disconnects++);
+  await assert.rejects(value.request('hang'), /вовремя/);
   assert.equal(value.child, null); assert.equal(value.pending.size, 0);
+  assert.equal(disconnects, 1);
   await value.start(); assert.equal((await value.request('ok')).method, 'ok');
+  assert.equal(disconnects, 1, 'old process exit must not disconnect the new process');
 });
 test('process exit rejects outstanding requests', async t => {
   const value = client(t); await value.start(); await assert.rejects(value.request('die'), /закрыто/);

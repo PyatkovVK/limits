@@ -22,7 +22,7 @@ function fixture(t) {
     monitor.client.request = async method => { monitor.lastRequest = method; return {}; };
     monitor.state = { account: null, buckets: [], selectedId: 'codex', status: 'signed-out', updatedAt: null, error: null };
     monitor.refresh = async () => monitor.state;
-    monitor.login = async () => { monitor.loginCount = (monitor.loginCount || 0) + 1; return 'https://auth.openai.com/test'; };
+    monitor.login = async attempt => { monitor.attempt = attempt; attempt.phase = 'active'; monitor.loginCount = (monitor.loginCount || 0) + 1; return 'https://auth.openai.com/test'; };
     monitor.cancelLogin = async () => { monitor.cancelled = true; };
     monitor.stop = () => { monitor.stopped = true; };
     monitor.select = id => { monitor.state.selectedId = id; };
@@ -57,12 +57,18 @@ test('independent accounts, unlimited profiles, selection and nicknames survive 
   assert.ok(!saved.includes('buckets'));
 });
 test('private Codex homes and file stores cannot share credentials or environment API keys', () => {
-  const env = { CODEX_HOME: 'shared', OPENAI_API_KEY: 'private-test-key', CODEX_API_KEY: 'other-test-key', PATH: 'bin' };
+  const env = { CODEX_HOME: 'shared', OPENAI_API_KEY: 'private-test-key', CODEX_API_KEY: 'other-test-key',
+    CODEX_ACCESS_TOKEN: 'dummy-token', OPENAI_FEDERATION_RULE_ID: 'dummy-rule',
+    OPENAI_IDENTITY_TOKEN_FILE: 'dummy-path', OPENAI_WORKLOAD_IDENTITY_CONTEXT: 'dummy-context',
+    codex_access_token: 'dummy-windows-case', PATH: 'bin', HTTPS_PROXY: 'proxy', USERPROFILE: 'user' };
   assert.equal(clientOptions('root', { id: 'default' }, env).env, env);
   const a = clientOptions('root', { id: 'a' }, env), b = clientOptions('root', { id: 'b' }, env);
   assert.notEqual(a.env.CODEX_HOME, b.env.CODEX_HOME);
   assert.equal(a.env.OPENAI_API_KEY, undefined);
   assert.equal(a.env.CODEX_API_KEY, undefined);
+  for (const key of ['CODEX_ACCESS_TOKEN', 'OPENAI_FEDERATION_RULE_ID', 'OPENAI_IDENTITY_TOKEN_FILE', 'OPENAI_WORKLOAD_IDENTITY_CONTEXT', 'codex_access_token']) assert.equal(a.env[key], undefined);
+  assert.equal(a.env.PATH, 'bin'); assert.equal(a.env.HTTPS_PROXY, 'proxy'); assert.equal(a.env.USERPROFILE, 'user');
+  assert.equal(env.CODEX_ACCESS_TOKEN, 'dummy-token');
   assert.ok(a.args.includes('cli_auth_credentials_store="file"'));
   assert.equal(env.CODEX_HOME, 'shared');
 });
@@ -72,7 +78,7 @@ test('browser login is serialized until completion or cancellation', async t => 
   await accounts.login(a);
   await assert.rejects(accounts.login(b), { code: 'loginBusy' });
   assert.equal(clients.get(b).loginCount, undefined);
-  clients.get(a).client.emit('notification', 'account/login/completed', { success: true });
+  clients.get(a).emit('login-ended', clients.get(a).attempt);
   await accounts.login(b);
   await accounts.cancelLogin(b);
   assert.equal(clients.get(b).cancelled, true);
