@@ -1,0 +1,209 @@
+name: Build and release
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serialize updates of the same release, including its tag and downloadable files.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check-branch:
+    name: Check release branch
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.branch.outputs.build }}
+      branch: ${{ steps.branch.outputs.branch }}
+      version: ${{ steps.branch.outputs.version }}
+      tag: ${{ steps.branch.outputs.tag }}
+      prerelease: ${{ steps.branch.outputs.prerelease }}
+    steps:
+      - name: Allow main and version branches only
+        id: branch
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const match = /^refs\/heads\/((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)$/.exec(context.ref);
+            const isMain = context.ref === 'refs/heads/main';
+            const build = (isMain || Boolean(match)) && context.payload.deleted !== true;
+            core.setOutput('build', String(build));
+            if (!build) {
+              core.info(`Skipping ${context.ref}: no build or publication is needed.`);
+              return;
+            }
+            const branch = isMain ? 'main' : match[1];
+            const version = isMain ? '' : (branch.split('.').length === 2 ? `${branch}.0` : branch);
+            core.setOutput('branch', branch);
+            core.setOutput('version', version);
+            core.setOutput('tag', isMain ? 'latest' : `v${branch}`);
+            core.setOutput('prerelease', String(isMain));
+            core.info(`Building ${branch} for Windows, macOS and Linux.`);
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: check-branch
+    if: needs.check-branch.outputs.build == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            target: win
+            arch: x64
+            feature: windows_feature
+          - name: macOS Apple Silicon
+            os: macos-15
+            target: mac
+            arch: arm64
+            feature: apple_feature
+          - name: macOS Intel
+            os: macos-15-intel
+            target: mac
+            arch: x64
+            feature: apple_feature
+          - name: Linux x64
+            os: ubuntu-24.04
+            target: linux
+            arch: x64
+            feature: linux_feature
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_VERSION: ${{ needs.check-branch.outputs.version }}
+      BUILD_TARGET: ${{ matrix.target }}
+      BUILD_ARCH: ${{ matrix.arch }}
+      TEST_FEATURE: ${{ matrix.feature }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          # package-lock.json is intentionally not tracked in this repository.
+          package-manager-cache: false
+      - name: Set version from the branch
+        if: env.RELEASE_VERSION != ''
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --ignore-scripts --allow-same-version
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run tests
+        run: node --test "test/*.test.cjs" "src/$TEST_FEATURE/test/*.test.cjs"
+      - name: Build packages
+        run: |
+          if [[ "$BUILD_TARGET" == 'win' ]]; then
+            npm run build:win
+          else
+            npm run "build:$BUILD_TARGET" -- "--$BUILD_ARCH"
+          fi
+      - name: Save packages for publication
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-${{ matrix.target }}-${{ matrix.arch }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.deb
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub Release
+    needs: [check-branch, build]
+    if: needs.check-branch.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_BRANCH: ${{ needs.check-branch.outputs.branch }}
+      RELEASE_VERSION: ${{ needs.check-branch.outputs.version }}
+      RELEASE_TAG: ${{ needs.check-branch.outputs.tag }}
+      RELEASE_PRERELEASE: ${{ needs.check-branch.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: packages-*
+          path: release
+          merge-multiple: true
+      - name: Verify all packages and calculate checksums
+        shell: bash
+        run: |
+          version="$RELEASE_VERSION"
+          if [[ -z "$version" ]]; then
+            version="$(node -p "require('./package.json').version")"
+          fi
+          packages=(
+            "Limits-$version-portable.exe"
+            "Limits-Setup-$version.exe"
+            "Limits-$version-arm64.dmg"
+            "Limits-$version-arm64.zip"
+            "Limits-$version-x64.dmg"
+            "Limits-$version-x64.zip"
+            "Limits-$version-x64.AppImage"
+            "Limits-$version-x64.deb"
+          )
+          cd release
+          for package in "${packages[@]}"; do
+            if [[ ! -s "$package" ]]; then
+              echo "Missing or empty package: $package" >&2
+              exit 1
+            fi
+          done
+          sha256sum "${packages[@]}" > SHA256SUMS.txt
+      - name: Point the release tag at the built commit
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const ref = `tags/${process.env.RELEASE_TAG}`;
+            try {
+              await github.rest.git.getRef({ ...context.repo, ref });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.git.createRef({ ...context.repo, ref: `refs/${ref}`, sha: context.sha });
+              return;
+            }
+            await github.rest.git.updateRef({ ...context.repo, ref, sha: context.sha, force: true });
+      - name: Create or update the release and upload packages
+        shell: bash
+        run: |
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          title="Limits $RELEASE_BRANCH"
+          if [[ "$RELEASE_BRANCH" == 'main' ]]; then
+            title='Limits main (latest build)'
+          fi
+          cat > "$notes_file" <<EOF
+          Сборки ветки \`$RELEASE_BRANCH\` для Windows x64, macOS Apple Silicon / Intel и Linux x64.
+
+          Коммит: $GITHUB_SHA
+
+          Windows: portable EXE и установщик. macOS: DMG и ZIP для каждой архитектуры. Linux: AppImage и DEB.
+
+          Контрольные суммы файлов: \`SHA256SUMS.txt\`.
+          EOF
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --title "$title" --notes-file "$notes_file" --draft --prerelease="$RELEASE_PRERELEASE"
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --target "$GITHUB_SHA" --title "$title" --notes-file "$notes_file" --draft --prerelease="$RELEASE_PRERELEASE"
+          fi
+          gh release upload "$RELEASE_TAG" release/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

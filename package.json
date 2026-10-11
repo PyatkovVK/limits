@@ -5,7 +5,7 @@
   "author": "Limits contributors",
   "homepage": "https://github.com/PyatkovVK/limits",
   "license": "MIT",
-  "main": "src/main.cjs",
+  "main": "src/common/main.cjs",
   "scripts": {
     "start": "npm run prepare:app && electron .",
     "demo": "npm run prepare:app && electron . --demo",

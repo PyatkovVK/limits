@@ -10,7 +10,7 @@ if (process.platform !== 'darwin') throw new Error('Release screenshots require 
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-native-release-'));
 app.setPath('appData', scratch);
 if (!process.argv.includes('--demo')) process.argv.push('--demo');
-require('../../main.cjs');
+require('../../common/main.cjs');
 
 app.whenReady().then(async () => {
   const backdrop = new BrowserWindow({ ...screen.getPrimaryDisplay().workArea, frame: false,

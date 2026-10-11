@@ -7,15 +7,15 @@ const { CodexClient } = require('./codex-client.cjs');
 const { Monitor } = require('./monitor.cjs');
 const { Accounts } = require('./accounts.cjs');
 const { selectedBucket, isStale } = require('./limits.cjs');
-const { widgetBounds } = require('./windows_feature/taskbar.cjs');
-const { TaskbarWidget, taskbarHelperPath } = require('./windows_feature/widget.cjs');
-const { TrayPresentation } = require('./windows_feature/tray.cjs');
+const { widgetBounds } = require('../windows_feature/taskbar.cjs');
+const { TaskbarWidget, taskbarHelperPath } = require('../windows_feature/widget.cjs');
+const { TrayPresentation } = require('./tray.cjs');
 const { t: translate } = require('./renderer/i18n.js');
 
 const demo = process.argv.includes('--demo');
 const smoke = process.argv.includes('--smoke-test');
 const taskbarSupported = process.platform === 'win32' && !process.argv.includes('--smoke-tray-only');
-const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '..'), 'artifacts');
+const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '../..'), 'artifacts');
 if (smoke && !process.argv.includes('--smoke-gpu')) app.disableHardwareAcceleration();
 if (smoke) app.setPath('userData', path.join(artifactRoot, 'smoke-profile'));
 else if (demo) app.setPath('userData', path.join(app.getPath('appData'), 'Codex Limits Demo'));
@@ -28,7 +28,7 @@ if (!singleInstance) app.quit();
 
 let window, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
 let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray' };
-const t = key => (process.platform === 'darwin' ? require('./apple_feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key);
+const t = key => (process.platform === 'darwin' ? require('../apple_feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: 30, demo };
 let notified = new Set();
 
@@ -180,14 +180,14 @@ async function setup() {
   } catch { /* Defaults on first launch. */ }
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
-  window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('./apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
+  window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
-  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
-  if (process.platform === 'darwin') macPanel = require('./apple_feature/panel.cjs').createPanelController({ window, screen, getTrayBounds: () => trayPresentation.entries.map(entry => {
+  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '../..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
+  if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, getTrayBounds: () => trayPresentation.entries.map(entry => {
     try { return entry.tray.getBounds(); } catch { return null; }
   }) });
-  if (process.platform === 'linux') linuxPanel = require('./linux_feature/panel.cjs').createPanelController({ window, screen });
+  if (process.platform === 'linux') linuxPanel = require('../linux_feature/panel.cjs').createPanelController({ window, screen });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
   handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
@@ -231,7 +231,7 @@ async function setup() {
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   if (linuxPanel) await window.webContents.executeJavaScript('window.limitsLinuxPanelReady');
   if (process.platform === 'darwin') {
-    const { AppleNotch } = require('./apple_feature/notch.cjs');
+    const { AppleNotch } = require('../apple_feature/notch.cjs');
     appleNotch = new AppleNotch({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, resourcesPath: app.isPackaged ? process.resourcesPath : null, getState: publicState, getMenu: presentationMenu, onChange: update, onUnavailable: () => setDisplayMode('tray') });
     await appleNotch.discover();
     if (appleNotch.available) await appleNotch.prepare();
@@ -268,7 +268,7 @@ async function setup() {
       const report = await window.webContents.executeJavaScript(`({ values: [...document.querySelectorAll('.remaining-value')].map(el => el.textContent), isolated: typeof require === 'undefined', mode: document.getElementById('display-mode').value })`);
       if (!report.isolated || report.mode !== 'tray' || trayPresentation.entries.length !== 2 || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready')) throw new Error('Tray-only startup failed');
       const firstPlacement = macPanel?.snapshot();
-      if (firstPlacement && (firstPlacement.fallback || !require('./apple_feature/panel.cjs').isMenuBarAnchor(firstPlacement.anchor, firstPlacement.display) || !window.isVisible() || window.getBounds().y !== firstPlacement.bounds.y)) throw new Error('Mac first launch did not open below a menu-bar indicator');
+      if (firstPlacement && (firstPlacement.fallback || !require('../apple_feature/panel.cjs').isMenuBarAnchor(firstPlacement.anchor, firstPlacement.display) || !window.isVisible() || window.getBounds().y !== firstPlacement.bounds.y)) throw new Error('Mac first launch did not open below a menu-bar indicator');
       for (const entry of trayPresentation.entries) {
         window.hide(); entry.tray.emit('click');
         if (!window.isVisible()) throw new Error('Tray click did not open the panel');
@@ -282,7 +282,7 @@ async function setup() {
         monitor.selectProfile('default');
       }
       fs.mkdirSync(artifactRoot, { recursive: true });
-      const mac = process.platform === 'darwin' ? { ...await require('./apple_feature/smoke.cjs').verifyMacPanel({ window, trayPresentation, artifactRoot, demo }), firstPlacement, apple: await require('./apple_feature/smoke.cjs').verifyAppleNotch({ appleNotch, window, trayPresentation, setDisplayMode, artifactRoot, demo, monitor }) } : null;
+      const mac = process.platform === 'darwin' ? { ...await require('../apple_feature/smoke.cjs').verifyMacPanel({ window, trayPresentation, artifactRoot, demo }), firstPlacement, apple: await require('../apple_feature/smoke.cjs').verifyAppleNotch({ appleNotch, window, trayPresentation, setDisplayMode, artifactRoot, demo, monitor }) } : null;
       fs.writeFileSync(path.join(artifactRoot, 'tray-only-smoke.json'), JSON.stringify({ ...report, icons: 2, accountSwitch: demo, taskbarStarted: false, ...(mac ? { mac } : {}) }, null, 2));
       console.log('SMOKE_TRAY_OK', JSON.stringify(report)); app.quit();
     } catch (error) { console.error('SMOKE_FAILED', error.message); app.exit(1); }

@@ -58,7 +58,7 @@ class CodexClient extends EventEmitter {
     child.on('exit', () => disconnect(new Error('Соединение с Codex закрыто. Повторяем подключение.')));
     child.stdin.on('error', () => disconnect(new Error('Соединение с Codex потеряно.')));
     try {
-      await this.request('initialize', { clientInfo: { name: 'limits', title: 'Limits', version: require('../package.json').version } });
+      await this.request('initialize', { clientInfo: { name: 'limits', title: 'Limits', version: require('../../package.json').version } });
       this.write({ method: 'initialized', params: {} });
     } catch (error) {
       this.stop();

@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { Accounts, clientOptions } = require('../src/accounts.cjs');
+const { Accounts, clientOptions } = require('../src/common/accounts.cjs');
 
 function fixture(t) {
   const parent = path.resolve(__dirname, '../artifacts');

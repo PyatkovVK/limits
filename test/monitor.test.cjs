@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { Monitor } = require('../src/monitor.cjs');
+const { Monitor } = require('../src/common/monitor.cjs');
 const quota = { rateLimits: { primary: { usedPercent: 40, windowDurationMins: 300 }, secondary: { usedPercent: 80, windowDurationMins: 10080 } } };
 class FakeClient extends EventEmitter {
   account = { type: 'chatgpt', email: 'test@example.com', planType: 'plus' };

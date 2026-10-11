@@ -1,5 +1,5 @@
 'use strict';
-const { encodePng, percentage } = require('../tray-image.cjs');
+const { encodePng, percentage } = require('../common/tray-image.cjs');
 
 const glyphs = {
   '0': ['111', '101', '101', '101', '111'], '1': ['010', '110', '010', '010', '111'],

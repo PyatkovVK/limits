@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { format } = require('../src/renderer/countdown.js');
+const { format } = require('../src/common/renderer/countdown.js');
 const now = 1000000000000;
 test('reset countdown uses server timestamp and counts down across hour/minute boundaries', () => {
   const resetsAt = now / 1000 + 8340;

@@ -39,7 +39,7 @@ function findCodex({ resourcesPath, env = process.env, platform = process.platfo
     if (executable(candidate)) return candidate;
   }
   if (platform === 'darwin') {
-    const candidate = require('./apple_feature/codex-path.cjs').findMacCodex({ env, fileSystem, executable });
+    const candidate = require('../apple_feature/codex-path.cjs').findMacCodex({ env, fileSystem, executable });
     if (candidate) return candidate;
   }
   if (platform === 'win32' && env.LOCALAPPDATA) {

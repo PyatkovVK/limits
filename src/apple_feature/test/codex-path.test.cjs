@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { findCodex } = require('../../codex-path.cjs');
+const { findCodex } = require('../../common/codex-path.cjs');
 
 function find(files, options = {}) {
   const fileSystem = {

@@ -1,7 +1,7 @@
 'use strict';
 const mac = require('./menu-image.cjs');
-const { encodePng } = require('../tray-image.cjs');
-const { format } = require('../renderer/countdown.js');
+const { encodePng } = require('../common/tray-image.cjs');
+const { format } = require('../common/renderer/countdown.js');
 
 const glyphs = {
   '0': ['111','101','101','101','111'], '1': ['010','110','010','010','111'],

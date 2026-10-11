@@ -24,7 +24,7 @@ test('weekly indicator retains its compact menu-bar width', () => {
 });
 test('clock advancement redraws the 5h image without a quota or server update', context => {
   const { EventEmitter } = require('node:events');
-  const { TrayPresentation } = require('../../windows_feature/tray.cjs');
+  const { TrayPresentation } = require('../../common/tray.cjs');
   let clock = now;
   context.mock.method(Date, 'now', () => clock);
   class Tray extends EventEmitter {
