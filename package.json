@@ -1,6 +1,6 @@
 {
   "name": "limits",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Compact AI usage limits in your taskbar or system tray",
   "author": "Limits contributors",
   "homepage": "https://github.com/PyatkovVK/limits",

@@ -1,112 +1,129 @@
-# Limits
+<p align="center">
+  <img src="docs/images/icon.png" width="80" alt="Limits icon">
+</p>
 
-Мини-приложение для Windows 10/11 x64: показывает аккаунт и остаток лимитов **Codex по подписке ChatGPT** постоянно на нижней панели задач.
+<h1 align="center">Limits</h1>
 
-В окне подробностей или через правый клик → «Отображение» можно выбрать **«Виджет на панели задач»** или **«Два значка в трее»**. Выбор сохраняется между запусками. В режиме трея длинный блок скрыт; вместо служебного значка появляются ровно два значка лимитов: число сверху — округлённый процент остатка, снизу — короткая полоса. Пятичасовая полоса бирюзовая, недельная — фиолетовая; при ≤10% остатка полоса красная. Неизвестный остаток показан прочерком, устаревшие данные — серым.
+<p align="center"><strong>Keep your Codex limits in sight.</strong><br>
+Remaining usage, reset timers, and multiple accounts — right in your taskbar, menu bar, or system tray.</p>
 
-При наведении показаны точный процент, аккаунт, тариф, время до сброса пятичасового лимита или дата сброса недельного. Нажатие на любой значок открывает окно лимитов; правый клик открывает меню. Значки имеют варианты для разных DPI и светлой/тёмной темы Windows. При обычном опросе неизменившиеся значки сохраняются; изображение меняется только при изменении процента, актуальности данных или темы. Windows может первоначально поместить новые значки под стрелку возле часов — их можно перетащить в видимую область трея.
+<p align="center">
+  <img src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-555" alt="Windows, macOS, and Linux">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
+</p>
 
-В компактном блоке слева отображаются имя аккаунта (или email) и тариф, справа — две короткие полосы остатка (5 часов и неделя) с процентами. Рядом с пятичасовым лимитом показано время до сброса в формате часы:минуты, например `2:19`; для недельного лимита таймер не выводится. Нажмите на полосы для подробностей. При ≤10% остатка полосы становятся красными и приложение один раз за окно показывает уведомление. Нет свежих данных — полосы серые. Подпись о частоте обновления не выводится. Язык (русский или английский) выбирается в подробностях или через правый клик и сохраняется между запусками.
+<p align="center">
+  <a href="https://github.com/PyatkovVK/limits/releases"><strong>Download from Releases</strong></a> ·
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="https://github.com/PyatkovVK/limits/issues/new/choose">Report a bug</a> ·
+  <a href="README.ru.md">Русский</a>
+</p>
 
-Блок — самостоятельное окно поверх горизонтальной панели задач, а не расширение Explorer. Он не резервирует место среди кнопок открытых приложений. По умолчанию располагается слева от области системного трея, оставляя часы и системные значки доступными. Если блок перекрывает кнопки приложений, перетащите его за область аккаунта. Положение сохраняется. Стандартная ширина — 280 px; через правый клик можно выбрать 240/280/320/400 px или вернуть исходное положение. Старое стандартное значение 320 px при первом запуске новой версии заменяется на 280 px; последующий выбор ширины сохраняется. Отступы между аккаунтом, подписью, полосой и процентом уменьшены; ширина колонок подписей и процентов определяется содержимым.
+**Limits** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
 
-При настоящем полноэкранном приложении и скрытой панели задач блок скрывается; обычное развёрнутое окно, «Пуск» и поиск Windows не считаются полноэкранным приложением. Win32 помощник автоматически перезапускается после сбоя. Виджет использует непрозрачную поверхность и привязан к окну панели задач как owned top-level window: Windows держит его выше владельца без отложенной коррекции слоя после кликов. WinEvent-хуки и повторные поднятия виджета удалены. При пересоздании владельца виджет автоматически создаётся заново с прежним аккаунтом, языком и положением. GUI-проверка поднимает отдельное тестовое окно владельца 100 раз и проверяет восстановление после его уничтожения; настоящее окно Explorer при проверке не изменяется. Правила порядка owned windows описаны в [Microsoft Window Features](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features#owned-windows).
+<p align="center">
+  <img src="docs/screenshots/windows-accounts.png" width="440" alt="Windows account panel with demo accounts and remaining usage">
+  <br><br>
+  <img src="docs/screenshots/windows-widget.png" width="280" alt="Windows taskbar widget with demo usage and a reset timer">
+</p>
 
-## Запуск готовой версии
+*Windows and macOS screenshots use demo data. The macOS desktop background and menu bar are recreated for publication.*
 
-В папке `release` после сборки:
+## Features
 
-- `Limits-0.5.0-portable.exe` — запустить без установки.
-- `Limits-Setup-0.5.0.exe` — установить приложение для текущего пользователя.
+- **Two usage windows:** remaining five-hour and weekly allowances, with reset information.
+- **Multiple accounts:** separate usage data, local names, and a selected account for your compact indicators.
+- **Automatic refresh:** polling about 30 seconds after each completed request, refresh after waking from sleep, and a manual refresh button.
+- **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
+- **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons.
+- **English and Russian UI:** language and display preferences persist across launches.
 
-На Windows установка Codex не требуется. Все стандартные Windows-пакеты включают компонент Codex App Server для подключения к аккаунту и чтения лимитов. В пакет входит только исполняемый файл Codex CLI, без code-mode host, и русская и английская локализации Electron. Команда `npm.cmd run build:win:standalone` сохранена для совместимости; она создаёт тот же автономный пакет с прежним `Standalone` в названии. Требования и сборки macOS/Linux не меняются: они используют установленный Codex.
+## Download and install
 
-Если вы уже вошли в Codex на компьютере, приложение использует этот аккаунт через стандартный `CODEX_HOME` (по умолчанию `%USERPROFILE%\.codex` на Windows или `~/.codex` на macOS/Linux). На Windows без авторизации приложение открывает панель входа, в том числе после запуска установщиком: нажмите «Войти через ChatGPT» и завершите вход в браузере. На macOS/Linux кнопка входа доступна в подробностях, как раньше. Авторизация сохраняется между запусками. Этот вход общий с Codex CLI: смена аккаунта здесь меняет его и для CLI, использующего тот же `CODEX_HOME`.
+1. Open [GitHub Releases](https://github.com/PyatkovVK/limits/releases) and expand **Assets** for the release you want.
+2. Download a package for your OS and processor using the table below.
+3. Launch Limits. If you are not already signed in to Codex, choose **Sign in with ChatGPT** and complete sign-in in your browser.
 
-В разделе **«Аккаунты» → «+ Добавить»** можно подключить рабочий и другие аккаунты. Выберите нужный аккаунт в открывшемся браузере. Каждый добавленный аккаунт использует отдельный `CODEX_HOME` внутри данных Limits и отдельный файл авторизации, которым управляет Codex; вход в него не меняет аккаунт CLI. В окне показаны все подключённые аккаунты с независимыми лимитами и состоянием обновления; список прокручивается, программного ограничения количества нет. Кнопка **«В виджет»** выбирает один аккаунт для блока и обоих значков трея. Выбор и имена сохраняются.
+Ready-to-use packages include Electron and do not require Node.js.
 
-В **«Имя и подключение»** задайте локальное имя, например «Личный» или «Рабочий». Текущий `account/read` возвращает email и тариф, без имени пользователя ChatGPT, поэтому имя задаётся в Limits. Если имена совпадают без учёта регистра, рядом добавляется email в скобках; без имени показывается email. «Отключить» завершает сессию только добавленного аккаунта. Общий аккаунт Codex управляется самим Codex. Входы выполняются по одному; незавершённый вход можно отменить.
+| System | Choose in Assets | Codex requirement |
+| --- | --- | --- |
+| Windows 10 / 11, x64 | `Limits-Setup-*.exe` to install; `Limits-*-portable.exe` without installation | Connection component included |
+| macOS, Apple Silicon | `Limits-*-arm64.dmg` or `Limits-*-arm64.zip` | Installed Codex app or native Codex CLI |
+| macOS, Intel | `Limits-*-x64.dmg` or `Limits-*-x64.zip` | Installed Codex app or native Codex CLI |
+| Linux, x64 | `Limits-*-x64.AppImage` or `Limits-*-x64.deb` | Native Codex CLI accessible to the app |
 
-Установщик работает для текущего пользователя. Кнопка «Готово» запускает приложение напрямую без ожидания его завершения и без делегирования через Explorer.
+**Windows:** run the per-user installer or launch the portable EXE. No separate Codex installation is needed. Tray icons may initially appear under the arrow near the clock; drag them into the visible area if desired.
 
-Перед запуском новой версии закройте старую через меню её значка в трее → «Выйти из приложения». Закрытие окна подробностей оставляет выбранный режим работающим. Выход — правой кнопкой по блоку или любому значку → «Выйти из приложения». В режиме виджета в трее остаётся один служебный значок; в режиме трея — два значка лимитов. Их меню позволяет сменить режим или включить автозапуск установленной версии.
+**macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. Limits searches for Codex in Codex.app / ChatGPT.app, Homebrew, nvm, and user directories.
 
-## Разработка
+**Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. Codex must be in the app's `PATH`; see [configuration](docs/development.md#configuration) to specify its location manually.
 
-Нужны Node.js 22.12+ и Windows x64 с .NET Framework 4.x. Windows-помощник собирается стандартным компилятором из Windows; установка .NET SDK не требуется.
+**Platform notes:** Linux Mint 22.2 Zara, XFCE 4.18, X11, x64 is the tested Linux environment. Other desktops need testing; tray behavior varies. Linux autostart is not implemented. Windows packages are unsigned; local macOS builds use ad hoc signing, with Developer ID signing and notarization configured separately.
 
-Общий код находится в `src/common`: запуск приложения (`main.cjs`), мониторинг, авторизация, RPC, контроллер трея, preload и окно подробностей (`renderer/`). Платформенные функции вынесены в соседние папки:
+## Screenshots
 
-- [`src/windows_feature`](src/windows_feature/README.md) — виджет, рисование значков Windows, HTML/CSS/JS блока, Win32-помощник, NSIS, скрипты сборки и тесты Windows.
-- [`src/apple_feature`](src/apple_feature/README.md) — функции и тесты macOS.
-- [`src/linux_feature`](src/linux_feature/README.md) — функции и тесты Linux.
+### macOS — menu bar and notch
 
-```powershell
-npm.cmd install
-npm.cmd start
-```
+![Limits in the macOS menu bar with a light details panel](docs/screenshots/apple-menu-bar-light.png)
 
-```powershell
-npm.cmd run demo       # UI с явно отмеченными примерными данными
-npm.cmd run doctor     # проверка настоящего подключения без вывода токенов/email
-npm.cmd test           # обработка лимитов, RPC и жизненный цикл мониторинга
-npm.cmd run smoke      # проверка Electron UI + artifacts/panel.png
-npm.cmd run smoke:onboarding # Windows: вход с пустым хранилищем, без открытия браузера
-npm.cmd run smoke:live # проверка UI с реальным аккаунтом (требуется вход через ChatGPT)
-npm.cmd run smoke:live -- --smoke-gpu --smoke-stability # GPU + наблюдение 65 секунд
-npm.cmd run build:win  # автономные portable EXE + установщик NSIS
-npm run build:mac      # macOS: DMG + ZIP
-npm run build:linux    # Linux Mint: AppImage + DEB
-npm.cmd run build:win:standalone # тот же пакет с прежними именами Standalone
-```
+Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. Packaged apps support autostart.
 
-`npm test` запускает общий набор тестов и тесты всех платформ на любой ОС. Файловая система, окна, экраны и значки трея в платформенных тестах подменяются; пути в тестовых данных нормализуются независимо от разделителей текущей ОС. В CI полный набор выполняется на Windows, macOS и Linux. Проверки настоящего интерфейса (`smoke`, `smoke:live`) запускаются на целевой ОС; `smoke:onboarding` предназначен только для Windows.
+<details>
+<summary>Dark theme and MacBook notch</summary>
 
-Сборка для каждой ОС выполняется на ней самой: `build:win` на Windows, `build:mac` на macOS, `build:linux` на Linux. Перед первым запуском выполните `npm install`; при переносе проекта на другую ОС установите зависимости заново, не копируйте `node_modules`. macOS и Linux собираются под архитектуру текущего Node.js; другую можно указать через `npm run build:mac -- --arm64` / `--x64` (то же для Linux). Пакеты сохраняются в `release`; локальные команды сборки ничего не публикуют. Для Mac-пакетов используется иконка PNG, которую сборщик преобразует в формат macOS. Локальные Mac-сборки используют подпись ad hoc; подпись Developer ID и нотариализация настраиваются отдельно.
+![Dark macOS details panel](docs/screenshots/apple-menu-bar-dark.png)
 
-### Автоматические сборки и версии
+![Compact usage view on notch hover](docs/screenshots/apple-notch-hover.png)
 
-Workflow [Build and release](.github/workflows/release.yml) запускается при push в любую ветку и вручную через Actions → Run workflow. Сборка и публикация выполняются **только для `main` и веток, имя которых целиком имеет формат `MAJOR.MINOR` или `MAJOR.MINOR.PATCH`**, например `1.0`, `2.1`, `2.1.3`. Для остальных веток выполняется только успешная проверка имени: зависимости не устанавливаются, сборки и релизы не создаются. Push тегов сборку не запускает.
+![Expanded MacBook notch panel](docs/screenshots/apple-notch-expanded.png)
 
-`main` содержит текущую версию приложения. Её пакеты публикуются в обновляемом [prerelease `latest`](https://github.com/PyatkovVK/limits/releases/tag/latest), версия берётся из `package.json`. Ветки с номером версии публикуются в [Releases](https://github.com/PyatkovVK/limits/releases) отдельно: `2.1` → релиз `v2.1` с версией пакетов `2.1.0`, `2.1.3` → релиз `v2.1.3` с версией `2.1.3`. Версия меняется только внутри CI, коммит в ветку не создаётся. Новый push в ту же ветку обновляет её релиз, файлы и тег на собранный коммит; другие версии сохраняются.
+The notch mode uses the compatible MacBook screen, including when an external display is attached. It is hidden on Macs without a physical notch. Esc or loss of focus collapses the panel. Reduced motion and transparency settings are respected.
 
-Каждый релиз содержит Windows x64 (portable EXE и установщик), macOS arm64 и x64 (DMG и ZIP), Linux x64 (AppImage и DEB), а также `SHA256SUMS.txt`. Каждый runner запускает общие тесты и тесты своей ОС. Публикация начинается только после успешных тестов и сборки всех четырёх вариантов. Сначала файлы загружаются в черновик, затем релиз становится публичным. Используется стандартный `GITHUB_TOKEN` с правом `contents: write` в задании публикации, дополнительные секреты не нужны.
+</details>
 
-Чтобы выпустить версию, создайте ветку с нужным номером от выбранного коммита `main` и отправьте её на GitHub:
+### Linux — system tray
 
-```bash
-git switch -c 2.1 main
-git push -u origin 2.1
-```
+![Five-hour and weekly usage indicators in the Linux system tray](docs/screenshots/linux-tray.jpg)
 
-Файл workflow должен присутствовать в отправляемой ветке. Уже существующую ветку версии можно собрать новым push или вручную, выбрав её в Run workflow.
+The turquoise **5h** and purple **7d** indicators show remaining usage with numbers and short bars. Tooltips expose account details and reset information where supported by the desktop environment. The details panel adapts to its contents and scrolls for long account lists.
 
-На macOS и Linux используются два значка в строке меню/системном трее. Windows-виджет и его помощник там не запускаются. Левый клик открывает подробности; правый клик — меню. На Linux обработка кликов и подсказок зависит от окружения рабочего стола. На macOS CLI автоматически ищется внутри Codex.app/ChatGPT.app, в Homebrew, nvm и пользовательских каталогах, даже при запуске из Finder. На Linux CLI должен быть доступен в `PATH` процесса приложения либо задан через `CODEX_LIMITS_CODEX_PATH`. macOS-панель оформлена в стиле Liquid Glass с нативным размытием, светлой и тёмной темами; индикаторы `5h`/`7d` показывают проценты и полосы, а рядом с `5h` — время до сброса. На Mac с физической чёлкой доступен второй режим: наведение раскрывает краткие лимиты, нажатие — полную панель с плавной анимацией. На Mac без чёлки этот режим скрыт. Вся поддержка macOS находится в [`src/apple_feature`](src/apple_feature/README.md).
+### Windows — taskbar or tray
 
-На Linux значки оформлены как два отдельных блока: `5h` на бирюзовом фоне и `7d` на фиолетовом, со светлыми цифрами остатка и короткой полосой снизу. Прозрачные отступы разделяют соседние блоки. Собственный фон сохраняет контраст, даже если тема GTK светлая, а панель тёмная. При низком остатке полоса становится красной; неизвестные или устаревшие данные приглушены. XFCE уменьшает обе стороны изображения до настроенного размера значка, поэтому широкая картинка в обычном трее сделала бы цифры мельче. Окно подробностей подстраивает высоту под содержимое, включая раскрытые настройки аккаунтов; при длинном списке высота ограничена 590 px или размером экрана, а содержимое прокручивается. Код и тесты Linux находятся в [`src/linux_feature`](src/linux_feature/README.md).
+The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in the display menu. Drag the account area to move the widget; choose **240 / 280 / 320 / 400 px** widths in its context menu. It hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
 
-При необходимости путь к своему нативному Codex можно задать через `CODEX_LIMITS_CODEX_PATH`. `CODEX_HOME` наследуется для общего аккаунта; у добавленных аккаунтов он изолирован. Ни пароли, ни OAuth-токены приложение самостоятельно не читает и не передаёт в интерфейс. Codex хранит авторизацию добавленных аккаунтов в их собственных каталогах данных. Реестр `accounts.json` содержит только идентификаторы профилей, локальные имена и выбранный профиль.
+## Everyday use
 
-Сборка использует временную папку ОС для больших промежуточных файлов и копирует в `release` только готовые пакеты. На диске с временной папкой нужно около 2 ГБ свободного места. Для сохранения распакованной сборки задайте `CODEX_LIMITS_KEEP_BUILD=1` перед сборкой.
+- Click the widget or an indicator to open details, view accounts, and refresh usage.
+- Add an account from **Accounts**, complete browser sign-in, give it a local name, and select it for the compact display.
+- Change the language and available display mode in the details panel or context menu.
+- Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
 
-### Проверка Linux Mint
+## Data and sign-in
 
-Версия 0.5.3 проверена на Linux Mint 22.2 Zara, x64, XFCE/X11: автоматические тесты, окно Electron, два значка в системном трее, открытие подробностей через нативную активацию каждого значка, переключение демонстрационных аккаунтов и чтение настоящих лимитов Codex. DEB проверяется запуском распакованного приложения без установки пакета в систему. AppImage проверяется обычным запуском через FUSE. Сжатие AppImage задано как gzip: XZ с максимальным сжатием на этой системе заметно задерживало запуск Electron.
+Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required; API-key authentication does not expose these subscription limits. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
 
-Для разработки нужен Node.js 22.12+, но готовые AppImage/DEB содержат Electron и не требуют системного Node.js. Codex CLI нужен отдельно. Если он установлен только расширением VS Code и отсутствует в `PATH`, задайте `CODEX_LIMITS_CODEX_PATH` с абсолютным путём к его исполняемому файлу перед запуском готовой версии. Автоматический поиск CLI внутри расширений VS Code на Linux пока не предусмотрен.
+The default account shares Codex's `CODEX_HOME`. Signing in to a different default account also changes the account used by Codex CLI with that same storage. Accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
 
-## Как обновляются данные
+Limits has no app-level analytics or telemetry integration in its source. Codex connects to OpenAI services for sign-in and usage data; its behavior is managed by Codex. See [data storage and privacy](docs/privacy.md).
 
-Приложение запускает отдельный `codex app-server` по stdio, выполняет handshake, читает `account/read` и `account/rateLimits/read`. Оно не создаёт чаты и не отправляет запросы модели. Проценты берутся у сервиса, а остаток рассчитывается как `100 − usedPercent`.
+**Limits is an independent community project and is not affiliated with or endorsed by OpenAI.**
 
-Опрос выполняется через 30 секунд после завершения предыдущего запроса. События `account/rateLimits/updated` применяются сразу; события чужих процессов могут не приходить, поэтому изменения от работы в Codex обнаруживаются регулярным опросом. Это близко к реальному времени, но не гарантированный мгновенный push. После ошибок интервал увеличивается до 5 минут; ручное обновление доступно всегда. При выходе из сна данные запрашиваются заново.
+## Help and contribute
 
-Процент меняется только по данным сервера. Таймер пятичасового лимита рассчитывается по серверному `resetsAt`, округляется вверх до минуты и пересчитывается локально каждую секунду. При достижении `0:00` процент сам по себе не меняется: приложение ждёт подтверждения сброса от сервера. Неизвестные значения показаны прочерком. Окна определяются по их фактической длительности; другие длительности выводятся отдельно. Поддерживаются несколько наборов лимитов (`rateLimitsByLimitId`).
+[Report a bug or suggest a feature](https://github.com/PyatkovVK/limits/issues/new/choose). Include your OS, app version, and steps to reproduce; hide personal information in screenshots.
 
-## Границы первой версии
+Translations, documentation improvements, and platform testing are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and issues labeled [good first issue](https://github.com/PyatkovVK/limits/labels/good%20first%20issue). Please follow the [code of conduct](CODE_OF_CONDUCT.md).
 
-Это лимиты Codex, а не универсальный счётчик сообщений всех моделей обычного ChatGPT. Авторизация API-ключом не предоставляет эти лимиты подписки. Приложение показывает фактически доступные окна: если недельное или 5-часовое окно отсутствует, оно остаётся неизвестным.
+See [CHANGELOG.md](CHANGELOG.md) for release features. Limits uses the [MIT license](LICENSE); bundled dependencies have their own [third-party notices](THIRD-PARTY-NOTICES.md).
 
-Для macOS и Linux Mint добавлены команды упаковки и запуск через трей. На Windows проверены основная версия и общий режим без виджета. На macOS проверяются обе темы панели, Retina-индикаторы, клики и переключение аккаунта; на Linux Mint 22.2 проверены XFCE/X11, AppImage и распакованный DEB. Другие окружения Linux требуют отдельной проверки. Автозапуск Linux пока не реализован. Windows-релиз не подписан сертификатом разработчика.
+## Roadmap
 
-Документация источника данных: [Codex App Server](https://learn.chatgpt.com/docs/app-server). Трей: [Electron Tray](https://www.electronjs.org/docs/latest/api/tray).
+These are ideas for future work, not current features:
+
+- Claude Code integration, subject to availability of a suitable usage data source.
+- DeepSeek integration, subject to availability of a suitable usage data source.
+- Configurable low-usage and approaching-reset notifications.
+- Broader Linux desktop support and Linux autostart.
+
+Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).

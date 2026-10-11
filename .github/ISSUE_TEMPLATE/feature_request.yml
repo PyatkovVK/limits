@@ -1,0 +1,33 @@
+name: Feature request / Предложение
+description: Suggest an improvement / Предложить улучшение
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English and Russian suggestions are welcome. Check the README roadmap and existing issues first.
+        Можно писать по-русски. Сначала проверьте планы в README и существующие issues.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or task / Проблема или задача
+      description: What are you trying to do, and what gets in your way?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed behavior / Предлагаемое поведение
+      description: Describe what the app should do from the user's point of view.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / Альтернативы
+      description: Describe workarounds or other approaches you considered.
+  - type: input
+    id: platform
+    attributes:
+      label: Relevant platforms / Затронутые платформы
+      placeholder: "All / Windows / macOS / Linux"
