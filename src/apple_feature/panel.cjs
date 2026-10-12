@@ -31,12 +31,26 @@ function panelBounds({ anchor, display, size }) {
   };
 }
 
-function createPanelController({ window, screen, getTrayBounds, wait = () => new Promise(resolve => setTimeout(resolve, 20)), attempts = 25 }) {
+function createPanelController({ window, screen, getTrayBounds, reducedMotion = () => false, wait = () => new Promise(resolve => setTimeout(resolve, 20)), attempts = 25 }) {
   const size = window.getSize();
   let generation = 0, lastPlacement = null;
   const cancel = () => { generation++; };
   window.on('hide', cancel);
   window.on('closed', cancel);
+
+  function resize(height) {
+    if (!Number.isFinite(height) || height <= 0 || window.isDestroyed()) return false;
+    size[1] = Math.max(80, Math.ceil(height));
+    const anchor = lastPlacement?.anchor || readAnchor();
+    const display = anchor ? screen.getDisplayMatching(anchor) : screen.getPrimaryDisplay();
+    const bounds = panelBounds({ anchor, display, size });
+    const current = window.getBounds();
+    if (['x', 'y', 'width', 'height'].some(key => current[key] !== bounds[key])) {
+      window.setBounds(bounds, window.isVisible() && !reducedMotion());
+    }
+    if (lastPlacement) lastPlacement = { ...lastPlacement, bounds };
+    return true;
+  }
 
   function readAnchor(clickedTray) {
     const usable = bounds => validAnchor(bounds) && isMenuBarAnchor(bounds, screen.getDisplayMatching(bounds));
@@ -66,7 +80,7 @@ function createPanelController({ window, screen, getTrayBounds, wait = () => new
     window.show(); window.focus();
     return true;
   }
-  return { show, cancel, snapshot: () => lastPlacement };
+  return { show, resize, cancel, snapshot: () => lastPlacement };
 }
 
 module.exports = { panelOptions, panelBounds, createPanelController, isMenuBarAnchor };

@@ -197,7 +197,7 @@ async function setup() {
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
   trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '../..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
-  if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, getTrayBounds: () => trayPresentation.entries.map(entry => {
+  if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds: () => trayPresentation.entries.map(entry => {
     try { return entry.tray.getBounds(); } catch { return null; }
   }) });
   if (process.platform === 'linux') linuxPanel = require('../linux_feature/panel.cjs').createPanelController({ window, screen });
@@ -231,7 +231,12 @@ async function setup() {
       taskbarSupported, demo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget });
     return { ...publicState(), preferenceError: changed ? null : 'unavailable' };
   });
-  handle('limits:panel-size', height => linuxPanel?.resize(height) || false);
+  ipcMain.handle('limits:panel-size', (event, height) => {
+    if (!trusted(event)) throw new Error('Unauthorized');
+    if (event.sender === appleNotch?.window?.webContents) return appleNotch.resize(height);
+    if (event.sender !== window.webContents) return false;
+    return (macPanel || linuxPanel)?.resize(height) || false;
+  });
   handle('limits:hide', () => widgetSettings.displayMode === 'notch' ? appleNotch?.collapse() : window.hide());
   handle('limits:quit', () => app.quit());
   async function openLogin(id) {
@@ -270,6 +275,7 @@ async function setup() {
   });
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   if (linuxPanel) await window.webContents.executeJavaScript('window.limitsLinuxPanelReady');
+  if (macPanel) await window.webContents.executeJavaScript('window.limitsMacPanelReady');
   if (process.platform === 'darwin') {
     const { AppleNotch } = require('../apple_feature/notch.cjs');
     appleNotch = new AppleNotch({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, resourcesPath: app.isPackaged ? process.resourcesPath : null, getState: publicState, getMenu: presentationMenu, onChange: update, onUnavailable: () => setDisplayMode('tray') });

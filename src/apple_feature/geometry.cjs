@@ -15,7 +15,7 @@ function notchLayout(display, info = {}) {
   const center = physical ? display.bounds.x + info.notchX + info.notchWidth / 2 : display.bounds.x + display.bounds.width / 2;
   const x = Math.max(display.bounds.x + 4, Math.min(center - fullWidth / 2 - 12, display.bounds.x + display.bounds.width - fullWidth - 28));
   return {
-    physical, displayId: display.id, capHeight, fullWidth, fullHeight,
+    physical, displayId: display.id, capHeight, fullWidth, fullHeight, maxFullHeight: fullHeight,
     closedWidth, closedHeight: physical ? capHeight + 9 : 30,
     peekWidth: Math.min(fullWidth, Math.max(340, closedWidth + 40)), peekHeight: capHeight + 116,
     bounds: { x: Math.round(x), y: display.bounds.y, width: fullWidth + 24, height: fullHeight + 24 }

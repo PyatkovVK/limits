@@ -30,7 +30,7 @@ test('hit testing includes the visible island and passes through the transparent
   assert.ok(!contains(hitBounds(layout, 'expanded'), { x: 650, y: 300 }));
 });
 class FakeWindow extends EventEmitter {
-  constructor() { super(); this.webContents = new EventEmitter(); this.webContents.send = (_channel, state) => { this.state = state; }; }
+  constructor() { super(); this.webContents = new EventEmitter(); this.webContents.send = (_channel, state) => { this.state = state; }; this.webContents.executeJavaScript = async () => {}; }
   setAlwaysOnTop() {} setVisibleOnAllWorkspaces() {} setHiddenInMissionControl() {}
   setIgnoreMouseEvents(value) { this.ignoring = value; }
   isDestroyed() { return Boolean(this.destroyed); }
@@ -99,5 +99,28 @@ test('disconnecting the notched screen disables its overlay and requests tray fa
     notch.screen.emit('display-removed');
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(notch.available, false); assert.equal(notch.enabled, false); assert.ok(unavailable);
+  } finally { notch.destroy(); }
+});
+
+test('expanded content grows and shrinks inside a stationary notch host and survives rediscovery', async () => {
+  const notch = await controller();
+  try {
+    await notch.enable(); clearInterval(notch.timer); notch.expand();
+    const host = { ...notch.window.bounds };
+    notch.resize(300);
+    assert.equal(notch.snapshot().fullHeight, 300 + info.top);
+    assert.equal(hitBounds(notch.snapshot(), 'expanded').height, 338);
+    assert.deepEqual(notch.window.bounds, host);
+    notch.resize(480);
+    assert.equal(notch.snapshot().fullHeight, 518);
+    notch.resize(300);
+    await notch.discover();
+    assert.equal(notch.snapshot().fullHeight, 338);
+    notch.resize(10000);
+    assert.equal(notch.snapshot().fullHeight, 630);
+    for (const height of [NaN, Infinity, -1, 0, '320']) assert.equal(notch.resize(height), false);
+    notch.resize(300);
+    notch.collapse();
+    assert.equal(hitBounds(notch.snapshot(), 'closed').height, info.top + 9);
   } finally { notch.destroy(); }
 });

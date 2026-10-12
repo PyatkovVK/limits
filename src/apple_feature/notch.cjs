@@ -27,6 +27,7 @@ class AppleNotch {
     this.window.on('close', event => { event.preventDefault(); this.collapse(); });
     this.window.webContents.on('context-menu', () => { if (this.enabled) this.Menu.buildFromTemplate(this.getMenu()).popup({ window: this.window }); });
     await this.window.loadFile(path.join(__dirname, '../common/renderer/index.html'), { query: { apple: 'notch' } });
+    await this.window.webContents.executeJavaScript('window.limitsMacPanelReady');
   }
 
   async withModal(operation) {
@@ -41,6 +42,21 @@ class AppleNotch {
     const display = chooseDisplay(this.screen.getAllDisplays(), screens, this.screen.getPrimaryDisplay());
     this.available = Boolean(display);
     this.layout = display ? notchLayout(display, screens.find(info => info.id === display.id)) : null;
+    this.fitContent();
+  }
+
+  fitContent() {
+    if (!this.layout || !this.contentHeight) return;
+    this.layout.fullHeight = Math.min(this.layout.maxFullHeight, Math.max(this.layout.peekHeight, this.contentHeight + this.layout.capHeight));
+  }
+
+  resize(height) {
+    if (!Number.isFinite(height) || height <= 0) return false;
+    this.contentHeight = Math.ceil(height);
+    const previous = this.layout?.fullHeight;
+    this.fitContent();
+    if (this.layout?.fullHeight !== previous) this.update();
+    return true;
   }
 
   place() {

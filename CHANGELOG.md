@@ -4,6 +4,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Fit macOS details and expanded notch panels to their contents, with smooth resizing for notices and Settings and scrolling when content exceeds the screen.
+
 - Fit the Windows taskbar widget around centered app buttons and Widgets: shrink it beside the tray or move it to a free area on the left when space is limited.
 - Keep `main` builds in Actions artifacts without creating a release or tag; publish releases only from numeric version branches. Run tests on `1.1-demo` without packaging or uploading builds, including when feature PRs are merged.
 - Fix release verification to use electron-builder's Linux artifact names, and verify all packages and checksums on the test branch before publication.
