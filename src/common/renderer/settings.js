@@ -33,6 +33,7 @@
   const error = make('p', content, 'notice warning'); error.setAttribute('role', 'status'); error.hidden = true;
   function render(next) {
     current = next;
+    if (dialog.open && document.body.classList.contains('apple-notch') && next.appleNotch?.phase !== 'expanded') dialog.close();
     const t = texts[next.language] || texts.en;
     button.textContent = t.settings; button.title = t.settings;
     title.textContent = t.settings; close.setAttribute('aria-label', t.close);
