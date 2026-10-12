@@ -162,9 +162,17 @@ async function createWidget() {
   widgetHost.on('failure', error => console.error(error.message));
   widgetHost.on('ready', update);
   widgetHost.on('metrics', metrics => {
+    // Smoke windows must remain inspectable even if another foreground app is fullscreen.
+    // The native detector is checked separately against our own test windows below.
+    if (smoke) metrics = { ...metrics, fullscreen: false };
     const availabilityChanged = taskbarUnavailable !== !metrics.available;
     taskbarUnavailable = !metrics.available;
-    if (metrics.available) taskbarMetrics = { ...metrics, bar: screen.screenToDipRect(null, metrics.bar), tray: metrics.tray ? screen.screenToDipRect(null, metrics.tray) : null };
+    if (metrics.available) taskbarMetrics = {
+      ...metrics,
+      bar: screen.screenToDipRect(null, metrics.bar),
+      tray: metrics.tray ? screen.screenToDipRect(null, metrics.tray) : null,
+      occupied: Array.isArray(metrics.occupied) ? metrics.occupied.map(rect => screen.screenToDipRect(null, rect)) : null,
+    };
     placeWidget();
     if (availabilityChanged) update();
   });
@@ -322,11 +330,14 @@ async function setup() {
         if (labels.language !== language || labels.short !== translate(language, 'short') || labels.refresh !== translate(language, 'refresh') || !labels.clean) throw new Error(JSON.stringify(labels));
         const reset = await widget.webContents.executeJavaScript(`document.getElementById('short-reset').textContent`);
         if (reset !== labels.reset || (demo && reset !== '2:19')) throw new Error('Short reset countdown is missing or inconsistent.');
-        for (const width of [240, 280, 320, 400]) {
+        // Exercise the automatic compact sizes independently of live taskbar space.
+        for (const width of [200, 210, 220, 240, 280, 320, 400]) {
           widgetSettings.width = width; placeWidget();
+          widget.setSize(width, widget.getBounds().height);
           await new Promise(resolve => setTimeout(resolve, 100));
           const layout = await widget.webContents.executeJavaScript(`({ language: document.documentElement.lang, overflow: document.body.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight, barWidths: [...document.querySelectorAll('progress')].map(el => el.getBoundingClientRect().width) })`);
           if (layout.language !== language || layout.overflow || layout.barWidths.some(width => width < 20)) throw new Error(JSON.stringify(layout));
+          if (width === 200) fs.writeFileSync(path.join(dir, `${name}-taskbar-compact-${language}.png`), (await widget.webContents.capturePage()).toPNG());
         }
         widgetSettings.width = 280; placeWidget();
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -340,10 +351,18 @@ async function setup() {
       const testWindow = new BrowserWindow({ width: 400, height: 300, show: false, webPreferences: { sandbox: true } });
       testWindow.show(); testWindow.maximize();
       await new Promise(resolve => setTimeout(resolve, 400));
-      const result = spawnSync(helperPath, ['0'], { input: 'query\n', encoding: 'utf8', windowsHide: true });
+      if (!testWindow.isMaximized()) throw new Error('Simulated window did not maximize.');
+      const result = spawnSync(helperPath, ['--test-window-mode', String(process.pid), nativeHandleId(testWindow)], { encoding: 'utf8', windowsHide: true, timeout: 5000 });
       testWindow.destroy();
       const maximized = JSON.parse(result.stdout.trim());
       if (!maximized.available || maximized.fullscreen) throw new Error('Native probe classified a maximized window as fullscreen.');
+      const fullscreenTest = new BrowserWindow({ ...screen.getDisplayMatching(taskbarMetrics.bar).bounds, frame: false, show: false, focusable: false });
+      fullscreenTest.showInactive();
+      fullscreenTest.setFullScreen(true);
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const fullscreenResult = spawnSync(helperPath, ['--test-window-mode', String(process.pid), nativeHandleId(fullscreenTest)], { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+      fullscreenTest.destroy();
+      if (!JSON.parse(fullscreenResult.stdout.trim()).fullscreen) throw new Error('Native probe missed a borderless fullscreen window.');
       showPanel();
       // Exercise Windows' owner ordering with our own simulated taskbar, without late repairs.
       const simulatedTaskbar = new BrowserWindow({ width: 300, height: 40, show: false, focusable: false, frame: false, alwaysOnTop: true });
@@ -351,7 +370,7 @@ async function setup() {
       probe.stop();
       const zorder = await new Promise((resolve, reject) => {
         require('node:child_process').execFile(helperPath, ['--test-ownership', String(process.pid), nativeHandleId(widget), nativeHandleId(simulatedTaskbar)], { windowsHide: true, timeout: 5000 }, (error, stdout) => {
-          if (error) { reject(new Error('Native ownership ordering changed visibility, bounds or focus.')); return; }
+          if (error) { reject(new Error('Native ownership ordering changed visibility, bounds or focus: ' + stdout.trim())); return; }
           try { resolve(JSON.parse(stdout.trim())); } catch (error) { reject(error); }
         });
       });

@@ -92,6 +92,10 @@ The turquoise **5h** and purple **7d** indicators show remaining usage with numb
 
 The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in the display menu. Drag the account area to move the widget; choose **240 / 280 / 320 / 400 px** widths in its context menu. It hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
 
+When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. The preferred width returns when more space becomes available.
+
+![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows-widget-compact.png)
+
 ## Everyday use
 
 - Click the widget or an indicator to open details, view accounts, and refresh usage.

@@ -16,3 +16,4 @@ body.stale progress::-webkit-progress-value { background: #888; }
 body.low progress::-webkit-progress-value { background: #ff8686; }
 button:focus-visible { outline: 1px solid white; }
 @media (max-width: 260px) { body { grid-template-columns: 80px minmax(0,1fr); } .quotas { column-gap: 3px; } .quota { font-size: 8px; } }
+@media (max-width: 220px) { body { grid-template-columns: 54px minmax(0,1fr); padding-inline: 4px; } #widget-plan { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }

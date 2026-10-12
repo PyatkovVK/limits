@@ -25,6 +25,54 @@ test('DIP taskbar geometry with small height remains in bounds', () => {
   assert.ok(b.height === 30 && b.y + b.height <= 720);
 });
 
+test('crowded centered taskbar shrinks the widget in the gap beside the tray', () => {
+  const metrics = { ...base, occupied: [{ x: 900, y: 1032, width: 514, height: 48 }] };
+  const bounds = widgetBounds(metrics, { width: 400 });
+  assert.deepEqual(bounds, { x: 1422, y: 1039, width: 220, height: 34 });
+  assert.ok(bounds.x >= 900 + 514 + 8);
+  assert.ok(bounds.x + bounds.width <= base.tray.x - 8);
+  // The saved width is a preference: it returns when the taskbar has more room.
+  assert.equal(widgetBounds(base, { width: 400 }).width, 400);
+});
+
+test('a full right side moves the widget left without covering Widgets or centered apps', () => {
+  const metrics = { ...base, occupied: [
+    { x: 900, y: 1032, width: 650, height: 48 },
+    { x: 0, y: 1032, width: 210, height: 48 },
+  ] };
+  assert.deepEqual(widgetBounds(metrics), { x: 612, y: 1039, width: 280, height: 34 });
+  assert.equal(widgetBounds(metrics, { xRatio: 0 }).x, 218);
+  assert.equal(widgetBounds(metrics, { xRatio: 1 }).x, 612);
+});
+
+test('overlapping taskbar controls form one obstacle and dragging snaps to a free gap', () => {
+  const metrics = { ...base, occupied: [
+    { x: 1080, y: 1032, width: 470, height: 48 },
+    { x: 900, y: 1032, width: 300, height: 48 },
+    { x: 940, y: 1032, width: 40, height: 48 },
+  ] };
+  assert.equal(widgetBounds(metrics, { xRatio: .6 }).x, 612);
+  assert.equal(widgetBounds(metrics).width, 280);
+});
+
+test('fallback geometry works on negative monitor origins and 200 DIP is the compact minimum', () => {
+  const metrics = { ...base, bar: { ...base.bar, x: -1920 }, tray: { ...base.tray, x: -270 },
+    occupied: [{ x: -1020, y: 1032, width: 534, height: 48 }] };
+  assert.deepEqual(widgetBounds(metrics), { x: -478, y: 1039, width: 200, height: 34 });
+  metrics.occupied[0].width++;
+  assert.equal(widgetBounds(metrics).x, -1308);
+});
+
+test('a taskbar without a readable free gap hides the widget rather than covering controls', () => {
+  assert.equal(widgetBounds({ ...base, occupied: [{ x: 56, y: 1032, width: 1586, height: 48 }] }), null);
+});
+
+test('off-taskbar and unavailable accessibility geometry preserve the usual tray placement', () => {
+  for (const occupied of [null, [], [{ x: 0, y: 900, width: 1920, height: 30 }]]) {
+    assert.deepEqual(widgetBounds({ ...base, occupied }), widgetBounds(base));
+  }
+});
+
 function fakeWidget() {
   return {
     bounds: { x: 0, y: 0, width: 320, height: 39 }, visible: false,

@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.Windows.Automation;
 
 // Reads taskbar geometry. The widget is an owned top-level window of the taskbar:
 // Windows maintains their order atomically, without post-click z-order repairs.
@@ -32,6 +34,42 @@ class TaskbarProbe {
 
   static string Bounds(Rect r) { return "{\"x\":" + r.Left + ",\"y\":" + r.Top + ",\"width\":" + (r.Right-r.Left) + ",\"height\":" + (r.Bottom-r.Top) + "}"; }
   static string ClassName(IntPtr hwnd) { StringBuilder text = new StringBuilder(256); GetClassName(hwnd, text, text.Capacity); return text.ToString(); }
+  static string OccupiedBounds(IntPtr taskbar, Rect bar, uint owner) {
+    try {
+      // Read actionable controls, not the full-width XAML/task-list container.
+      // Names and alignment are irrelevant, so this works with localized shells.
+      Condition controls = new OrCondition(
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit),
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem),
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem),
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.CheckBox));
+      List<string> rectangles = new List<string>();
+      CacheRequest cache = new CacheRequest();
+      cache.Add(AutomationElement.BoundingRectangleProperty);
+      cache.Add(AutomationElement.IsOffscreenProperty);
+      cache.Add(AutomationElement.ProcessIdProperty);
+      using (cache.Activate()) {
+        AutomationElement root = AutomationElement.FromHandle(taskbar);
+        AutomationElementCollection elements = root.FindAll(TreeScope.Descendants, controls);
+        foreach (AutomationElement element in elements) {
+          try {
+            if (element.Cached.IsOffscreen || element.Cached.ProcessId == owner) continue;
+            System.Windows.Rect r = element.Cached.BoundingRectangle;
+            if (r.IsEmpty || r.Width <= 0 || r.Height <= 0 || r.Height > (bar.Bottom - bar.Top) * 2 ||
+                r.Bottom <= bar.Top || r.Top >= bar.Bottom || r.Right <= bar.Left || r.Left >= bar.Right) continue;
+            Rect occupied = new Rect();
+            occupied.Left = Math.Max(bar.Left, (int)Math.Floor(r.Left));
+            occupied.Top = Math.Max(bar.Top, (int)Math.Floor(r.Top));
+            occupied.Right = Math.Min(bar.Right, (int)Math.Ceiling(r.Right));
+            occupied.Bottom = Math.Min(bar.Bottom, (int)Math.Ceiling(r.Bottom));
+            rectangles.Add(Bounds(occupied));
+          } catch (ElementNotAvailableException) { /* Explorer can replace a button during polling. */ }
+        }
+      }
+      return "[" + String.Join(",", rectangles.ToArray()) + "]";
+    } catch { return "null"; } // Preserve geometry reporting if accessibility is temporarily unavailable.
+  }
   static bool IsShellWindow(IntPtr hwnd, IntPtr taskbar) {
     string cls = ClassName(hwnd);
     if (hwnd == taskbar || cls == "Shell_SecondaryTrayWnd" || cls == "Progman" || cls == "WorkerW" || cls == "#32768") return true;
@@ -62,7 +100,16 @@ class TaskbarProbe {
     }
     return false;
   }
-  static string Query(uint owner) {
+  static bool IsFullscreen(IntPtr foreground, uint owner, IntPtr taskbar, Rect monitor) {
+    Rect front;
+    uint foregroundPid; GetWindowThreadProcessId(foreground, out foregroundPid);
+    // Maximized framed windows have invisible resize borders outside the monitor.
+    return !IsZoomed(foreground) && (GetWindowLong(foreground, -16) & 0x00C00000) == 0 &&
+      foregroundPid != owner && !IsShellWindow(foreground, taskbar) &&
+      GetWindowRect(foreground, out front) && front.Left <= monitor.Left && front.Top <= monitor.Top &&
+      front.Right >= monitor.Right && front.Bottom >= monitor.Bottom;
+  }
+  static string Query(uint owner, IntPtr foreground) {
     IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
     Rect bar;
     if (taskbar == IntPtr.Zero || !GetWindowRect(taskbar, out bar)) return "{\"available\":false}";
@@ -76,22 +123,28 @@ class TaskbarProbe {
     }, IntPtr.Zero);
     Rect trayRect;
     string trayJson = tray != IntPtr.Zero && GetWindowRect(tray, out trayRect) ? Bounds(trayRect) : "null";
-    IntPtr foreground = GetForegroundWindow(); Rect front;
-    uint foregroundPid; GetWindowThreadProcessId(foreground, out foregroundPid);
     bool shellActive = IsShellWindow(foreground, taskbar);
-    // A maximized framed window can extend past all monitor edges (invisible resize borders).
-    // Only a borderless, non-maximized foreground window is a fullscreen candidate.
-    bool fullscreen = !IsZoomed(foreground) && (GetWindowLong(foreground, -16) & 0x00C00000) == 0 &&
-      foregroundPid != owner && !shellActive &&
-      GetWindowRect(foreground, out front) && front.Left <= monitor.Monitor.Left && front.Top <= monitor.Monitor.Top &&
-      front.Right >= monitor.Monitor.Right && front.Bottom >= monitor.Monitor.Bottom;
+    bool fullscreen = IsFullscreen(foreground, owner, taskbar, monitor.Monitor);
     bool visible = IsWindowVisible(taskbar) && bar.Top < monitor.Monitor.Bottom - 8 && bar.Bottom > monitor.Monitor.Top + 8;
     return "{\"available\":true,\"visible\":" + (visible ? "true" : "false") + ",\"fullscreen\":" + (fullscreen ? "true" : "false") +
       ",\"shellActive\":" + (shellActive ? "true" : "false") + ",\"attached\":" + (attached ? "true" : "false") +
-      ",\"bar\":" + Bounds(bar) + ",\"tray\":" + trayJson + ",\"monitor\":" + Bounds(monitor.Monitor) + "}";
+      ",\"bar\":" + Bounds(bar) + ",\"tray\":" + trayJson + ",\"occupied\":" + OccupiedBounds(taskbar, bar, owner) + ",\"monitor\":" + Bounds(monitor.Monitor) + "}";
   }
   static void Main(string[] args) {
     try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch { SetProcessDPIAware(); }
+    if (args.Length == 3 && args[0] == "--test-window-mode") {
+      uint testOwner = UInt32.Parse(args[1]);
+      IntPtr testWindow = new IntPtr(Int64.Parse(args[2]));
+      uint pid; GetWindowThreadProcessId(testWindow, out pid);
+      if (pid != testOwner || !IsWindowVisible(testWindow)) { Environment.ExitCode = 1; return; }
+      // Inspect only the caller's simulated window, independent of foreground focus.
+      // This test does not query UI Automation while Electron waits for its result.
+      MonitorInfo monitor = new MonitorInfo(); monitor.Size = Marshal.SizeOf(typeof(MonitorInfo));
+      bool available = GetMonitorInfo(MonitorFromWindow(testWindow, 2), ref monitor);
+      bool fullscreen = available && IsFullscreen(testWindow, 0, FindWindow("Shell_TrayWnd", null), monitor.Monitor);
+      Console.WriteLine("{\"available\":" + (available ? "true" : "false") + ",\"fullscreen\":" + (fullscreen ? "true" : "false") + "}");
+      return;
+    }
     // Repeated owner raises are tested against a separate simulated taskbar in our app.
     // Do not raise, lower, click or change ownership of the real Windows taskbar.
     if (args.Length == 4 && (args[0] == "--test-ownership" || args[0] == "--test-owner-destroy")) {
@@ -126,7 +179,7 @@ class TaskbarProbe {
     Widget = args.Length > 1 ? new IntPtr(Int64.Parse(args[1])) : IntPtr.Zero;
     string line;
     while ((line = Console.ReadLine()) != null && line == "query") {
-      try { Console.WriteLine(Query(Owner)); } catch { Console.WriteLine("{\"available\":false}"); }
+      try { Console.WriteLine(Query(Owner, GetForegroundWindow())); } catch { Console.WriteLine("{\"available\":false}"); }
       Console.Out.Flush();
     }
   }
