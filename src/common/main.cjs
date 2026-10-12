@@ -26,7 +26,7 @@ app.setAppUserModelId('dev.codexlimits.desktop');
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
-let window, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
+let window, windowsPanel, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
 let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray' };
 const t = key => (process.platform === 'darwin' ? require('../apple_feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key, process.platform);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: 30, demo };
@@ -37,6 +37,7 @@ function showPanel(anchor) {
   if (widgetSettings.displayMode === 'notch') return appleNotch?.expand();
   if (macPanel) return macPanel.show(anchor);
   if (linuxPanel) return linuxPanel.show();
+  if (windowsPanel) return windowsPanel.show(anchor);
   const bounds = process.platform === 'linux' ? null : anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
   const display = bounds?.width ? screen.getDisplayMatching(bounds) : screen.getPrimaryDisplay();
   const area = display.workArea;
@@ -59,7 +60,11 @@ function saveWidgetSettings() {
   saveTimer = setTimeout(persistWidgetSettings, 200);
 }
 function placeWidget() {
+  const before = widget && !widget.isDestroyed() ? widget.getBounds() : null;
   placement?.apply(taskbarMetrics, { ...widgetSettings, visible: widgetSettings.visible && widgetSettings.displayMode === 'widget' });
+  if (!before || !windowsPanel || widgetSettings.displayMode !== 'widget' || !widget || widget.isDestroyed()) return;
+  const after = widget.getBounds();
+  if (['x', 'y', 'width', 'height'].some(key => before[key] !== after[key])) windowsPanel.follow(widget);
 }
 function resetWidget() { widgetSettings.xRatio = null; widgetSettings.visible = true; saveWidgetSettings(); placeWidget(); update(); }
 function setLanguage(language) {
@@ -190,6 +195,9 @@ async function setup() {
   if (process.platform === 'darwin') app.dock.hide();
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
+  if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
+    window, screen, getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
+  });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
   trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '../..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
   if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, getTrayBounds: () => trayPresentation.entries.map(entry => {
