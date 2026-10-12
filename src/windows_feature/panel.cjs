@@ -11,10 +11,23 @@ function panelPosition({ anchor, area, size }) {
   };
 }
 
-function createPanelController({ window, screen, getAnchorBounds }) {
+function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWidgetHost }) {
+  let contentHeight = window.getSize()[1], lastAnchor = null;
   function place(anchor) {
     if (window.isDestroyed()) return false;
+    lastAnchor = anchor;
     const display = anchor?.width ? screen.getDisplayMatching(anchor) : screen.getPrimaryDisplay();
+    const height = Math.min(Math.max(80, Math.ceil(contentHeight)), Math.max(1, display.workArea.height - 16));
+    const [width, currentHeight] = window.getSize();
+    if (height !== currentHeight) {
+      // On Windows, resizable:false fixes both native size constraints to the
+      // initial size. Widen that range before resizing, then lock it again.
+      window.setMinimumSize(width, Math.min(currentHeight, height));
+      window.setMaximumSize(width, Math.max(currentHeight, height));
+      window.setSize(width, height);
+      window.setMinimumSize(width, height);
+      window.setMaximumSize(width, height);
+    }
     const position = panelPosition({ anchor, area: display.workArea, size: window.getSize() });
     const [x, y] = window.getPosition();
     if (x !== position.x || y !== position.y) window.setPosition(position.x, position.y);
@@ -29,7 +42,14 @@ function createPanelController({ window, screen, getAnchorBounds }) {
     if (window.isDestroyed() || !window.isVisible() || !widget || widget.isDestroyed() || !widget.isVisible()) return false;
     return place(widget.getBounds());
   }
-  return { show, follow };
+  function resize(height) {
+    if (!Number.isFinite(height) || height <= 0 || window.isDestroyed()) return false;
+    contentHeight = height;
+    return place(lastAnchor || getAnchorBounds?.() || null);
+  }
+  const controller = { show, follow, resize };
+  if (ipcMain) require('./ipc.cjs').installWindowsBridge({ window, screen, ipcMain, getWidgetHost, panel: controller });
+  return controller;
 }
 
 module.exports = { panelPosition, createPanelController };
