@@ -15,7 +15,7 @@ For a feature request, explain the task you want to accomplish and how the propo
 ## Prepare a change
 
 1. Fork the repository on GitHub and clone your fork.
-2. Create a branch from the current project code, for example `git switch -c docs/improve-installation`.
+2. Create a task branch with the `limits/` prefix, for example `git switch -c limits/improve-installation`.
 3. Install dependencies with `npm install` using Node.js 22.12 or newer.
 4. Run `npm run demo` to view the UI without signing in. See the [development guide](docs/development.md) for platform prerequisites.
 5. Make a focused change. Keep shared behavior in `src/common` and platform behavior in the corresponding platform directory.
