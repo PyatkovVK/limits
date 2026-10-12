@@ -1,0 +1,17 @@
+.settings-button { -webkit-app-region: no-drag; flex: none; border: 1px solid #3c3c3c; border-radius: 6px; background: #171717; color: #eee; font-size: 10px; padding: 5px 8px; }
+#settings-dialog { color: #eee; background: #15171c; border: 1px solid #414650; border-radius: 16px; padding: 0; width: min(400px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow: hidden; box-shadow: 0 16px 60px #0008; }
+#settings-dialog::backdrop { background: #0007; }
+.settings-header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #454545; }
+.settings-header h2 { margin: 0; font-size: 15px; flex: 1; }
+.settings-close { border: 0; background: transparent; color: inherit; font-size: 24px; padding: 0 4px; cursor: pointer; }
+.settings-content { padding: 12px 18px 18px; max-height: calc(100vh - 100px); overflow-y: auto; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0; font-size: 12px; }
+.settings-row select { flex: none; width: 120px; }
+.settings-row .language { width: 120px; }
+.settings-row input[type="checkbox"] { flex: none; width: 16px; height: 16px; accent-color: #7ecfba; }
+.settings-widget { padding: 8px 0 16px; border-bottom: 1px solid #454545; }
+.settings-widget h3 { font-size: 12px; margin: 4px 0; }
+body[data-platform="darwin"][data-theme="light"]:not(.apple-notch) #settings-dialog { background: #eef1f7; color: #202431; border-color: #c4c8d2; }
+body[data-platform="darwin"].apple-notch #settings-dialog { margin: 0; top: 18px; left: 50%; transform: translateX(-50%); width: calc(var(--full-width) - 24px); max-height: calc(var(--full-height) - 36px); }
+body.apple-notch #settings-dialog::backdrop { background: transparent; }
+body.apple-notch .settings-content { max-height: calc(var(--full-height) - 106px); }

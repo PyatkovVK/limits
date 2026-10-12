@@ -7,6 +7,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - Fix release verification to use electron-builder's Linux artifact names, and verify all packages and checksums on the test branch before publication.
 - Fix packaging after a fresh dependency install when Electron has not downloaded its runtime yet.
 - Allow automated Windows and macOS releases without configured signing certificates; configured certificates still require successful signing and verification.
+- Move application preferences and account management into a Settings dialog on all platforms, including Windows widget controls and supported autostart options.
 
 ## 1.0.0
 
