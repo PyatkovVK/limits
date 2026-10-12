@@ -29,7 +29,7 @@
     }
     trigger.append(meters, preview); shell.append(cap, trigger, content); body.append(shell);
     trigger.addEventListener('click', () => window.limits.open());
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); window.limits.hide(); } });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !document.querySelector('dialog[open]')) { event.preventDefault(); window.limits.hide(); } });
     setInterval(() => { if (window.limitsApple?.state) window.limitsApple.renderCountdown(); }, 1000);
   }
   window.limitsApple = {

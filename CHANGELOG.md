@@ -10,6 +10,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - Fix packaging after a fresh dependency install when Electron has not downloaded its runtime yet.
 - Prevent accidental text selection in the Windows widget and details panel while keeping account names editable.
 - Allow automated Windows and macOS releases without configured signing certificates; configured certificates still require successful signing and verification.
+- Move application preferences and account management into a Settings dialog on all platforms, including Windows widget controls and supported autostart options.
 - Move the open Windows details panel together with the taskbar widget, while keeping dismissed panels hidden.
 
 ## 1.0.0

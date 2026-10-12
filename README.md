@@ -102,7 +102,7 @@ When the area beside the tray is crowded, the widget automatically shrinks to fi
 
 - Click the widget or an indicator to open details, view accounts, and refresh usage.
 - Add an account from **Accounts**, complete browser sign-in, give it a local name, and select it for the compact display.
-- Change the language and available display mode in the details panel or context menu.
+- Open **Settings** to change the language, display mode, account settings, widget size, or supported autostart options. The tray menu also opens Settings.
 - Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
 
 ## Data and sign-in

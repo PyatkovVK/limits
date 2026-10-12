@@ -8,6 +8,12 @@ contextBridge.exposeInMainWorld('limits', {
   select: id => ipcRenderer.invoke('limits:select', id),
   language: language => ipcRenderer.invoke('limits:language', language),
   displayMode: mode => ipcRenderer.invoke('limits:display-mode', mode),
+  preference: (key, value) => ipcRenderer.invoke('limits:preference', key, value),
+  onSettingsOpen: callback => {
+    const listener = () => callback();
+    ipcRenderer.on('limits:open-settings', listener);
+    return () => ipcRenderer.removeListener('limits:open-settings', listener);
+  },
   panelSize: height => ipcRenderer.invoke('limits:panel-size', height),
   hide: () => ipcRenderer.invoke('limits:hide'),
   open: () => ipcRenderer.invoke('limits:open'),
