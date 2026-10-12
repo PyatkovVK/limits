@@ -4,19 +4,34 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
-- Fit the Windows details panel to its content and Settings, and let dragging from anywhere on the widget cross the centered task buttons into the free space on the left, while clicks on limits still open details.
+## 1.1.0
 
-- Fit macOS details and expanded notch panels to their contents, with smooth resizing for notices and Settings and scrolling when content exceeds the screen.
+Changes prepared for the 1.1 release on `1.1-demo`.
 
-- Fit the Windows taskbar widget around centered app buttons and Widgets: shrink it beside the tray or move it to a free area on the left when space is limited.
-- Keep `main` builds in Actions artifacts without creating a release or tag; publish releases only from numeric version branches. Run tests on `1.1-demo` without packaging or uploading builds, including when feature PRs are merged.
-- Fix release verification to use electron-builder's Linux artifact names, and verify all packages and checksums on the test branch before publication.
-- Fix packaging after a fresh dependency install when Electron has not downloaded its runtime yet.
-- Add default, solid-color and local-image backgrounds for the details panel on every platform and the Windows widget, with persistent app-owned image copies.
+### New features
+
+- A Settings dialog on Windows, macOS and Linux brings language, accounts, display modes and supported autostart controls together. Windows widget width, visibility and position reset are available in the same dialog.
+- Choose the default background, a solid color or a local image for the details panel on every platform and for the Windows widget. Images are copied into app storage, and appearance preferences persist across restarts.
+- Linux tray icons can use quota-period labels (`5h` / `7d`, or `5ч` / `7д`) with remaining-usage bars, or the classic colored percentage badges. The selected style is saved; classic remains the default for existing and new profiles.
+- Linux can find Codex in common per-user CLI directories and native or Flatpak VS Code extension installations when launched from the desktop menu, selecting the newest available extension executable.
+
+### Bug fixes
+
+- Windows details now fit their content instead of leaving a large empty area below the limits. Opening Settings grows the panel, closing Settings shrinks it, and long content scrolls within the available screen space.
+- Drag the Windows widget from any part, including quota labels, countdowns, progress bars and percentages. A continuous drag can cross the centered task buttons into free space on the left; ordinary clicks still open details, and dragging does not also trigger a click.
+- The Windows widget avoids centered app buttons, Widgets and the system tray. It shrinks to fit beside the tray or moves into a free area on the left; it hides when no usable gap remains.
+- An open Windows details panel follows the widget when it moves. Dismissed panels stay hidden, and routine taskbar polling does not snap a manually moved panel back into place.
 - Prevent accidental text selection in the Windows widget and details panel while keeping account names editable.
-- Allow automated Windows and macOS releases without configured signing certificates; configured certificates still require successful signing and verification.
-- Move application preferences and account management into a Settings dialog on all platforms, including Windows widget controls and supported autostart options.
-- Move the open Windows details panel together with the taskbar widget, while keeping dismissed panels hidden.
+- macOS details and expanded notch panels grow and shrink with their content, including notices and Settings, with smooth resizing and scrolling when content exceeds the screen.
+- Keep the macOS notch panel open while choosing a background image, and close Settings when the notch panel collapses.
+- Keep text, progress indicators, notices and keyboard focus readable on custom backgrounds, and keep Settings colors independent of the panel background.
+
+### Builds and releases
+
+- `main` builds are kept in GitHub Actions artifacts without creating a release or tag. Only numeric version branches publish releases. `1.1-demo` and pull requests into it run tests on Windows, macOS and Linux without packaging or uploading builds.
+- Release verification uses the actual Linux artifact names and checks all eight packages and their SHA-256 checksums before publication.
+- Fix packaging after a fresh dependency install when Electron has not downloaded its runtime yet.
+- Automated Windows and macOS builds can run without signing certificates. Configured certificates still require successful signing and verification.
 
 ## 1.0.0
 
