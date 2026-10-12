@@ -8,6 +8,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - Keep `main` builds in Actions artifacts without creating a release or tag; publish releases only from numeric version branches. Run tests on `1.1-demo` without packaging or uploading builds, including when feature PRs are merged.
 - Fix release verification to use electron-builder's Linux artifact names, and verify all packages and checksums on the test branch before publication.
 - Fix packaging after a fresh dependency install when Electron has not downloaded its runtime yet.
+- Prevent accidental text selection in the Windows widget and details panel while keeping account names editable.
 - Allow automated Windows and macOS releases without configured signing certificates; configured certificates still require successful signing and verification.
 - Move the open Windows details panel together with the taskbar widget, while keeping dismissed panels hidden.
 
