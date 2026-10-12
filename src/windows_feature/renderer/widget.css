@@ -1,6 +1,6 @@
 :root { color-scheme: dark; font-family: 'Segoe UI', sans-serif; }
 * { box-sizing: border-box; }
-body { margin: 0; height: 100vh; display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 4px; padding: 2px 6px; background: #171717; color: #f4f4f4; border: 1px solid #292929; border-radius: 4px; overflow: hidden; user-select: none; -webkit-user-select: none; }
+body { margin: 0; height: 100vh; display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 4px; padding: 2px 6px; background: #171717; color: #f4f4f4; border: 1px solid #292929; border-radius: 4px; overflow: hidden; }
 .account { display: flex; flex-direction: column; justify-content: center; min-width: 0; -webkit-app-region: drag; cursor: move; }
 #widget-account { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 #widget-plan { margin-top: 1px; font-size: 8px; color: #aaa; text-transform: uppercase; letter-spacing: .2px; }

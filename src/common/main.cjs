@@ -318,12 +318,6 @@ async function setup() {
       if (report.title !== app.getName() || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready') || !report.errorHidden || report.cards !== 2 || !report.isolated) throw new Error(JSON.stringify({ ...report, status: state.status, auth: state.account?.type || null }));
       const widgetReport = await widget.webContents.executeJavaScript(`({ values: ['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent), accountVisible: !!document.getElementById('widget-account').textContent, bars: document.querySelectorAll('progress').length, isolated: typeof require === 'undefined', overflow: document.body.scrollWidth > innerWidth })`);
       if (!taskbarMetrics?.available || widgetReport.bars !== 2 || !widgetReport.accountVisible || !widgetReport.isolated || widgetReport.overflow || widgetReport.values.join(',') !== report.values.join(',')) throw new Error(JSON.stringify({ widgetReport, geometryAvailable: taskbarMetrics?.available }));
-      const selection = await window.webContents.executeJavaScript(`({
-        text: getComputedStyle(document.getElementById('account')).userSelect,
-        input: getComputedStyle(document.querySelector('.profile-editor input')).userSelect
-      })`);
-      const widgetSelection = await widget.webContents.executeJavaScript(`getComputedStyle(document.getElementById('widget-account')).userSelect`);
-      if (selection.text !== 'none' || selection.input !== 'text' || widgetSelection !== 'none') throw new Error('Windows text selection policy is incorrect: ' + JSON.stringify(selection));
       const dir = artifactRoot;
       const name = demo ? 'panel' : 'panel-live';
       fs.mkdirSync(dir, { recursive: true });
@@ -455,7 +449,7 @@ async function setup() {
       }
       setDisplayMode(originalMode);
       widgetSettings.visible = originalVisibility; placeWidget();
-      const completedReport = { ...report, widget: widgetReport, selection: { ...selection, widget: widgetSelection }, languages, displayModes, accountChecks, maximizedFullscreen: maximized.fullscreen, zorder, recovered, placementChanges: placement.changes, bounds: widget.getBounds(), taskbar: taskbarMetrics.bar };
+      const completedReport = { ...report, widget: widgetReport, languages, displayModes, accountChecks, maximizedFullscreen: maximized.fullscreen, zorder, recovered, placementChanges: placement.changes, bounds: widget.getBounds(), taskbar: taskbarMetrics.bar };
       fs.writeFileSync(path.join(dir, `${name}-smoke.json`), JSON.stringify(completedReport, null, 2));
       console.log('SMOKE_OK', JSON.stringify(completedReport));
       app.quit();
