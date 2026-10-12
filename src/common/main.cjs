@@ -206,7 +206,8 @@ async function setup() {
   handle('limits:appearance-set', value => appearanceResult(() => appearance.set(value)));
   handle('limits:appearance-choose', async () => {
     const parent = widgetSettings.displayMode === 'notch' ? appleNotch?.window : window;
-    const result = await dialog.showOpenDialog(parent, { properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] });
+    const choose = () => dialog.showOpenDialog(parent, { properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] });
+    const result = widgetSettings.displayMode === 'notch' ? await appleNotch.withModal(choose) : await choose();
     if (result.canceled || !result.filePaths.length) return appearance.state();
     return appearanceResult(() => appearance.importImage(result.filePaths[0], nativeImage));
   });

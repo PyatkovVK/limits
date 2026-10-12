@@ -71,6 +71,18 @@ test('no-notch machines create no overlay and cannot enable notch mode', async (
   assert.equal(notch.window, undefined);
   notch.destroy();
 });
+
+test('a native background picker keeps the expanded island open and releases the blur guard on failure', async () => {
+  const notch = await controller();
+  try {
+    await notch.enable(); clearInterval(notch.timer); notch.expand();
+    await notch.withModal(async () => { notch.window.blur(); assert.equal(notch.phase, 'expanded'); });
+    assert.equal(notch.modalOperations, 0);
+    await assert.rejects(notch.withModal(async () => { throw new Error('cancelled'); }), /cancelled/);
+    assert.equal(notch.modalOperations, 0);
+    notch.window.focus(); notch.window.blur(); assert.equal(notch.phase, 'closed');
+  } finally { notch.destroy(); }
+});
 test('switching back while the overlay loads cancels activation', async () => {
   const notch = await controller();
   let resume;
