@@ -96,6 +96,7 @@ The widget and account panel are shown above. Switch between a taskbar widget an
 
 - Click the widget or an indicator to open details, view accounts, and refresh usage.
 - Add an account from **Accounts**, complete browser sign-in, give it a local name, and select it for the compact display.
+- Use **Background** to choose the platform default, a solid color, or a local PNG/JPG image. It applies to the details panel and Windows widget. Images are copied into the app profile and remain available if the original file is moved.
 - Change the language and available display mode in the details panel or context menu.
 - Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
 

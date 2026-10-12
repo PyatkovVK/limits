@@ -1,6 +1,15 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('limits', {
   get: () => ipcRenderer.invoke('limits:get'),
+  appearance: () => ipcRenderer.invoke('limits:appearance-get'),
+  setAppearance: value => ipcRenderer.invoke('limits:appearance-set', value),
+  chooseBackground: () => ipcRenderer.invoke('limits:appearance-choose'),
+  backgroundImage: () => ipcRenderer.invoke('limits:appearance-image'),
+  onAppearance: callback => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on('limits:appearance-state', listener);
+    return () => ipcRenderer.removeListener('limits:appearance-state', listener);
+  },
   refresh: () => ipcRenderer.invoke('limits:refresh'),
   login: id => ipcRenderer.invoke('limits:login', id),
   addAccount: () => ipcRenderer.invoke('limits:profile-add'),
