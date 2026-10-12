@@ -5,7 +5,7 @@ const setText = (element, text) => { if (element.textContent !== text) element.t
 function renderCountdown() { window.limitsCountdown.render($('short-reset'), resetAt, language); }
 function render(next) {
   language = next.language || 'ru';
-  const translate = (lang, key) => window.limitsI18n.t(lang, key, 'win32');
+  const translate = (lang, key) => window.limitsWindowsI18n.t(lang, key) || window.limitsI18n.t(lang, key, 'win32');
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);
   const bucket = next.buckets.find(b => b.id === next.selectedId) || next.buckets.find(b => b.id === 'codex') || next.buckets[0];
@@ -23,7 +23,35 @@ function render(next) {
   resetAt = bucket?.short?.resetsAt;
   renderCountdown();
 }
-$('details').addEventListener('click', () => window.limits.open());
+const dragArea = document.body;
+let drag = null, lastDragResult = Promise.resolve(false);
+$('details').addEventListener('click', async event => {
+  // The native cursor decides whether the gesture moved. Wait for pointerup's
+  // result before opening details so a drag never also acts as a click.
+  if (event.detail !== 0 && await lastDragResult) return;
+  void window.limits.open();
+});
+dragArea.addEventListener('pointerdown', event => {
+  if (!event.isPrimary || event.button !== 0) return;
+  lastDragResult = Promise.resolve(false);
+  drag = { pointer: event.pointerId, target: event.target };
+  // Capture on the pressed element so a stationary click still reaches the
+  // details button, including clicks on its labels, bars and percentages.
+  drag.target.setPointerCapture(drag.pointer);
+  void window.limitsWindows.widgetDrag('start');
+});
+dragArea.addEventListener('pointermove', event => {
+  if (event.pointerId !== drag?.pointer) return;
+  void window.limitsWindows.widgetDrag('move');
+});
+function finishDrag(event) {
+  if (event.pointerId !== drag?.pointer) return;
+  const completed = drag;
+  drag = null;
+  lastDragResult = window.limitsWindows.widgetDrag(event.type === 'pointerup' ? 'end' : 'cancel');
+  if (completed.target.hasPointerCapture(completed.pointer)) completed.target.releasePointerCapture(completed.pointer);
+}
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) dragArea.addEventListener(type, finishDrag);
 window.limits.subscribe(render);
 window.renderReady = window.limits.get().then(render);
 setInterval(renderCountdown, 1000);

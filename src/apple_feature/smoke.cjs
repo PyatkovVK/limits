@@ -2,6 +2,42 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+async function verifyContentSizing(window, notch = null) {
+  const delay = () => new Promise(resolve => setTimeout(resolve, 600));
+  async function height() {
+    await window.webContents.executeJavaScript('window.limitsMacPanelReady.then(() => window.limitsMacPanel.report())');
+    await delay();
+    return notch ? notch.snapshot().fullHeight : window.getBounds().height;
+  }
+  const compact = await height();
+  const expected = await window.webContents.executeJavaScript('window.limitsMacPanel.measure()');
+  if (Math.abs(compact - expected - (notch?.snapshot().capHeight || 0)) > 2) throw new Error('Mac panel has empty space below content');
+  await window.webContents.executeJavaScript(`(() => {
+    const notice = document.createElement('div'); notice.id = 'sizing-smoke'; notice.className = 'notice';
+    notice.textContent = 'A longer connection message that wraps onto several lines. '.repeat(8);
+    document.querySelector('.mac-panel-content').append(notice);
+  })()`);
+  const expanded = await height();
+  if (expanded <= compact) throw new Error('Mac panel did not grow for a notice');
+  await window.webContents.executeJavaScript("document.getElementById('sizing-smoke').remove()");
+  if (await height() !== compact) throw new Error('Mac panel did not shrink after removing content');
+  await window.webContents.executeJavaScript('window.limitsSettings.open()');
+  const settings = await height();
+  if (settings <= compact) throw new Error('Mac panel did not grow for Settings');
+  await window.webContents.executeJavaScript('window.limitsSettings.dialog.close()');
+  if (await height() !== compact) throw new Error('Mac panel did not shrink after closing Settings');
+  await window.webContents.executeJavaScript(`(() => {
+    const overflow = document.createElement('div'); overflow.id = 'sizing-smoke'; overflow.style.height = '2000px';
+    document.querySelector('.mac-panel-content').append(overflow);
+  })()`);
+  const capped = await height();
+  const scrolls = await window.webContents.executeJavaScript("document.querySelector('main').scrollHeight > document.querySelector('main').clientHeight");
+  if (!scrolls || (notch && capped !== notch.snapshot().maxFullHeight)) throw new Error('Mac panel does not scroll when content exceeds available height');
+  await window.webContents.executeJavaScript("document.getElementById('sizing-smoke').remove()");
+  if (await height() !== compact) throw new Error('Mac panel remained large after overflowing content was removed');
+  return { compact, expanded, settings, capped, shrinks: true, scrolls };
+}
+
 async function verifyMacPanel({ window, trayPresentation, artifactRoot, demo }) {
   for (const { image, kind } of trayPresentation.entries) {
     const { width, height } = image.getSize();
@@ -10,7 +46,9 @@ async function verifyMacPanel({ window, trayPresentation, artifactRoot, demo }) 
   const originalTheme = await window.webContents.executeJavaScript('document.body.dataset.theme');
   if (demo) await window.webContents.executeJavaScript(`window.limits.get().then(next => render({ ...next, demo: false, profiles: next.profiles.filter(profile => profile.id === next.selectedProfileId) }))`);
   const themes = [];
+  let contentSizing;
   try {
+    contentSizing = await verifyContentSizing(window);
     for (const theme of ['light', 'dark']) {
       const report = await window.webContents.executeJavaScript(`(() => {
         document.body.dataset.theme = ${JSON.stringify(theme)};
@@ -20,6 +58,7 @@ async function verifyMacPanel({ window, trayPresentation, artifactRoot, demo }) 
       })()`);
       if (report.platform !== 'darwin' || report.radius !== '22px' || report.theme !== theme || report.overflow || !report.nativeFont || !report.fillsWindow || !report.scrollContained) throw new Error('Mac glass panel styling failed: ' + JSON.stringify(report));
       if (demo) {
+        await new Promise(resolve => setTimeout(resolve, 100));
         const image = await window.webContents.capturePage();
         fs.writeFileSync(path.join(artifactRoot, `mac-panel-${theme}.png`), image.toPNG());
       }
@@ -29,7 +68,7 @@ async function verifyMacPanel({ window, trayPresentation, artifactRoot, demo }) 
     if (demo) await window.webContents.executeJavaScript('window.limits.get().then(render)');
     await window.webContents.executeJavaScript(`document.body.dataset.theme = ${JSON.stringify(originalTheme)}`);
   }
-  return { themes, menuBar: { indicators: 2, widths: [104, 64], height: 18, retina: true, countdown: true } };
+  return { themes, contentSizing, menuBar: { indicators: 2, widths: [104, 64], height: 18, retina: true, countdown: true } };
 }
 async function verifyAppleNotch({ appleNotch, window, trayPresentation, setDisplayMode, artifactRoot, demo, monitor }) {
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -48,6 +87,7 @@ async function verifyAppleNotch({ appleNotch, window, trayPresentation, setDispl
   await target.webContents.executeJavaScript('window.renderReady');
   async function renderState() { await target.webContents.executeJavaScript('window.limits.get().then(render)'); }
   await renderState();
+  const contentSizing = await verifyContentSizing(target, appleNotch);
   const report = await target.webContents.executeJavaScript(`({ isolated: typeof require === 'undefined', mode: document.getElementById('display-mode').value, values: ['short','weekly'].map(kind => document.getElementById('apple-' + kind + '-value').textContent), timer: document.getElementById('apple-short-reset').textContent, scroll: getComputedStyle(document.querySelector('main')).overflowY, horizontalOverflow: document.querySelector('main').scrollWidth > document.querySelector('main').clientWidth, animation: getComputedStyle(document.querySelector('.apple-shell')).transitionDuration })`);
   if (!report.isolated || report.mode !== 'notch' || report.timer === '—' || report.scroll !== 'auto' || report.horizontalOverflow || !report.animation.includes('0.44s') || (demo && report.values.join(',') !== '72%,46%')) throw new Error('Notch rendering failed: ' + JSON.stringify(report));
   if (demo) {
@@ -75,6 +115,6 @@ async function verifyAppleNotch({ appleNotch, window, trayPresentation, setDispl
   await target.webContents.executeJavaScript(`window.limits.displayMode('tray')`);
   if (appleNotch.enabled || target.isVisible() || trayPresentation.entries.length !== 2) throw new Error('Tray mode was not restored');
   await delay(100);
-  return { ...report, physical: layout.physical, displayId: layout.displayId, bounds: layout.bounds, hover: true, click: true, escape: true, accountSwitch: demo, reducedMotion: true, modeRestored: true };
+  return { ...report, contentSizing, physical: layout.physical, displayId: layout.displayId, bounds: layout.bounds, hover: true, click: true, escape: true, accountSwitch: demo, reducedMotion: true, modeRestored: true };
 }
 module.exports = { verifyMacPanel, verifyAppleNotch };

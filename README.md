@@ -57,7 +57,7 @@ Ready-to-use packages include Electron and do not require Node.js.
 
 **macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. Limits searches for Codex in Codex.app / ChatGPT.app, Homebrew, nvm, and user directories.
 
-**Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. Codex must be in the app's `PATH`; see [configuration](docs/development.md#configuration) to specify its location manually.
+**Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. Limits looks for Codex in `PATH`, common per-user CLI directories and native or Flatpak VS Code extension installations; see [configuration](docs/development.md#configuration) to specify its location manually.
 
 **Platform notes:** Linux Mint 22.2 Zara, XFCE 4.18, X11, x64 is the tested Linux environment. Other desktops need testing; tray behavior varies. Linux autostart is not implemented.
 
@@ -88,15 +88,23 @@ The notch mode uses the compatible MacBook screen, including when an external di
 
 The turquoise **5h** and purple **7d** indicators show remaining usage with numbers and short bars. Tooltips expose account details and reset information where supported by the desktop environment. The details panel adapts to its contents and scrolls for long account lists.
 
+In **Settings → Tray icons**, choose quota-period labels with remaining-usage bars or the classic percentage badges. The classic style remains the default, and your selection is saved.
+
 ### Windows — taskbar or tray
 
-The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in the display menu. Drag the account area to move the widget; choose **240 / 280 / 320 / 400 px** widths in its context menu. It hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
+If the details panel is open, it follows the widget as you drag it along the taskbar and stays within the screen. Moving the widget keeps a dismissed panel closed.
+
+The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in **Settings**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Windows widget**. The details panel fits its content and resizes when Settings opens or closes. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
+
+When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. The preferred width returns when more space becomes available.
+
+![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows-widget-compact.png)
 
 ## Everyday use
 
 - Click the widget or an indicator to open details, view accounts, and refresh usage.
 - Add an account from **Accounts**, complete browser sign-in, give it a local name, and select it for the compact display.
-- Change the language and available display mode in the details panel or context menu.
+- Open **Settings** to change the language, display mode, account settings, widget size, or supported autostart options. The tray menu also opens Settings.
 - Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
 
 ## Data and sign-in
@@ -108,6 +116,10 @@ The default account shares Codex's `CODEX_HOME`. Signing in to a different defau
 Limits has no app-level analytics or telemetry integration in its source. Codex connects to OpenAI services for sign-in and usage data; its behavior is managed by Codex. See [data storage and privacy](docs/privacy.md).
 
 **Limits is an independent community project and is not affiliated with or endorsed by OpenAI.**
+
+## Backgrounds
+
+Use **Background** to choose the platform default, a solid color, or a local PNG/JPG image. It applies to the details panel and Windows widget. Images are copied into the app profile and remain available if the original file is moved.
 
 ## Help and contribute
 

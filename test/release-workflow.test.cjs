@@ -18,15 +18,40 @@ async function checkBranch(ref, payload = {}, eventName = 'push') {
   return outputs;
 }
 
-test('release gate allows main and exact numeric version branches', async () => {
-  assert.deepEqual(await checkBranch('refs/heads/main'), {
-    build: 'true', publish: 'true', branch: 'main', version: '', tag: 'latest', prerelease: 'true',
-  });
+test('main builds and verifies packages without creating a release or tag', async () => {
+  for (const event of ['push', 'workflow_dispatch']) {
+    assert.deepEqual(await checkBranch('refs/heads/main', {}, event), {
+      build: 'true', publish: 'false', branch: 'main', version: '', tag: '', prerelease: 'true',
+    });
+  }
+});
+
+test('release gate publishes exact numeric version branches', async () => {
   for (const [branch, version] of [['1.0', '1.0.0'], ['2.1', '2.1.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
     assert.deepEqual(await checkBranch(`refs/heads/${branch}`), {
       build: 'true', publish: 'true', branch, version, tag: `v${branch}`, prerelease: 'false',
     });
   }
+});
+
+test('demo pushes and pull requests only run checks, including merge pushes', async () => {
+  const expected = { build: 'false', publish: 'false', tag: '', check: 'true' };
+  for (const event of ['push', 'workflow_dispatch']) {
+    assert.deepEqual(await checkBranch('refs/heads/1.1-demo', {}, event), expected);
+  }
+  const payload = { pull_request: { base: { ref: '1.1-demo' }, head: { ref: 'limits/feature' } } };
+  assert.deepEqual(await checkBranch('refs/pull/10/merge', payload, 'pull_request'), expected);
+  assert.deepEqual(await checkBranch('refs/heads/1.1-demo', { deleted: true }), { ...expected, check: 'false' });
+  assert.deepEqual(await checkBranch('refs/heads/1.1-demo-feature'), { build: 'false' });
+});
+
+test('demo checks run portable tests on every OS without packaging or uploads', () => {
+  assert.equal(workflow.jobs.check.needs, 'check-branch');
+  assert.equal(workflow.jobs.check.if, "needs.check-branch.outputs.check == 'true'");
+  assert.deepEqual(workflow.jobs.check.strategy.matrix.os, ['windows-latest', 'macos-15', 'ubuntu-24.04']);
+  assert.ok(workflow.jobs.check.steps.some(step => step.run === 'npm test'));
+  assert.ok(workflow.jobs.check.steps.every(step => !/upload-artifact|release|build:/.test(step.uses || step.run || '')));
+  assert.equal(workflow.jobs['check-branch'].outputs.check, '${{ steps.branch.outputs.check }}');
 });
 
 test('1.0-fix builds packages for testing without publishing a release', async () => {
@@ -59,7 +84,7 @@ test('other branches, tags and branch deletions exit successfully without buildi
 test('all push branches reach the gate, and builds and publication require its approval', () => {
   assert.deepEqual(workflow.on.push.branches, ['**']);
   assert.ok(Object.hasOwn(workflow.on, 'workflow_dispatch'));
-  assert.deepEqual(workflow.on.pull_request.branches, ['1.0-fix']);
+  assert.deepEqual(workflow.on.pull_request.branches, ['1.0-fix', '1.1-demo']);
   assert.equal(workflow.jobs.build.needs, 'check-branch');
   assert.equal(workflow.jobs.build.if, "needs.check-branch.outputs.build == 'true'");
   assert.deepEqual(workflow.jobs.publish.needs, ['check-branch', 'build']);
@@ -124,7 +149,7 @@ test('release tag points to the built commit on both initial and repeated public
   const tagStep = workflow.jobs.publish.steps.find(step => step.name === 'Point the release tag at the built commit');
   const updateTag = new AsyncFunction('context', 'github', 'process', tagStep.with.script);
   const context = { repo: { owner: 'owner', repo: 'limits' }, sha: 'built-commit' };
-  for (const tag of ['latest', 'v2.1']) {
+  for (const tag of ['v1.0', 'v2.1']) {
     for (const exists of [true, false]) {
       const calls = [];
       const github = { rest: { git: {
@@ -143,5 +168,5 @@ test('release tag points to the built commit on both initial and repeated public
   }
   await assert.rejects(updateTag(context, { rest: { git: {
     getRef: async () => { throw Object.assign(new Error('Forbidden'), { status: 403 }); },
-  } } }, { env: { RELEASE_TAG: 'latest' } }), /Forbidden/);
+  } } }, { env: { RELEASE_TAG: 'v1.0' } }), /Forbidden/);
 });

@@ -29,11 +29,11 @@ class TrayPresentation {
     this.mode = null;
     this.entries = [];
   }
-  update({ mode, bucket, stale, dark = true, account, displayName, language, demo, menu }) {
+  update({ mode, linuxTrayStyle = 'classic', bucket, stale, dark = true, account, displayName, language, demo, menu }) {
     if (this.mode !== mode) {
       const old = this.entries;
       this.entries = (mode === 'tray' ? ['short', 'weekly'] : ['app']).map(kind => {
-        const image = kind === 'app' ? this.appIcon : this.quotaIcon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
+        const image = kind === 'app' ? this.appIcon : this.quotaIcon(this.nativeImage, { kind, style: linuxTrayStyle, language, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
         const tray = this.platform === 'linux' ? new this.Tray(image) : new this.Tray(image, ids[kind]);
         tray.on('click', () => this.onClick(tray, kind));
         const entry = { kind, tray, image };
@@ -46,9 +46,10 @@ class TrayPresentation {
     const menuSignature = JSON.stringify(menu);
     for (const entry of this.entries) {
       const { kind, tray } = entry;
-      const signature = JSON.stringify([percentage(bucket?.[kind]?.remaining), stale, dark, this.platform === 'darwin' && kind === 'short' ? format(bucket?.short?.resetsAt) : null]);
+      const signature = JSON.stringify([percentage(bucket?.[kind]?.remaining), stale, dark, this.platform === 'darwin' && kind === 'short' ? format(bucket?.short?.resetsAt) : null,
+        this.platform === 'linux' ? [linuxTrayStyle, language] : null]);
       if (kind !== 'app' && signature !== entry.signature) {
-        entry.image = this.quotaIcon(this.nativeImage, { kind, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
+        entry.image = this.quotaIcon(this.nativeImage, { kind, style: linuxTrayStyle, language, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
         tray.setImage(entry.image);
         entry.signature = signature;
       }

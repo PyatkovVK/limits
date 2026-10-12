@@ -7,10 +7,12 @@ const { panelBounds, createPanelController } = require('../panel.cjs');
 const display = { bounds: { x: 0, y: 0, width: 1440, height: 900 }, workArea: { x: 0, y: 24, width: 1440, height: 852 } };
 const anchor = { x: 1040, y: 0, width: 64, height: 24 };
 class FakeWindow extends EventEmitter {
-  constructor() { super(); this.visible = false; this.shows = 0; this.moves = []; }
+  constructor() { super(); this.visible = false; this.shows = 0; this.moves = []; this.animations = []; this.bounds = { x: 0, y: 0, width: 440, height: 590 }; }
   getSize() { return [440, 590]; }
   isDestroyed() { return false; }
-  setBounds(bounds) { this.moves.push(bounds); }
+  getBounds() { return this.bounds; }
+  isVisible() { return this.visible; }
+  setBounds(bounds, animate) { this.moves.push(bounds); this.animations.push(animate); this.bounds = bounds; }
   show() { this.visible = true; this.shows++; }
   focus() {}
   hide() { this.visible = false; this.emit('hide'); }
@@ -78,4 +80,37 @@ test('a newer click supersedes a pending startup request', async () => {
   assert.equal(await startup, false);
   assert.equal(window.shows, 1);
   assert.equal(panel.snapshot().anchor, anchor);
+});
+
+test('content grows and shrinks with animation, keeping the menu-bar anchor on reopen', async () => {
+  const window = new FakeWindow();
+  const panel = controller(window);
+  panel.resize(320);
+  assert.equal(window.bounds.height, 320);
+  assert.equal(window.animations.at(-1), false);
+  await panel.show();
+  const top = window.bounds.y;
+  panel.resize(520);
+  assert.equal(window.bounds.height, 520);
+  assert.equal(window.bounds.y, top);
+  assert.equal(window.animations.at(-1), true);
+  panel.resize(320);
+  assert.equal(window.bounds.height, 320);
+  const moves = window.moves.length;
+  panel.resize(320);
+  assert.equal(window.moves.length, moves);
+  window.hide(); await panel.show();
+  assert.equal(window.bounds.height, 320);
+  assert.equal(panel.snapshot().bounds.height, 320);
+});
+
+test('resizing rejects invalid content, respects reduced motion and fits the display', async () => {
+  const window = new FakeWindow();
+  const panel = controller(window, { reducedMotion: () => true });
+  await panel.show();
+  for (const height of [NaN, Infinity, -1, 0, '320']) assert.equal(panel.resize(height), false);
+  panel.resize(10000);
+  assert.equal(window.bounds.height, display.workArea.height - 16);
+  assert.equal(window.animations.at(-1), false);
+  assert.ok(window.bounds.y + window.bounds.height <= display.workArea.y + display.workArea.height - 8);
 });
