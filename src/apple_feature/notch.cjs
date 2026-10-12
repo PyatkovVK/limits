@@ -23,10 +23,15 @@ class AppleNotch {
     this.window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     this.window.setHiddenInMissionControl(true);
     this.window.setIgnoreMouseEvents(true, { forward: true });
-    this.window.on('blur', () => { if (this.enabled && this.phase === 'expanded') this.collapse(); });
+    this.window.on('blur', () => { if (this.enabled && this.phase === 'expanded' && !this.modalOperations) this.collapse(); });
     this.window.on('close', event => { event.preventDefault(); this.collapse(); });
     this.window.webContents.on('context-menu', () => { if (this.enabled) this.Menu.buildFromTemplate(this.getMenu()).popup({ window: this.window }); });
     await this.window.loadFile(path.join(__dirname, '../common/renderer/index.html'), { query: { apple: 'notch' } });
+  }
+
+  async withModal(operation) {
+    this.modalOperations = (this.modalOperations || 0) + 1;
+    try { return await operation(); } finally { this.modalOperations--; }
   }
 
   async discover() {

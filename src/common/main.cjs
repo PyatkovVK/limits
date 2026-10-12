@@ -1,11 +1,13 @@
 'use strict';
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { findCodex } = require('./codex-path.cjs');
 const { CodexClient } = require('./codex-client.cjs');
 const { Monitor } = require('./monitor.cjs');
 const { Accounts } = require('./accounts.cjs');
+const { AppearanceStore } = require('./appearance.cjs');
+let appearance;
 const { selectedBucket, isStale } = require('./limits.cjs');
 const { widgetBounds } = require('../windows_feature/taskbar.cjs');
 const { TaskbarWidget, taskbarHelperPath } = require('../windows_feature/widget.cjs');
@@ -187,6 +189,7 @@ async function setup() {
   } catch { /* Defaults on first launch. */ }
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
+  appearance = new AppearanceStore(app.getPath('userData'));
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
@@ -200,6 +203,24 @@ async function setup() {
   if (process.platform === 'linux') linuxPanel = require('../linux_feature/panel.cjs').createPanelController({ window, screen });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
+  const appearanceResult = action => {
+    try {
+      action();
+      const next = appearance.state();
+      for (const target of [window, widget, appleNotch?.window]) if (target && !target.isDestroyed()) target.webContents.send('limits:appearance-state', next);
+      return next;
+    } catch (error) { return { ...appearance.state(), error: ['imageTooLarge', 'invalidImage'].includes(error.message) ? error.message : 'appearanceFailed' }; }
+  };
+  handle('limits:appearance-get', () => appearance.state());
+  handle('limits:appearance-image', () => appearance.imageData());
+  handle('limits:appearance-set', value => appearanceResult(() => appearance.set(value)));
+  handle('limits:appearance-choose', async () => {
+    const parent = widgetSettings.displayMode === 'notch' ? appleNotch?.window : window;
+    const choose = () => dialog.showOpenDialog(parent, { properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] });
+    const result = widgetSettings.displayMode === 'notch' ? await appleNotch.withModal(choose) : await choose();
+    if (result.canceled || !result.filePaths.length) return appearance.state();
+    return appearanceResult(() => appearance.importImage(result.filePaths[0], nativeImage));
+  });
   handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
   handle('limits:open', showPanel);
   handle('limits:select', id => { if (typeof id === 'string') monitor?.select(id); });
