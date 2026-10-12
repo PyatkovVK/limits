@@ -38,6 +38,8 @@ body[data-platform="darwin"][data-theme="dark"] {
 body[data-platform="darwin"] .titlebar { height: 48px; flex-shrink: 0; padding: 0 20px; gap: 10px; border-bottom: 1px solid var(--edge); }
 body[data-platform="darwin"] .brand { color: var(--ink); font-size: 14px; font-weight: 650; letter-spacing: -.3px; }
 body[data-platform="darwin"] main { flex: 1; min-height: 0; padding: 18px 20px; max-height: none; }
+/* Intrinsic wrappers stay measurable when the viewport shrinks or scrolls. */
+.mac-panel-content, .mac-settings-content { display: flow-root; }
 body[data-platform="darwin"] .account-row { margin-bottom: 16px; gap: 10px; }
 body[data-platform="darwin"] #account { font-size: 13px; }
 body[data-platform="darwin"] .plan { border-color: var(--edge); color: var(--muted); background: var(--surface); border-radius: 8px; padding: 4px 7px; }
@@ -138,7 +140,7 @@ body[data-notch-phase="expanded"] .apple-trigger { pointer-events: none; }
   position: absolute; top: var(--cap-height); left: 50%; width: var(--full-width); height: calc(var(--full-height) - var(--cap-height));
   display: flex; flex-direction: column; opacity: 0; transform: translateX(-50%) translateY(-14px) scale(.975);
   transform-origin: top center; pointer-events: none;
-  transition: opacity 140ms, transform 350ms cubic-bezier(.16,1,.3,1);
+  transition: opacity 140ms, transform 350ms cubic-bezier(.16,1,.3,1), height 440ms cubic-bezier(.16,1,.3,1);
 }
 body[data-notch-phase="expanded"] .apple-content { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; transition-delay: 100ms; }
 body[data-platform="darwin"].apple-notch .titlebar { -webkit-app-region: no-drag; border-bottom: 0; height: 48px; }
