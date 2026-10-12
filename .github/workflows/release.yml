@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - '1.0-fix'
+      - '1.1-demo'
 
 permissions:
   contents: read
@@ -28,6 +29,7 @@ jobs:
       version: ${{ steps.branch.outputs.version }}
       tag: ${{ steps.branch.outputs.tag }}
       prerelease: ${{ steps.branch.outputs.prerelease }}
+      check: ${{ steps.branch.outputs.check }}
     steps:
       - name: Select release and test builds
         id: branch
@@ -38,6 +40,16 @@ jobs:
             const isMain = context.ref === 'refs/heads/main';
             const isFix = context.ref === 'refs/heads/1.0-fix';
             const isTestPull = context.eventName === 'pull_request' && context.payload.pull_request?.base.ref === '1.0-fix';
+            const isDemo = context.ref === 'refs/heads/1.1-demo' ||
+              (context.eventName === 'pull_request' && context.payload.pull_request?.base.ref === '1.1-demo');
+            if (isDemo) {
+              core.setOutput('build', 'false');
+              core.setOutput('publish', 'false');
+              core.setOutput('tag', '');
+              core.setOutput('check', String(context.payload.deleted !== true));
+              core.info('Demo changes run tests without packaging, uploading artifacts or publishing releases.');
+              return;
+            }
             const testBuild = isFix || isTestPull;
             const publish = Boolean(match) && !isTestPull;
             const build = (isMain || testBuild || Boolean(match)) && context.payload.deleted !== true;
@@ -54,6 +66,29 @@ jobs:
             core.setOutput('tag', publish ? `v${branch}` : '');
             core.setOutput('prerelease', String(isMain || testBuild));
             core.info(`Building ${branch} for Windows, macOS and Linux.`);
+
+  check:
+    name: Test demo on ${{ matrix.os }}
+    needs: check-branch
+    if: needs.check-branch.outputs.check == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-15, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run tests
+        run: npm test
 
   build:
     name: Build ${{ matrix.name }}

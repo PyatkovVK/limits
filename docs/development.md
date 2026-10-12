@@ -111,7 +111,9 @@ Local development builds without `CODEX_LIMITS_RELEASE=1` remain available witho
 
 ## Automated releases
 
-The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix`. Only exact numeric branches such as `1.0` or `1.0.0` build and publish releases. The `main` and `1.0-fix` branches and pull requests into `1.0-fix` build all four targets, upload packages as workflow artifacts, and verify all eight packages and their checksums, without publishing a release or creating a tag. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
+The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix` or `1.1-demo`. Only exact numeric branches such as `1.0` or `1.0.0` build and publish releases. The `main` and `1.0-fix` branches and pull requests into `1.0-fix` build all four targets, upload packages as workflow artifacts, and verify all eight packages and their checksums, without publishing a release or creating a tag. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
+
+The `1.1-demo` branch and pull requests into it only run `npm test` on Windows, macOS and Linux. Merges into this branch do not package apps, upload Actions artifacts, create tags or publish GitHub Releases. Merge the workflow change before the feature PRs to enable these checks on the demo branch.
 
 - `main` uses the version in `package.json` and saves packages in Actions artifacts for seven days; it does not create a `latest` release or tag.
 - A numeric branch publishes `v<branch>`. A two-part branch such as `1.0` produces package version `1.0.0`.

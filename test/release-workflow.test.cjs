@@ -34,6 +34,26 @@ test('release gate publishes exact numeric version branches', async () => {
   }
 });
 
+test('demo pushes and pull requests only run checks, including merge pushes', async () => {
+  const expected = { build: 'false', publish: 'false', tag: '', check: 'true' };
+  for (const event of ['push', 'workflow_dispatch']) {
+    assert.deepEqual(await checkBranch('refs/heads/1.1-demo', {}, event), expected);
+  }
+  const payload = { pull_request: { base: { ref: '1.1-demo' }, head: { ref: 'limits/feature' } } };
+  assert.deepEqual(await checkBranch('refs/pull/10/merge', payload, 'pull_request'), expected);
+  assert.deepEqual(await checkBranch('refs/heads/1.1-demo', { deleted: true }), { ...expected, check: 'false' });
+  assert.deepEqual(await checkBranch('refs/heads/1.1-demo-feature'), { build: 'false' });
+});
+
+test('demo checks run portable tests on every OS without packaging or uploads', () => {
+  assert.equal(workflow.jobs.check.needs, 'check-branch');
+  assert.equal(workflow.jobs.check.if, "needs.check-branch.outputs.check == 'true'");
+  assert.deepEqual(workflow.jobs.check.strategy.matrix.os, ['windows-latest', 'macos-15', 'ubuntu-24.04']);
+  assert.ok(workflow.jobs.check.steps.some(step => step.run === 'npm test'));
+  assert.ok(workflow.jobs.check.steps.every(step => !/upload-artifact|release|build:/.test(step.uses || step.run || '')));
+  assert.equal(workflow.jobs['check-branch'].outputs.check, '${{ steps.branch.outputs.check }}');
+});
+
 test('1.0-fix builds packages for testing without publishing a release', async () => {
   assert.deepEqual(await checkBranch('refs/heads/1.0-fix'), {
     build: 'true', publish: 'false', branch: '1.0-fix', version: '', tag: '', prerelease: 'true',
@@ -64,7 +84,7 @@ test('other branches, tags and branch deletions exit successfully without buildi
 test('all push branches reach the gate, and builds and publication require its approval', () => {
   assert.deepEqual(workflow.on.push.branches, ['**']);
   assert.ok(Object.hasOwn(workflow.on, 'workflow_dispatch'));
-  assert.deepEqual(workflow.on.pull_request.branches, ['1.0-fix']);
+  assert.deepEqual(workflow.on.pull_request.branches, ['1.0-fix', '1.1-demo']);
   assert.equal(workflow.jobs.build.needs, 'check-branch');
   assert.equal(workflow.jobs.build.if, "needs.check-branch.outputs.build == 'true'");
   assert.deepEqual(workflow.jobs.publish.needs, ['check-branch', 'build']);
