@@ -6,8 +6,6 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## 1.1.0
 
-Changes prepared for the 1.1 release on `1.1-demo`.
-
 ### New features
 
 - A Settings dialog on Windows, macOS and Linux brings language, accounts, display modes and supported autostart controls together. Windows widget width, visibility and position reset are available in the same dialog.
