@@ -94,6 +94,8 @@ The widget and account panel are shown above. Switch between a taskbar widget an
 
 When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. The preferred width returns when more space becomes available. Text in the widget and details panel cannot be selected; account name fields remain editable.
 
+![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows-widget-compact.png)
+
 ## Everyday use
 
 - Click the widget or an indicator to open details, view accounts, and refresh usage.
