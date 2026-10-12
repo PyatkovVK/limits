@@ -4,6 +4,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Fit the Windows taskbar widget around centered app buttons and Widgets: shrink it beside the tray or move it to a free area on the left when space is limited.
+- Prevent accidental text selection in the Windows widget and details panel while keeping account names editable.
 - Fix release verification to use electron-builder's Linux artifact names, and verify all packages and checksums on the test branch before publication.
 - Fix packaging after a fresh dependency install when Electron has not downloaded its runtime yet.
 - Allow automated Windows and macOS releases without configured signing certificates; configured certificates still require successful signing and verification.
