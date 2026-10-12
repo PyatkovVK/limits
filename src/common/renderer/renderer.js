@@ -106,7 +106,7 @@ function render(next) {
   document.body.dataset.theme = next.dark ? 'dark' : 'light';
   document.body.classList.toggle('reduced-transparency', Boolean(next.reducedTransparency));
   const language = next.language || 'ru';
-  const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsApple?.translate(lang, key, next) : null) || window.limitsI18n.t(lang, key, next.platform);
+  const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsApple?.translate(lang, key, next) : null) || (next.platform === 'win32' ? window.limitsWindowsI18n?.t(lang, key) : null) || window.limitsI18n.t(lang, key, next.platform);
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);
   $('language').value = language;

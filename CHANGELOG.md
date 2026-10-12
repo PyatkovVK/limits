@@ -4,6 +4,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Fit the Windows details panel to its content and Settings, and let dragging from anywhere on the widget cross the centered task buttons into the free space on the left, while clicks on limits still open details.
+
 - Fit macOS details and expanded notch panels to their contents, with smooth resizing for notices and Settings and scrolling when content exceeds the screen.
 
 - Fit the Windows taskbar widget around centered app buttons and Widgets: shrink it beside the tray or move it to a free area on the left when space is limited.

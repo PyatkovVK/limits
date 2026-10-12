@@ -1,10 +1,10 @@
 :root { color-scheme: dark; font-family: 'Segoe UI', sans-serif; }
 * { box-sizing: border-box; }
-body { margin: 0; height: 100vh; display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 4px; padding: 2px 6px; background: #171717; color: #f4f4f4; border: 1px solid #292929; border-radius: 4px; overflow: hidden; user-select: none; -webkit-user-select: none; }
-.account { display: flex; flex-direction: column; justify-content: center; min-width: 0; -webkit-app-region: drag; cursor: move; }
+body { margin: 0; height: 100vh; display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 4px; padding: 2px 6px; background: #171717; color: #f4f4f4; border: 1px solid #292929; border-radius: 4px; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-app-region: no-drag; cursor: move; touch-action: none; }
+.account { display: flex; flex-direction: column; justify-content: center; min-width: 0; -webkit-app-region: no-drag; cursor: move; touch-action: none; }
 #widget-account { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 #widget-plan { margin-top: 1px; font-size: 8px; color: #aaa; text-transform: uppercase; letter-spacing: .2px; }
-.quotas { display: grid; grid-template-columns: max-content minmax(20px, 1fr) max-content; align-content: center; column-gap: 4px; row-gap: 2px; min-width: 0; border: 0; color: inherit; background: none; padding: 0; font: inherit; cursor: pointer; text-align: left; }
+.quotas { display: grid; grid-template-columns: max-content minmax(20px, 1fr) max-content; align-content: center; column-gap: 4px; row-gap: 2px; min-width: 0; border: 0; color: inherit; background: none; padding: 0; font: inherit; cursor: move; text-align: left; }
 .quota { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; font-size: 9px; line-height: 10px; }
 .period { display: flex; gap: 3px; align-items: center; white-space: nowrap; }
 #short-reset { color: #aaa; font-size: 8px; font-variant-numeric: tabular-nums; }
