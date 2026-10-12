@@ -13,3 +13,4 @@ body[data-background="light"] progress:not(#settings-dialog *)::-webkit-progress
 body[data-background] .low progress::-webkit-progress-value { background-color: #d02f4b; }
 body[data-background] .quotas { background: none; border: 0; }
 body[data-background="light"] .warning:not(#settings-dialog *) { color: #805b00; }
+body[data-background] :is(button, select, input):focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

@@ -62,7 +62,8 @@
     const rgb = next.color.slice(1).match(/../g).map(value => parseInt(value, 16) / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
     const light = next.mode === 'color' && (.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]) > .179;
     document.body.dataset.background = light ? 'light' : 'dark';
-    const ink = light ? '#15171c' : '#f4f5f8', muted = light ? '#424650' : '#c8ced8';
+    const ink = light ? '#000000' : '#ffffff';
+    const muted = next.mode === 'image' ? '#eef1f6' : ink;
     for (const [key, color] of Object.entries({ '--ink': ink, '--muted': muted, '--appearance-ink': ink, '--appearance-muted': muted,
       '--edge': light ? '#15171c44' : '#ffffff44', '--surface': light ? '#ffffff33' : '#00000033', '--control': light ? '#ffffff88' : '#101318cc', '--track': light ? '#15171c33' : '#ffffff33' })) document.body.style.setProperty(key, color);
     target.style.backgroundColor = next.color;
