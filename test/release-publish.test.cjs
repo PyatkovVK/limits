@@ -83,14 +83,14 @@ test('actual release script uploads all packages and checksums before publishing
       return 0
     }
   `;
-  for (const branch of ['main', '2.1']) {
+  for (const branch of ['1.0', '2.1']) {
     for (const exists of [false, true]) {
-      for (const uploadFail of [false, true]) fixture(branch === 'main' ? '' : '2.1.0', (root, run) => {
+      for (const uploadFail of [false, true]) fixture(`${branch}.0`, (root, run) => {
         assert.equal(run(verification).status, 0);
-        const tag = branch === 'main' ? 'latest' : `v${branch}`;
+        const tag = `v${branch}`;
         const callFile = path.join(root, 'gh-calls');
         const result = run(`${mockGh}\n${publication}`, {
-          RELEASE_BRANCH: branch, RELEASE_TAG: tag, RELEASE_PRERELEASE: String(branch === 'main'),
+          RELEASE_BRANCH: branch, RELEASE_TAG: tag, RELEASE_PRERELEASE: 'false',
           GITHUB_SHA: 'built-commit', GH_TEST_CALLS: shellPath(callFile),
           GH_TEST_EXISTS: exists ? '1' : '0', GH_TEST_UPLOAD_FAIL: uploadFail ? '1' : '0'
         });
@@ -99,12 +99,12 @@ test('actual release script uploads all packages and checksums before publishing
         assert.deepEqual(calls.map(call => call[1]), ['view', exists ? 'edit' : 'create', 'upload', ...(!uploadFail ? ['edit'] : [])]);
         assert.ok(calls.every(call => call[0] === 'release' && call[2] === tag));
         assert.ok(calls[1].includes('--draft'));
-        assert.ok(calls[1].includes(`--prerelease=${branch === 'main'}`));
+        assert.ok(calls[1].includes('--prerelease=false'));
         if (!exists) {
           assert.ok(calls[1].includes('--verify-tag'));
           assert.ok(calls[1].includes('built-commit'));
         }
-        const files = [...packageNames(branch === 'main' ? pkg.version : '2.1.0'), 'SHA256SUMS.txt'].map(name => `release/${name}`).sort();
+        const files = [...packageNames(`${branch}.0`), 'SHA256SUMS.txt'].map(name => `release/${name}`).sort();
         assert.deepEqual(calls[2].slice(3, -1), files);
         assert.equal(calls[2].at(-1), '--clobber');
         if (!uploadFail) assert.deepEqual(calls[3], ['release', 'edit', tag, '--draft=false']);
