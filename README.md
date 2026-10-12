@@ -109,9 +109,11 @@ Limits has no app-level analytics or telemetry integration in its source. Codex 
 
 **Limits is an independent community project and is not affiliated with or endorsed by OpenAI.**
 
-## Help and contribute
+## Backgrounds
 
 Use **Background** to choose the platform default, a solid color, or a local PNG/JPG image. It applies to the details panel and Windows widget. Images are copied into the app profile and remain available if the original file is moved.
+
+## Help and contribute
 
 [Report a bug or suggest a feature](https://github.com/PyatkovVK/limits/issues/new/choose). Include your OS, app version, and steps to reproduce; hide personal information in screenshots.
 
