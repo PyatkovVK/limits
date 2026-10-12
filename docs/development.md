@@ -30,6 +30,7 @@ In PowerShell, use `npm.cmd` if execution policy blocks `npm.ps1`. Reinstall dep
 | `npm run doctor` | Real Codex connection diagnostics without printing tokens or email |
 | `npm run smoke` | Demo Electron UI smoke check and screenshots in `artifacts/` |
 | `npm run smoke:onboarding` | Windows first-run sign-in with empty storage, without opening a browser |
+| `npm run smoke:panel-follow` | Windows widget dragging with open and dismissed details panels, using isolated demo storage |
 | `npm run smoke:live` | UI check using a signed-in account |
 | `npm run smoke:live -- --smoke-gpu --smoke-stability` | GPU and stability observation using a signed-in account |
 
@@ -111,9 +112,11 @@ Local development builds without `CODEX_LIMITS_RELEASE=1` remain available witho
 
 ## Automated releases
 
-The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix`. Only `main` and exact numeric branches such as `1.0` or `1.0.0` build and publish. The `1.0-fix` branch and pull requests into it build all four targets, upload packages as workflow artifacts, and verify all eight packages and their checksums, without publishing a release. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
+The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix` or `1.1-demo`. Only exact numeric branches such as `1.0` or `1.0.0` build and publish releases. The `main` and `1.0-fix` branches and pull requests into `1.0-fix` build all four targets, upload packages as workflow artifacts, and verify all eight packages and their checksums, without publishing a release or creating a tag. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
 
-- `main` publishes the updating `latest` prerelease using the version in `package.json`.
+The `1.1-demo` branch and pull requests into it only run `npm test` on Windows, macOS and Linux. Merges into this branch do not package apps, upload Actions artifacts, create tags or publish GitHub Releases. Merge the workflow change before the feature PRs to enable these checks on the demo branch.
+
+- `main` uses the version in `package.json` and saves packages in Actions artifacts for seven days; it does not create a `latest` release or tag.
 - A numeric branch publishes `v<branch>`. A two-part branch such as `1.0` produces package version `1.0.0`.
 - The version override happens inside CI, without a version commit to the branch.
 - All four build targets must pass tests and packaging before publication.
