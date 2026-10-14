@@ -4,6 +4,12 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+### Documentation
+
+- Added the agreed requirements for version 1.3: shared GitHub release checks at startup, every six hours and after overdue wake-up, plus a manual check in Settings.
+- Defined stable-version comparison, Russian and English update states, a new-version offer without repeated automatic prompts, and an “Update” action that opens the release on GitHub for manual download and installation.
+- Specified non-blocking error handling, shared concurrent checks, simulated demo/smoke responses and validation for the update feature.
+
 ## 1.1.0
 
 ### New features
