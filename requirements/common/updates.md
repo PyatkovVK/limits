@@ -1,6 +1,6 @@
 # Application update checks — 1.3
 
-These are the agreed requirements for version 1.3 (`1.3.0` in the application). Implementation uses a task branch with the `limits/` prefix and no digits, such as `limits/auto-updates`.
+These are the agreed requirements for version 1.3 (`1.3.0` in the application). Implementation uses a task branch with the `limits/` prefix and no digits, such as `limits/auto-updates`. Pull requests target `1.3-demo`, forked from the previous version's `1.1.1` branch.
 
 Update checking is shared by Windows, macOS and Linux. The application offers a newer release and opens its GitHub page; the user downloads and installs the appropriate package manually.
 

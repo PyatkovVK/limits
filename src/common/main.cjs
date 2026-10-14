@@ -7,6 +7,8 @@ const { CodexClient } = require('./codex-client.cjs');
 const { Monitor } = require('./monitor.cjs');
 const { Accounts } = require('./accounts.cjs');
 const { AppearanceStore } = require('./appearance.cjs');
+const { Updates } = require('./updates.cjs');
+let updates;
 let appearance;
 const { selectedBucket, isStale } = require('./limits.cjs');
 const { widgetBounds } = require('../windows_feature/taskbar.cjs');
@@ -53,6 +55,7 @@ function showPanel(anchor) {
 
 const displayModes = () => taskbarSupported ? ['widget', 'tray'] : process.platform === 'darwin' && appleNotch?.available ? ['tray', 'notch'] : ['tray'];
 function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, reducedMotion: nativeTheme.prefersReducedMotion, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: displayModes(), appleNotch: appleNotch?.snapshot() || null, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null,
+  updates: updates?.snapshot(),
   preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle,
     startup: startupState({ app, platform: process.platform, demo, smoke }) } }; }
 function persistWidgetSettings() {
@@ -191,6 +194,7 @@ async function setup() {
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
+  updates = new Updates({ currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
@@ -205,6 +209,10 @@ async function setup() {
   if (process.platform === 'linux') linuxPanel = require('../linux_feature/panel.cjs').createPanelController({ window, screen });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
+  handle('limits:updates-check', () => updates.check());
+  handle('limits:updates-open', () => updates.openRelease());
+  handle('limits:updates-dismiss', version => updates.dismiss(version));
+  handle('limits:updates-demo', scenario => updates.setDemoScenario(scenario));
   const appearanceResult = action => {
     try {
       action();
@@ -307,8 +315,17 @@ async function setup() {
   } catch { state = { ...state, status: 'error', error: 'codexMissing' }; }
   update();
   tick = setInterval(update, 15000);
-  powerMonitor.on('resume', () => void monitor?.refresh());
+  powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); });
   if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden'))) await showPanel();
+  let offeredVersion;
+  updates.on('state', next => {
+    update();
+    if (!quitting && next.offer && next.offer.version !== offeredVersion) {
+      offeredVersion = next.offer.version;
+      void Promise.resolve(showPanel()).catch(() => {});
+    }
+  });
+  void updates.start();
   if (smoke && !taskbarSupported) {
     try {
       await monitor?.refresh();
@@ -500,4 +517,4 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
+app.on('before-quit', () => { quitting = true; updates?.stop(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
