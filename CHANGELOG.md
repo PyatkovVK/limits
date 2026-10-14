@@ -4,6 +4,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+## 1.2.0
+
 ### New features
 
 - Check stable GitHub releases at startup, every six hours and after an overdue wake-up, with all update behavior shared in `src/common` across Windows, macOS and Linux.
@@ -16,11 +18,11 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Development
 
-- Version 1.3 development targets `1.3-demo`, based on 1.1.1. Pushes and pull requests into the demo branch run tests on Windows, macOS and Linux without publishing releases.
+- Version 1.2 development targets `1.3-demo`, based on 1.1.1, before creating the numeric `1.2` release branch. Pushes and pull requests into the demo branch run tests on Windows, macOS and Linux without publishing releases.
 
 ### Documentation
 
-- Added the agreed requirements for version 1.3: shared GitHub release checks at startup, every six hours and after overdue wake-up, plus a manual check in Settings.
+- Added the agreed requirements for version 1.2: shared GitHub release checks at startup, every six hours and after overdue wake-up, plus a manual check in Settings.
 - Defined stable-version comparison, Russian and English update states, a new-version offer without repeated automatic prompts, and an “Update” action that opens the release on GitHub for manual download and installation.
 - Specified non-blocking error handling, shared concurrent checks, simulated demo/smoke responses and validation for the update feature.
 - Added a macOS first-launch guide in both README languages for allowing Limits through System Settings when the developer cannot be verified. Explained that the maintainer currently cannot afford Apple Developer Program membership, so current macOS downloads lack Developer ID signing and Apple notarization.

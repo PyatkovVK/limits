@@ -1,6 +1,6 @@
-# Application update checks — 1.3
+# Application update checks — 1.2
 
-These are the agreed requirements for version 1.3 (`1.3.0` in the application). Implementation uses a task branch with the `limits/` prefix and no digits, such as `limits/auto-updates`. Pull requests target `1.3-demo`, forked from the previous version's `1.1.1` branch.
+These are the agreed requirements for version 1.2 (`1.2.0` in the application). Implementation uses a task branch with the `limits/` prefix and no digits, such as `limits/auto-updates`. Pull requests target `1.3-demo`, forked from the previous version's `1.1.1` branch; the numeric release branch will be `1.2`.
 
 Update checking is shared by Windows, macOS and Linux. The application offers a newer release and opens its GitHub page; the user downloads and installs the appropriate package manually.
 
@@ -10,7 +10,7 @@ Update checking is shared by Windows, macOS and Linux. The application offers a 
 | --- | --- | --- |
 | COM-UPD-001 | Keep update behavior in `src/common`. | Release requests, version comparison, scheduling, update state, IPC and shared UI are implemented in common. Platform interfaces use the same service and do not duplicate update logic. |
 | COM-UPD-002 | Check published releases of `PyatkovVK/limits` through the GitHub API. | The service uses HTTPS and public release metadata without a GitHub token or HTML parsing. It selects the newest eligible stable version, excluding drafts, prereleases and unrecognized version tags. |
-| COM-UPD-003 | Compare release versions numerically against the running application version. | Tags such as `v1.3` and `v1.3.0` are equivalent to `1.3.0`; `1.10.0` is newer than `1.9.0`. An equal or older release is not offered as an update. |
+| COM-UPD-003 | Compare release versions numerically against the running application version. | Tags such as `v1.2` and `v1.2.0` are equivalent to `1.2.0`; `1.10.0` is newer than `1.9.0`. An equal or older release is not offered as an update. |
 | COM-UPD-004 | Check for updates at application startup without blocking the interface. | The initial check runs in the background. Opening the application and monitoring limits do not wait for GitHub to respond. |
 | COM-UPD-005 | Check every six hours while the application is running. | The shared service schedules recurring checks even when the details window is hidden. Quitting stops its timers and pending work. |
 | COM-UPD-006 | Check after waking when the scheduled check is overdue. | Resume triggers a check if the six-hour deadline has passed. Missed intervals do not produce a burst of requests. |
