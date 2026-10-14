@@ -27,7 +27,7 @@ test('main builds and verifies packages without creating a release or tag', asyn
 });
 
 test('release gate publishes exact numeric version branches', async () => {
-  for (const [branch, version] of [['1.0', '1.0.0'], ['2.1', '2.1.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
+  for (const [branch, version] of [['1.0', '1.0.0'], ['1.2', '1.2.0'], ['2.1', '2.1.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
     assert.deepEqual(await checkBranch(`refs/heads/${branch}`), {
       build: 'true', publish: 'true', branch, version, tag: `v${branch}`, prerelease: 'false',
     });
@@ -36,13 +36,13 @@ test('release gate publishes exact numeric version branches', async () => {
 
 test('demo pushes and pull requests only run checks, including merge pushes', async () => {
   const expected = { build: 'false', publish: 'false', tag: '', check: 'true' };
-  for (const event of ['push', 'workflow_dispatch']) {
-    assert.deepEqual(await checkBranch('refs/heads/1.1-demo', {}, event), expected);
+  for (const branch of ['1.1-demo', '1.3-demo']) {
+    for (const event of ['push', 'workflow_dispatch']) assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), expected);
+    const payload = { pull_request: { base: { ref: branch }, head: { ref: 'limits/feature' } } };
+    assert.deepEqual(await checkBranch('refs/pull/10/merge', payload, 'pull_request'), expected);
+    assert.deepEqual(await checkBranch(`refs/heads/${branch}`, { deleted: true }), { ...expected, check: 'false' });
+    assert.deepEqual(await checkBranch(`refs/heads/${branch}-feature`), { build: 'false' });
   }
-  const payload = { pull_request: { base: { ref: '1.1-demo' }, head: { ref: 'limits/feature' } } };
-  assert.deepEqual(await checkBranch('refs/pull/10/merge', payload, 'pull_request'), expected);
-  assert.deepEqual(await checkBranch('refs/heads/1.1-demo', { deleted: true }), { ...expected, check: 'false' });
-  assert.deepEqual(await checkBranch('refs/heads/1.1-demo-feature'), { build: 'false' });
 });
 
 test('demo checks run portable tests on every OS without packaging or uploads', () => {
@@ -84,7 +84,7 @@ test('other branches, tags and branch deletions exit successfully without buildi
 test('all push branches reach the gate, and builds and publication require its approval', () => {
   assert.deepEqual(workflow.on.push.branches, ['**']);
   assert.ok(Object.hasOwn(workflow.on, 'workflow_dispatch'));
-  assert.deepEqual(workflow.on.pull_request.branches, ['1.0-fix', '1.1-demo']);
+  assert.deepEqual(workflow.on.pull_request.branches, ['1.0-fix', '1.1-demo', '1.3-demo']);
   assert.equal(workflow.jobs.build.needs, 'check-branch');
   assert.equal(workflow.jobs.build.if, "needs.check-branch.outputs.build == 'true'");
   assert.deepEqual(workflow.jobs.publish.needs, ['check-branch', 'build']);

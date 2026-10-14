@@ -55,11 +55,26 @@ Ready-to-use packages include Electron and do not require Node.js.
 
 **Windows:** run the per-user installer or launch the portable EXE. No separate Codex installation is needed. Tray icons may initially appear under the arrow near the clock; drag them into the visible area if desired.
 
-**macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. Limits searches for Codex in Codex.app / ChatGPT.app, Homebrew, nvm, and user directories.
+**macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. If macOS says the developer cannot be verified, follow the [first-launch guide](#macos-first-launch) below. Limits searches for Codex in Codex.app / ChatGPT.app, Homebrew, nvm, and user directories.
 
 **Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. Limits looks for Codex in `PATH`, common per-user CLI directories and native or Flatpak VS Code extension installations; see [configuration](docs/development.md#configuration) to specify its location manually.
 
 **Platform notes:** Linux Mint 22.2 Zara, XFCE 4.18, X11, x64 is the tested Linux environment. Other desktops need testing; tray behavior varies. Linux autostart is not implemented.
+
+<a id="macos-first-launch"></a>
+
+### macOS: allow the first launch
+
+I maintain Limits independently and currently cannot afford the [Apple Developer Program membership](https://developer.apple.com/programs/) ($99 per year). The current macOS downloads are not signed with a Developer ID certificate or notarized by Apple, so macOS may block the first launch with an unidentified-developer warning.
+
+If you downloaded Limits from this project's [GitHub Releases](https://github.com/PyatkovVK/limits/releases) and trust the app, allow it through System Settings:
+
+1. Open **Limits** from **Applications**. If macOS blocks it, dismiss the warning with **Done** or **Cancel**, keeping the app.
+2. Open **Apple menu → System Settings → Privacy & Security**.
+3. Scroll down to **Security**. Find the message about Limits being blocked and click **Open Anyway**. This option appears after an attempt to open the app.
+4. Authenticate if macOS asks, then click **Open** in the confirmation dialog.
+
+macOS remembers this exception for the app, so subsequent launches can use a normal double-click. See [Apple's first-launch instructions](https://support.apple.com/en-us/102445).
 
 ## Screenshots
 
@@ -107,6 +122,14 @@ When the area beside the tray is crowded, the widget automatically shrinks to fi
 - Open **Settings** to change the language, display mode, account settings, widget size, or supported autostart options. The tray menu also opens Settings.
 - Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
 
+## Application updates
+
+Limits checks stable releases on GitHub in the background at startup and every six hours. After waking, it checks if the scheduled time has passed. Open **Settings → Updates → Check for updates** for a manual check, the installed version and the last check result.
+
+When a newer version is found, choose **Update** to open that release on GitHub, or **Later** to dismiss the offer. Dismissal is remembered for that version; the release remains available in Settings. Download the appropriate file and install it manually. Update checking does not download or install packages. A failed check does not interrupt usage monitoring.
+
+Demo mode simulates update checks without contacting GitHub or opening a browser; **Demo result** in Updates lets you preview current, available and failed states.
+
 ## Data and sign-in
 
 Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required; API-key authentication does not expose these subscription limits. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
@@ -135,7 +158,6 @@ These are ideas for future work, not current features:
 
 - Claude Code integration, subject to availability of a suitable usage data source.
 - DeepSeek integration, subject to availability of a suitable usage data source.
-- Automatic updates, with a modal dialog offering to install a new version when one is available.
 - Configurable low-usage and approaching-reset notifications.
 - Broader Linux desktop support and Linux autostart.
 - Try to connect send notify about Codex reset.

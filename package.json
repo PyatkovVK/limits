@@ -1,6 +1,6 @@
 {
   "name": "limits",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Compact AI usage limits in your taskbar or system tray",
   "author": "Limits contributors",
   "homepage": "https://github.com/PyatkovVK/limits",
@@ -16,6 +16,7 @@
     "smoke": "npm run prepare:app && electron . --demo --smoke-test",
     "smoke:live": "npm run prepare:app && electron . --smoke-test",
     "smoke:onboarding": "npm run prepare:app && electron scripts/smoke-onboarding.cjs",
+    "smoke:updates": "npm run prepare:app && electron scripts/smoke-updates.cjs",
     "smoke:panel-follow": "npm run prepare:app && electron scripts/smoke-windows-panel-follow.cjs",
     "================BUILD================": "",
     "prepare:app": "node \"src/windows_feature/scripts/assets.cjs\" && node \"src/windows_feature/scripts/build-taskbar-helper.cjs\" && node \"src/apple_feature/scripts/build-helper.cjs\"",

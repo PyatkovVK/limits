@@ -1,0 +1,15 @@
+.updates-section { border-top: 1px solid var(--edge, #414650); margin-top: 14px; padding-top: 12px; }
+.updates-section h3 { font-size: 12px; margin: 0 0 8px; }
+.updates-version { font-size: 12px; font-weight: 600; margin: 8px 0; }
+.updates-result { font-size: 11px; line-height: 1.5; margin: 8px 0; }
+.updates-section .footnote { color: var(--muted, #aab3c3); line-height: 1.5; }
+.updates-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.updates-dialog { --ink: #eee; --muted: #aab3c3; --appearance-ink: #eee; --appearance-muted: #aab3c3; --control: #222a33; --edge: #414650; color: var(--ink); background: #15171c; border: 1px solid var(--edge); border-radius: 16px; padding: 18px; width: min(400px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow-y: auto; box-shadow: 0 16px 60px #0008; }
+.updates-dialog::backdrop { background: #0007; }
+.updates-dialog h2 { font-size: 15px; margin: 0 0 14px; }
+.updates-dialog p { line-height: 1.5; }
+.updates-dialog .refresh-button, .updates-section .refresh-button { background: var(--control, #222a33); color: var(--ink, #eee); border-color: var(--edge, #414650); }
+.updates-dialog button:focus-visible, .updates-section button:focus-visible { outline: 2px solid #7ecfba; outline-offset: 2px; }
+body[data-platform="darwin"][data-theme="light"]:not(.apple-notch) .updates-dialog { --ink: #202431; --muted: #606575; --appearance-ink: #202431; --appearance-muted: #606575; --control: #dce0e8; --edge: #c4c8d2; background: #eef1f7; }
+body.apple-notch .updates-dialog { margin: 0; top: 18px; left: 50%; transform: translateX(-50%); width: calc(var(--full-width) - 24px); max-height: calc(var(--full-height) - 36px); }
+body.apple-notch .updates-dialog::backdrop { background: transparent; }
