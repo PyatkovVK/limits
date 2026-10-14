@@ -27,7 +27,7 @@ test('main builds and verifies packages without creating a release or tag', asyn
 });
 
 test('release gate publishes exact numeric version branches', async () => {
-  for (const [branch, version] of [['1.0', '1.0.0'], ['2.1', '2.1.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
+  for (const [branch, version] of [['1.0', '1.0.0'], ['1.2', '1.2.0'], ['2.1', '2.1.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
     assert.deepEqual(await checkBranch(`refs/heads/${branch}`), {
       build: 'true', publish: 'true', branch, version, tag: `v${branch}`, prerelease: 'false',
     });
