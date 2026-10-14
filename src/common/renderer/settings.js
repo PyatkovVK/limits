@@ -48,7 +48,14 @@
     startup.checked = Boolean(prefs?.startup.enabled); startup.disabled = !prefs?.startup.available;
     startupHint.hidden = !prefs?.startup.supported || prefs.startup.available;
   }
-  function open() { if (!dialog.open) dialog.showModal(); }
+  let pendingOpen = false;
+  function open() {
+    if (dialog.open) return;
+    if (document.querySelector('dialog[open]')) { pendingOpen = true; return; }
+    pendingOpen = false;
+    dialog.showModal();
+  }
+  document.addEventListener('close', () => { if (pendingOpen) open(); }, true);
   button.onclick = open; close.onclick = () => dialog.close();
   // Keep Escape inside the modal so the notch host does not collapse behind it.
   dialog.addEventListener('keydown', event => { if (event.key === 'Escape') event.stopPropagation(); });

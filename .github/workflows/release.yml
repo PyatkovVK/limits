@@ -9,6 +9,7 @@ on:
     branches:
       - '1.0-fix'
       - '1.1-demo'
+      - '1.3-demo'
 
 permissions:
   contents: read
@@ -40,8 +41,9 @@ jobs:
             const isMain = context.ref === 'refs/heads/main';
             const isFix = context.ref === 'refs/heads/1.0-fix';
             const isTestPull = context.eventName === 'pull_request' && context.payload.pull_request?.base.ref === '1.0-fix';
-            const isDemo = context.ref === 'refs/heads/1.1-demo' ||
-              (context.eventName === 'pull_request' && context.payload.pull_request?.base.ref === '1.1-demo');
+            const demoBranches = ['1.1-demo', '1.3-demo'];
+            const isDemo = demoBranches.some(branch => context.ref === `refs/heads/${branch}`) ||
+              (context.eventName === 'pull_request' && demoBranches.includes(context.payload.pull_request?.base.ref));
             if (isDemo) {
               core.setOutput('build', 'false');
               core.setOutput('publish', 'false');

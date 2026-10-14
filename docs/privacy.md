@@ -14,11 +14,14 @@ The app data directory is named **Codex Limits** under Electron's platform-speci
 
 - `accounts.json`: profile identifiers, local names, and the selected profile identifier.
 - `widget-settings.json`: display mode, language, widget width, position, and visibility preferences.
+- `update-settings.json`: the version whose automatic update offer was dismissed.
 - `accounts/<profile-id>/`: isolated Codex storage for added accounts.
 
 Disconnecting an added account calls Codex logout and removes it from the local account registry. It does not promise to erase every file in that profile directory. The shared default account is managed by Codex and cannot be removed through the added-account action.
 
 There is no app-level analytics or telemetry integration in the Limits source. This does not make the app offline: Codex connects to OpenAI for authentication and usage information, and Codex's own network behavior and settings remain its responsibility. This document describes Limits' implementation, not OpenAI's data-retention policy.
+
+Limits also makes anonymous HTTPS requests to `api.github.com` to check public releases at startup, every six hours and on manual checks. These requests contain no account data, OAuth tokens or usage limits. The Update action opens the selected release on `github.com` in the default browser. Demo and smoke checks simulate this behavior locally.
 
 The RPC client discards the subprocess's stderr instead of forwarding potential account details. Diagnostic output and screenshots should still be reviewed before sharing. Never upload authorization files, OAuth tokens, API keys, or full app data directories.
 
@@ -34,8 +37,12 @@ Limits запускает локальный процесс Codex App Server и 
 
 Каталог данных приложения называется **Codex Limits** и находится в системной папке данных Electron. `accounts.json` хранит идентификаторы профилей, локальные имена и выбранный профиль; `widget-settings.json` — режим, язык, ширину, положение и видимость виджета. Отдельные аккаунты находятся в `accounts/<profile-id>/`.
 
+Файл `update-settings.json` хранит версию, для которой пользователь отложил автоматическое предложение обновиться.
+
 Отключение добавленного аккаунта вызывает выход в Codex и удаляет профиль из реестра Limits. Это не гарантирует удаление всех файлов его каталога. Общим основным аккаунтом управляет Codex.
 
 В исходниках Limits нет собственной интеграции аналитики или телеметрии. Приложение не работает полностью офлайн: Codex подключается к OpenAI для авторизации и чтения лимитов, а его сетевое поведение и настройки определяются самим Codex. Этот документ описывает реализацию Limits, а не политику хранения данных OpenAI.
+
+Limits также отправляет анонимные HTTPS-запросы к `api.github.com` для проверки публичных релизов при запуске, каждые шесть часов и вручную. Запросы не содержат данных аккаунта, OAuth-токенов или лимитов. Кнопка «Обновить» открывает выбранный релиз на `github.com` в стандартном браузере. В demo и smoke проверках это поведение имитируется локально.
 
 RPC-клиент не выводит stderr дочернего процесса, где могут быть данные аккаунта. Перед публикацией всё равно проверьте диагностику и скриншоты. Не передавайте файлы авторизации, токены, API-ключи или весь каталог данных приложения.

@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld('limits', {
     return () => ipcRenderer.removeListener('limits:appearance-state', listener);
   },
   refresh: () => ipcRenderer.invoke('limits:refresh'),
+  checkUpdates: () => ipcRenderer.invoke('limits:updates-check'),
+  openRelease: () => ipcRenderer.invoke('limits:updates-open'),
+  dismissUpdate: version => ipcRenderer.invoke('limits:updates-dismiss', version),
+  demoUpdate: scenario => ipcRenderer.invoke('limits:updates-demo', scenario),
   login: id => ipcRenderer.invoke('limits:login', id),
   addAccount: () => ipcRenderer.invoke('limits:profile-add'),
   accountAction: (action, id, value) => ipcRenderer.invoke('limits:profile-action', action, id, value),
