@@ -55,11 +55,26 @@ Ready-to-use packages include Electron and do not require Node.js.
 
 **Windows:** run the per-user installer or launch the portable EXE. No separate Codex installation is needed. Tray icons may initially appear under the arrow near the clock; drag them into the visible area if desired.
 
-**macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. Limits searches for Codex in Codex.app / ChatGPT.app, Homebrew, nvm, and user directories.
+**macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. If macOS says the developer cannot be verified, follow the [first-launch guide](#macos-first-launch) below. Limits searches for Codex in Codex.app / ChatGPT.app, Homebrew, nvm, and user directories.
 
 **Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. Limits looks for Codex in `PATH`, common per-user CLI directories and native or Flatpak VS Code extension installations; see [configuration](docs/development.md#configuration) to specify its location manually.
 
 **Platform notes:** Linux Mint 22.2 Zara, XFCE 4.18, X11, x64 is the tested Linux environment. Other desktops need testing; tray behavior varies. Linux autostart is not implemented.
+
+<a id="macos-first-launch"></a>
+
+### macOS: allow the first launch
+
+I maintain Limits independently and currently cannot afford the [Apple Developer Program membership](https://developer.apple.com/programs/) ($99 per year). The current macOS downloads are not signed with a Developer ID certificate or notarized by Apple, so macOS may block the first launch with an unidentified-developer warning.
+
+If you downloaded Limits from this project's [GitHub Releases](https://github.com/PyatkovVK/limits/releases) and trust the app, allow it through System Settings:
+
+1. Open **Limits** from **Applications**. If macOS blocks it, dismiss the warning with **Done** or **Cancel**, keeping the app.
+2. Open **Apple menu → System Settings → Privacy & Security**.
+3. Scroll down to **Security**. Find the message about Limits being blocked and click **Open Anyway**. This option appears after an attempt to open the app.
+4. Authenticate if macOS asks, then click **Open** in the confirmation dialog.
+
+macOS remembers this exception for the app, so subsequent launches can use a normal double-click. See [Apple's first-launch instructions](https://support.apple.com/en-us/102445).
 
 ## Screenshots
 

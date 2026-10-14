@@ -4,6 +4,10 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+### Documentation
+
+- Added a macOS first-launch guide in both README languages for allowing Limits through System Settings when the developer cannot be verified. Explained that the maintainer currently cannot afford Apple Developer Program membership, so current macOS downloads lack Developer ID signing and Apple notarization.
+
 ## 1.1.0
 
 ### New features
