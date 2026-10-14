@@ -317,13 +317,9 @@ async function setup() {
   tick = setInterval(update, 15000);
   powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); });
   if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden'))) await showPanel();
-  let offeredVersion;
-  updates.on('state', next => {
-    update();
-    if (!quitting && next.offer && next.offer.version !== offeredVersion) {
-      offeredVersion = next.offer.version;
-      void Promise.resolve(showPanel()).catch(() => {});
-    }
+  updates.on('state', update);
+  updates.on('offer', () => {
+    if (!quitting) void Promise.resolve(showPanel()).catch(() => {});
   });
   void updates.start();
   if (smoke && !taskbarSupported) {

@@ -93,6 +93,28 @@ test('resume checks only when overdue and does not replay missed intervals', asy
   await f.fire(f.time() + CHECK_INTERVAL); assert.equal(f.requests(), 3);
 });
 
+test('four six-hour cycles keep one outstanding offer, including newly published versions', async t => {
+  let tag = 'v1.4', requests = 0;
+  const f = fixture(t, { fetchImpl: async () => { requests++; return response([release(tag)]); } });
+  const offers = [];
+  f.updates.on('offer', offer => offers.push(offer.version));
+  await f.updates.start();
+  assert.deepEqual(offers, ['1.4.0']);
+  for (let cycle = 1; cycle <= 4; cycle++) {
+    if (cycle === 3) tag = 'v1.5';
+    await f.fire(1000 + CHECK_INTERVAL * cycle);
+    assert.equal(requests, cycle + 1, 'Background checks must continue');
+    assert.equal(offers.length, 1, 'An unanswered offer must not queue another opening');
+  }
+  assert.equal(f.updates.snapshot().offer.version, '1.5.0');
+  f.updates.dismiss('1.5.0');
+  await f.fire(1000 + CHECK_INTERVAL * 5);
+  assert.equal(offers.length, 1, 'Dismissed release must not be offered again');
+  tag = 'v1.6';
+  await f.fire(1000 + CHECK_INTERVAL * 6);
+  assert.deepEqual(offers, ['1.4.0', '1.6.0'], 'A later release can start a new offer after dismissal');
+});
+
 test('manual checks share startup and overdue resume requests without duplicating network work', async t => {
   let resolve, requests = 0;
   const f = fixture(t, { fetchImpl: () => { requests++; return new Promise(done => { resolve = done; }); } });

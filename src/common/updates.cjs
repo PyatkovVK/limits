@@ -76,13 +76,23 @@ class Updates extends EventEmitter {
     this.running = false;
     this.stopped = false;
     this.pending = null;
+    this.offerPending = false;
   }
   snapshot() {
     const release = this.state.release && { ...this.state.release };
     const offer = release && (!this.dismissedVersion || compareVersions(release.version, this.dismissedVersion) > 0) ? { ...release } : null;
     return { ...this.state, release, offer, demo: this.demo, demoScenario: this.demoScenario };
   }
-  publish(patch) { Object.assign(this.state, patch); this.emit('state', this.snapshot()); }
+  publish(patch) {
+    Object.assign(this.state, patch);
+    const next = this.snapshot();
+    const announce = Boolean(next.offer) && !this.offerPending;
+    // Keep one outstanding offer until it is dismissed or no longer available.
+    // Polls can update its version without queuing another window opening.
+    this.offerPending = Boolean(next.offer);
+    this.emit('state', next);
+    if (announce && this.offerPending && !this.stopped) this.emit('offer', this.snapshot().offer);
+  }
   start() {
     if (this.running || this.stopped) return this.pending || Promise.resolve(this.snapshot());
     this.running = true;

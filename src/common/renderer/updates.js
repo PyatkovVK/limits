@@ -57,8 +57,12 @@
   }
   function maybeOffer() {
     const offer = current?.updates?.offer;
-    if (!offer || !activeHost() || document.hidden) { if (dialog.open) dialog.close(); return; }
-    if (dialog.open || dismissing || document.querySelector('dialog[open]')) return;
+    if (!offer || !activeHost()) { if (dialog.open) dialog.close(); return; }
+    if (dialog.open) {
+      dialog.dataset.version = offer.version;
+      return;
+    }
+    if (document.hidden || dismissing || document.querySelector('dialog[open]')) return;
     dialog.dataset.version = offer.version;
     dialogVersion.textContent = `${text().available} ${offer.version}`;
     dialog.showModal();

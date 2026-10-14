@@ -53,6 +53,18 @@ app.whenReady().then(async () => {
       await run('window.limitsSettings.dialog.close()');
       await waitFor(() => run('document.getElementById("updates-dialog").open'), 'deferred offer');
       fs.writeFileSync(path.join(root, `offer-${language}.png`), (await panel.webContents.capturePage()).toPNG());
+      // Background checks must retain the same open modal in a hidden host.
+      await run('(() => { const dialog = document.getElementById("updates-dialog"); const show = dialog.showModal.bind(dialog); window.updateModalChecks = {shows:0,closes:0}; dialog.showModal = () => { window.updateModalChecks.shows++; show(); }; dialog.addEventListener("close", () => window.updateModalChecks.closes++); })()');
+      panel.hide();
+      await waitFor(() => run('document.hidden'), 'hidden details window');
+      for (let cycle = 0; cycle < 4; cycle++) {
+        await run('window.limits.checkUpdates()');
+        assert.equal(panel.isVisible(), false, 'Polling must not reopen the hidden host');
+        assert.deepEqual(await run('({open:document.getElementById("updates-dialog").open,count:document.querySelectorAll("#updates-dialog").length,...window.updateModalChecks})'), { open: true, count: 1, shows: 0, closes: 0 });
+      }
+      await run('window.limits.open()');
+      await waitFor(() => run('!document.hidden'), 'explicit reopening');
+      assert.deepEqual(await run('window.updateModalChecks'), { shows: 0, closes: 0 }, 'Explicit host reopening retains the original modal');
       await run('window.limitsSettings.open()');
       assert.equal(await run('window.limitsSettings.dialog.open'), false, 'Settings waits for the offer to close');
       if (language === 'ru') {
@@ -74,7 +86,7 @@ app.whenReady().then(async () => {
       await run('window.limits.demoUpdate("current")');
       assert.equal(await run('document.getElementById("updates-open").hidden'), true);
       await run('window.limitsSettings.dialog.close()');
-      languages.push({ language, ...labels, offerDeferred: true, dismissed: true, browserSimulated: true, failureShown: true });
+      languages.push({ language, ...labels, offerDeferred: true, backgroundChecks: 4, modalRetained: true, dismissed: true, browserSimulated: true, failureShown: true });
     }
     // Even a window using the common preload cannot invoke commands unless trusted.
     const outsider = new BrowserWindow({ show: false, webPreferences: { preload: path.resolve(__dirname, '../src/common/preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
