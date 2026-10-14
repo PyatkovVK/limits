@@ -23,6 +23,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - Added the agreed requirements for version 1.3: shared GitHub release checks at startup, every six hours and after overdue wake-up, plus a manual check in Settings.
 - Defined stable-version comparison, Russian and English update states, a new-version offer without repeated automatic prompts, and an “Update” action that opens the release on GitHub for manual download and installation.
 - Specified non-blocking error handling, shared concurrent checks, simulated demo/smoke responses and validation for the update feature.
+- Added a macOS first-launch guide in both README languages for allowing Limits through System Settings when the developer cannot be verified. Explained that the maintainer currently cannot afford Apple Developer Program membership, so current macOS downloads lack Developer ID signing and Apple notarization.
 
 ## 1.1.0
 
