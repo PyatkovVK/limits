@@ -15,7 +15,7 @@ Before editing, adding, deleting, renaming, or moving any of these files, descri
     - **accounts/**
       - [codex.md](common/accounts/codex.md) — Codex accounts and authentication, including planned independent connection
     - [interface.md](common/interface.md) — Details window, settings, and appearance
-    - [updates.md](common/updates.md) — Version 1.3 update checks and opening GitHub releases
+    - [updates.md](common/updates.md) — Update checks and opening GitHub releases
     - [privacy.md](common/privacy.md) — Data and privacy
   - **windows/**
     - [widget.md](windows/widget.md) — Taskbar widget
