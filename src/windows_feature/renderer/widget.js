@@ -1,8 +1,11 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let resetAt = null, language = 'ru';
+let resetAt = null, weeklyResetAt = null, language = 'ru';
 const setText = (element, text) => { if (element.textContent !== text) element.textContent = text; };
-function renderCountdown() { window.limitsCountdown.render($('short-reset'), resetAt, language); }
+function renderCountdown() {
+  window.limitsCountdown.render($('short-reset'), resetAt, language);
+  window.limitsCountdown.render($('weekly-reset'), weeklyResetAt, language);
+}
 function render(next) {
   language = next.language || 'ru';
   const translate = (lang, key) => window.limitsWindowsI18n.t(lang, key) || window.limitsI18n.t(lang, key, 'win32');
@@ -21,6 +24,7 @@ function render(next) {
     if ($(`${kind}-bar`).value !== (quota?.remaining ?? 0)) $(`${kind}-bar`).value = quota?.remaining ?? 0;
   }
   resetAt = bucket?.short?.resetsAt;
+  weeklyResetAt = bucket?.weekly?.resetsAt;
   renderCountdown();
 }
 const dragArea = document.body;

@@ -2,10 +2,12 @@
 (function (root) {
   const strings = {
     ru: {
+      weeklyCompact: '7д',
       drag: 'Потяните за любую часть виджета, чтобы передвинуть его',
       footnote: 'Потяните за любую часть виджета, чтобы передвинуть его на панели задач.',
     },
     en: {
+      weeklyCompact: '7d',
       drag: 'Drag any part of the widget to move it',
       footnote: 'Drag any part of the widget to move it along the taskbar.',
     },
