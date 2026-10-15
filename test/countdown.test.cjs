@@ -17,3 +17,17 @@ test('last partial minute is shown until expiry and expired timestamps never go 
 test('absent or invalid reset times remain unknown', () => {
   for (const value of [null, undefined, 0, -1, NaN, Infinity, '123']) assert.equal(format(value, now), '—');
 });
+
+
+test('compact days show days and hours, switching to hours:minutes below one day', () => {
+  const ru = { compactDays: true, language: 'ru' }, en = { compactDays: true, language: 'en' };
+  const reset = now / 1000 + (5 * 24 + 20) * 3600;
+  assert.equal(format(reset, now, ru), '5д20ч');
+  assert.equal(format(reset, now, en), '5d20h');
+  assert.equal(format(now / 1000 + 86400, now, ru), '1д0ч');
+  assert.equal(format(now / 1000 + 16 * 3600 + 39 * 60, now, ru), '16:39');
+  assert.equal(format(now / 1000 + 23 * 3600 + 59 * 60, now, ru), '23:59');
+  assert.equal(format(reset, now), '140:00', 'Other surfaces keep their existing format');
+  assert.equal(format(now / 1000 - 1, now, ru), '0:00');
+  for (const value of [null, undefined, 0, -1, NaN, Infinity, '123']) assert.equal(format(value, now, ru), '—');
+});
