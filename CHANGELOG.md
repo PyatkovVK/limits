@@ -4,6 +4,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Documented the agreed 1.3 scope and acceptance criteria in the shared and platform requirements, including compact weekly countdowns and the distinction between runtime independence and future account-storage isolation.
+
 ## 1.3.0 (in development)
 
 Six focused pull requests target `1.3-demo`; the release pull request targets `main`.
