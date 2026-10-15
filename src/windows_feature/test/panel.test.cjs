@@ -1,12 +1,13 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { EventEmitter } = require('node:events');
 const { panelPosition, createPanelController } = require('../panel.cjs');
 
 const area = { x: 0, y: 0, width: 1920, height: 1032 };
 const bounds = { x: 800, y: 1032, width: 280, height: 34 };
 function controller() {
-  const window = {
+  const window = Object.assign(new EventEmitter(), {
     destroyed: false, visible: false, position: [0, 0], moves: 0, shows: 0, focuses: 0,
     isDestroyed() { return this.destroyed; },
     isVisible() { return this.visible; },
@@ -20,7 +21,8 @@ function controller() {
     setPosition(x, y) { this.position = [x, y]; this.moves++; },
     show() { this.visible = true; this.shows++; },
     focus() { this.focuses++; },
-  };
+    hide() { this.visible = false; },
+  });
   const widget = {
     destroyed: false, visible: true, bounds: { ...bounds },
     isDestroyed() { return this.destroyed; },
@@ -124,4 +126,25 @@ test('Windows oversized content fits small secondary displays and rejects invali
   assert.deepEqual(window.size, [440, 484]);
   window.destroyed = true;
   assert.equal(panel.resize(240), false);
+});
+
+
+test('outside focus dismisses details and polling cannot reopen them', () => {
+  const { window, widget, panel } = controller();
+  panel.show(); window.emit('blur');
+  assert.equal(window.isVisible(), false);
+  assert.equal(panel.follow(widget), false); assert.equal(window.shows, 1);
+  panel.show(); assert.equal(window.isVisible(), true);
+  window.emit('closed'); assert.equal(window.listenerCount('blur'), 0);
+});
+
+test('native dialogs keep details open and release the blur guard on failure', async () => {
+  const { window, panel } = controller(); panel.show();
+  await panel.withModal(async () => {
+    window.emit('blur'); assert.equal(window.isVisible(), true);
+    await panel.withModal(async () => { window.emit('blur'); assert.equal(window.isVisible(), true); });
+    window.emit('blur'); assert.equal(window.isVisible(), true);
+  });
+  await assert.rejects(panel.withModal(async () => { throw new Error('cancelled'); }), /cancelled/);
+  window.emit('blur'); assert.equal(window.isVisible(), false);
 });

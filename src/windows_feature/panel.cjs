@@ -13,6 +13,16 @@ function panelPosition({ anchor, area, size }) {
 
 function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWidgetHost }) {
   let contentHeight = window.getSize()[1], lastAnchor = null;
+  let modalOperations = 0;
+  const onBlur = () => {
+    if (!modalOperations && !window.isDestroyed() && window.isVisible()) window.hide();
+  };
+  window.on('blur', onBlur);
+  window.once('closed', () => window.removeListener('blur', onBlur));
+  async function withModal(operation) {
+    modalOperations++;
+    try { return await operation(); } finally { modalOperations--; }
+  }
   function place(anchor) {
     if (window.isDestroyed()) return false;
     lastAnchor = anchor;
@@ -47,7 +57,7 @@ function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWi
     contentHeight = height;
     return place(lastAnchor || getAnchorBounds?.() || null);
   }
-  const controller = { show, follow, resize };
+  const controller = { show, follow, resize, withModal };
   if (ipcMain) require('./ipc.cjs').installWindowsBridge({ window, screen, ipcMain, getWidgetHost, panel: controller });
   return controller;
 }
