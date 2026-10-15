@@ -7,11 +7,15 @@ const path = require('node:path');
 const { bundleCodex } = require('../scripts/bundle-codex.cjs');
 const { findCodex } = require('../src/common/codex-path.cjs');
 
-test('Windows bundles a matching standalone runtime and license without changing Mac or Linux resources', async () => {
+test('each platform bundles its matching standalone runtime and license', async () => {
   const { validateConfiguration } = require('app-builder-lib/out/util/config/config');
   for (const [platform, key, arch, triple] of [
     ['win32', 'win', 'x64', 'x86_64-pc-windows-msvc'],
-    ['win32', 'win', 'arm64', 'aarch64-pc-windows-msvc']
+    ['win32', 'win', 'arm64', 'aarch64-pc-windows-msvc'],
+    ['linux', 'linux', 'x64', 'x86_64-unknown-linux-musl'],
+    ['linux', 'linux', 'arm64', 'aarch64-unknown-linux-musl'],
+    ['darwin', 'mac', 'x64', 'x86_64-apple-darwin'],
+    ['darwin', 'mac', 'arm64', 'aarch64-apple-darwin']
   ]) {
     const config = structuredClone(pkg.build);
     const previous = [...(config[key].extraResources || [])];
@@ -23,14 +27,14 @@ test('Windows bundles a matching standalone runtime and license without changing
       return path.join(base, 'package.json');
     };
     const fileSystem = {
-      statSync(file) { return { isFile: () => file === source || file.endsWith('Apache-2.0.txt') }; }
+      statSync(file) { return { isFile: () => file === source || file.endsWith('Apache-2.0.txt') }; },
+      accessSync(file, mode) { assert.equal(file, source); assert.equal(mode, require('node:fs').constants.X_OK); }
     };
     assert.equal(bundleCodex(config, { platform, arch, resolvePackage, fileSystem }), source);
     assert.deepEqual(config[key].extraResources.slice(0, previous.length), previous);
     assert.deepEqual(config[key].extraResources.slice(-2).map(file => file.to), [`codex/${exe}`, 'codex/Apache-2.0.txt']);
     assert.equal(config.extraResources.length, pkg.build.extraResources.length);
-    assert.deepEqual(config.mac, pkg.build.mac);
-    assert.deepEqual(config.linux, pkg.build.linux);
+    for (const other of ['win', 'mac', 'linux'].filter(item => item !== key)) assert.deepEqual(config[other], pkg.build[other]);
     await validateConfiguration(config);
 
     // An installed app can find its own runtime with no PATH or npm packages.
@@ -46,7 +50,7 @@ test('Windows bundles a matching standalone runtime and license without changing
 test('missing target runtime stops packaging instead of producing an app that requires Codex', () => {
   const config = structuredClone(pkg.build);
   assert.throws(() => bundleCodex(config, { platform: 'linux', arch: 'ia32' }), /Unsupported/);
-  for (const platform of ['darwin', 'linux']) assert.throws(() => bundleCodex(config, { platform, arch: 'x64' }), /Unsupported Windows runtime/);
+  assert.throws(() => bundleCodex(config, { platform: 'freebsd', arch: 'x64' }), /Unsupported runtime/);
   assert.throws(() => bundleCodex(config, { platform: 'win32', arch: 'arm64', resolvePackage() { throw new Error('Missing'); } }), /codex-win32-arm64/);
   assert.throws(() => bundleCodex(config, { platform: 'win32', arch: 'x64',
     resolvePackage: () => path.resolve('artifacts', 'package.json'), fileSystem: { statSync() { throw new Error('Missing'); } }
