@@ -259,7 +259,8 @@ async function setup() {
       attempt = monitor.loginAttempt;
       const url = new URL(authUrl);
       if (url.protocol !== 'https:' || !['auth.openai.com', 'auth.chatgpt.com', 'chatgpt.com'].includes(url.hostname)) throw new Error('Unexpected login URL');
-      await shell.openExternal(url.href);
+      if (process.platform === 'linux') await require('../linux_feature/browser.cjs').openBrowser(url.href);
+      else await shell.openExternal(url.href);
       return {};
     } catch (error) {
       if (attempt) await monitor.cancelLogin(profileId, attempt).catch(() => {});
