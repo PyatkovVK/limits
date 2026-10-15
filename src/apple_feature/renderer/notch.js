@@ -28,6 +28,9 @@
       row.append(name, bar, value); preview.append(row);
     }
     trigger.append(meters, preview); shell.append(cap, trigger, content); body.append(shell);
+    const loginNotice = document.createElement('div');
+    loginNotice.id = 'apple-login-notice'; loginNotice.className = 'notice'; loginNotice.setAttribute('role', 'status'); loginNotice.hidden = true;
+    content.querySelector('main').prepend(loginNotice);
     trigger.addEventListener('click', () => window.limits.open());
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !document.querySelector('dialog[open]')) { event.preventDefault(); window.limits.hide(); } });
     setInterval(() => { if (window.limitsApple?.state) window.limitsApple.renderCountdown(); }, 1000);
@@ -54,6 +57,11 @@
       trigger.tabIndex = expanded ? -1 : 0;
       trigger.setAttribute('aria-expanded', String(expanded));
       const t = key => window.limitsAppleI18n.t(next.language, key);
+      const loginNotice = document.getElementById('apple-login-notice');
+      const noticeParent = document.querySelector('dialog[open] .settings-content') || document.querySelector('.apple-content main');
+      if (loginNotice.parentElement !== noticeParent) noticeParent.prepend(loginNotice);
+      loginNotice.hidden = !layout.browserOpening;
+      loginNotice.textContent = t('browserOpening');
       trigger.setAttribute('aria-label', t('notchOpen'));
       document.getElementById('apple-hint').textContent = t('notchHint');
       const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets.find(item => item.id === 'codex') || next.buckets[0];
