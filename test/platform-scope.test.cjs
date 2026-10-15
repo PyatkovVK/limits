@@ -104,33 +104,12 @@ test('packaging reaches electron-builder with an absent Electron dist and only r
   }
 });
 
-test('Linux and macOS retain their account and authentication messages in both languages', () => {
-  const previous = {
-    ru: {
-      account: 'Аккаунт Codex',
-      codexMissing: 'Не найден Codex. Установите приложение Codex или Codex CLI, затем перезапустите Limits.',
-      loginUnavailable: 'Codex недоступен. Установите Codex и перезапустите приложение.',
-      loginFailed: 'Не удалось открыть вход. Проверьте Codex и попробуйте ещё раз.',
-      disconnected: 'Связь с Codex потеряна. Повторяем подключение.',
-      refreshFailed: 'Не удалось получить лимиты. Проверьте интернет и вход в Codex. Повторяем автоматически.'
-    },
-    en: {
-      account: 'Codex account',
-      codexMissing: 'Codex was not found. Install the Codex app or Codex CLI, then restart Limits.',
-      loginUnavailable: 'Codex is unavailable. Install Codex and restart this application.',
-      loginFailed: 'Could not open sign-in. Check Codex and try again.',
-      unsupported: 'Subscription limits require ChatGPT sign-in. Codex currently uses another authentication method.',
-      disconnected: 'Connection to Codex was lost. Reconnecting.',
-      refreshFailed: 'Could not read limits. Check your connection and Codex sign-in. Retrying automatically.'
-    }
-  };
-  for (const platform of ['linux', 'darwin', undefined]) {
-    for (const [language, strings] of Object.entries(previous)) {
-      for (const [key, value] of Object.entries(strings)) assert.equal(i18n.t(language, key, platform), value);
-    }
+test('all packaged platforms describe the included connection component', () => {
+  for (const platform of ['win32', 'linux', 'darwin', undefined]) {
+    assert.equal(i18n.t('ru', 'account', platform), 'Аккаунт ChatGPT');
+    assert.equal(i18n.t('en', 'codexMissing', platform), 'The connection component was not found. Reinstall Limits.');
+    assert.equal(i18n.t('ru', 'loginUnavailable', platform), 'Вход временно недоступен. Перезапустите Limits.');
   }
-  assert.equal(i18n.t('ru', 'account', 'win32'), 'Аккаунт ChatGPT');
-  assert.equal(i18n.t('en', 'codexMissing', 'win32'), 'The connection component was not found. Reinstall Limits.');
 });
 
 test('Windows onboarding offers sign-in once and preserves panel dismissal during polling', () => {

@@ -16,6 +16,7 @@ class Monitor extends EventEmitter {
     this.loginTask = null;
     this.accountRevision = 0;
     this.rerunRequested = false;
+    this.credentialsGeneration = null;
     client.on('notification', (method, params) => {
       if (this.stopped) return;
       if (method === 'account/rateLimits/updated') {
@@ -82,7 +83,11 @@ class Monitor extends EventEmitter {
     try {
       await this.client.start();
       stage = 'account/read';
-      const { account } = await this.client.request('account/read', { refreshToken: false });
+      const generation = this.client.generation ?? 0;
+      // Our own app-server refreshes stored credentials on every connection.
+      // Routine polls leave automatic token maintenance to that same process.
+      const { account } = await this.client.request('account/read', { refreshToken: this.credentialsGeneration !== generation });
+      this.credentialsGeneration = generation;
       if (revision !== this.accountRevision || this.stopped) return this.state;
       if (!account) {
         this.failures = 0;
