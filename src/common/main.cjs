@@ -149,6 +149,11 @@ function nativeHandleId(target) {
   const handle = target.getNativeWindowHandle();
   return handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
 }
+async function captureSmokePanel() {
+  // Focus tests deliberately dismiss the panel. Make it paintable for capture.
+  if (!window.isVisible()) window.showInactive();
+  return (await window.webContents.capturePage()).toPNG();
+}
 async function createWidget() {
   widgetHost = new TaskbarWidget({ BrowserWindow, Menu, webPreferences, restrictWindow, getSettings: () => widgetSettings, resourcesPath: app.isPackaged ? process.resourcesPath : null, onMove: bounds => {
     if (!taskbarMetrics?.bar) return;
@@ -391,7 +396,7 @@ async function setup() {
         }
         widgetSettings.width = 280; placeWidget();
         await new Promise(resolve => setTimeout(resolve, 200));
-        fs.writeFileSync(path.join(dir, `${name}-${language}.png`), (await window.webContents.capturePage()).toPNG());
+        fs.writeFileSync(path.join(dir, `${name}-${language}.png`), await captureSmokePanel());
         fs.writeFileSync(path.join(dir, `${name}-taskbar-${language}.png`), (await widget.webContents.capturePage()).toPNG());
         languages.push(labels);
       }
@@ -399,9 +404,11 @@ async function setup() {
       // Check the actual native fullscreen detector against a normal maximized window.
       const { spawnSync } = require('node:child_process');
       const testWindow = new BrowserWindow({ width: 400, height: 300, show: false, webPreferences: { sandbox: true } });
+      showPanel();
       testWindow.show(); testWindow.maximize();
       await new Promise(resolve => setTimeout(resolve, 400));
       if (!testWindow.isMaximized()) throw new Error('Simulated window did not maximize.');
+      if (window.isVisible()) throw new Error('Outside window focus did not dismiss details.');
       const result = spawnSync(helperPath, ['--test-window-mode', String(process.pid), nativeHandleId(testWindow)], { encoding: 'utf8', windowsHide: true, timeout: 5000 });
       testWindow.destroy();
       const maximized = JSON.parse(result.stdout.trim());
@@ -464,7 +471,7 @@ async function setup() {
         await window.webContents.executeJavaScript('window.limits.get().then(render)');
         const displayLabel = await window.webContents.executeJavaScript(`document.getElementById('display-mode').selectedOptions[0].textContent`);
         if (displayLabel !== translate(language, 'trayMode')) throw new Error('Display mode selection was not translated.');
-        fs.writeFileSync(path.join(dir, `${name}-tray-${language}.png`), (await window.webContents.capturePage()).toPNG());
+        fs.writeFileSync(path.join(dir, `${name}-tray-${language}.png`), await captureSmokePanel());
         persistWidgetSettings();
         if (JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget-settings.json'), 'utf8')).displayMode !== 'tray') throw new Error('Tray mode was not saved.');
         await window.webContents.executeJavaScript(`window.limits.displayMode('widget').then(render)`);
@@ -486,7 +493,7 @@ async function setup() {
         const names = await window.webContents.executeJavaScript(`[...document.querySelectorAll('.profile-name')].map(el => el.textContent)`);
         if (names.join('|') !== 'Sam (demo@example.com)|Sam (work@example.com)') throw new Error('Duplicate nicknames were not disambiguated.');
         accountChecks.switched = true; accountChecks.names = names;
-        fs.writeFileSync(path.join(dir, 'panel-multiple-accounts.png'), (await window.webContents.capturePage()).toPNG());
+        fs.writeFileSync(path.join(dir, 'panel-multiple-accounts.png'), await captureSmokePanel());
         await window.webContents.executeJavaScript(`window.limits.accountAction('rename', 'default', 'Personal').then(() => window.limits.accountAction('rename', '${work}', 'Work')).then(() => window.limits.accountAction('select', 'default')).then(() => window.limits.get()).then(render)`);
         setDisplayMode('widget');
       }
