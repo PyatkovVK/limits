@@ -381,7 +381,7 @@ async function setup() {
         const reset = await widget.webContents.executeJavaScript(`document.getElementById('short-reset').textContent`);
         if (reset !== labels.reset || (demo && reset !== '2:19')) throw new Error('Short reset countdown is missing or inconsistent.');
         const weekly = await widget.webContents.executeJavaScript(`({ label: document.querySelector('[data-i18n="weeklyCompact"]').textContent, reset: document.getElementById('weekly-reset').textContent })`);
-        if (weekly.label !== (language === 'ru' ? '7д' : '7d') || (demo && !/^\d+:\d{2}$/.test(weekly.reset))) throw new Error('Weekly reset countdown is missing or inconsistent.');
+        if (weekly.label !== (language === 'ru' ? '7д' : '7d') || (demo && !/^\d+[дd]\d+[чh]$/.test(weekly.reset))) throw new Error('Weekly reset countdown is missing or inconsistent.');
         // Exercise the automatic compact sizes independently of live taskbar space.
         for (const width of [200, 210, 220, 240, 280, 320, 400]) {
           widgetSettings.width = width; placeWidget();

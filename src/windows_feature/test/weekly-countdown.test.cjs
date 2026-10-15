@@ -16,11 +16,11 @@ test('weekly widget countdown updates between samples and switches selected buck
   const sample = { language: 'ru', buckets: [bucket], updatedAt: now };
   const context = { document: { getElementById: node, body: { classList: { toggle() {} }, addEventListener() {} } },
     window: { limitsI18n: { ...i18n, apply() {} }, limitsWindowsI18n: windowsI18n,
-      limitsCountdown: { render(el, reset, language) { el.textContent = countdown.format(reset); el.language = language; } },
+      limitsCountdown: { render(el, reset, language, time = Date.now(), options) { el.textContent = countdown.format(reset, time, { ...options, language }); el.language = language; } },
       limits: { subscribe(fn) { listener = fn; }, get: async () => sample } }, setInterval(fn) { tick = fn; }, Date };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../renderer/widget.js'), 'utf8'), context);
   await context.window.renderReady;
-  assert.equal(node('weekly-reset').textContent, countdown.format(bucket.weekly.resetsAt));
+  assert.equal(node('weekly-reset').textContent, countdown.format(bucket.weekly.resetsAt, Date.now(), { compactDays: true }));
   node('weekly-reset').textContent = 'old'; tick(); assert.notEqual(node('weekly-reset').textContent, 'old');
   listener({ ...sample, language: 'en', selectedId: 'other', buckets: [bucket, { id: 'other', weekly: { resetsAt: unix - 1 } }] });
   assert.equal(node('weekly-reset').textContent, '0:00'); assert.equal(node('weekly-reset').language, 'en');
