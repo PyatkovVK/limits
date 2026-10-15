@@ -4,6 +4,19 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Documented the agreed 1.3 scope and acceptance criteria in the shared and platform requirements, including compact weekly countdowns and the distinction between runtime independence and future account-storage isolation.
+
+## 1.3.0 (in development)
+
+Six focused pull requests target `1.3-demo`; the release pull request targets `main`.
+
+- Include the native connection component in Linux and macOS packages; a separate Codex installation or open Codex window is no longer required.
+- Open Linux browser sign-in with the desktop environment preserved and AppImage runtime paths removed.
+- Refresh account credentials in the shared monitor, independently of the Codex desktop app.
+- Show a weekly reset countdown next to `7д` / `7d` in the Windows widget.
+- Dismiss Windows details when focus moves outside the panel, while preserving native dialogs.
+- Show a browser sign-in message in the macOS notch and collapse it after a short delay.
+
 ## 1.2.0
 
 ### New features

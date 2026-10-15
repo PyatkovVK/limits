@@ -66,8 +66,8 @@
       refreshFailed: 'Could not read limits. Check your connection and Codex sign-in. Retrying automatically.'
     }
   };
-  // Only Windows ships the connection component; other platforms keep their wording.
-  const windowsStrings = {
+  // Packaged builds ship the connection component on every supported platform.
+  const connectionStrings = {
     ru: {
       account: 'Аккаунт ChatGPT',
       codexMissing: 'Не найден компонент подключения. Переустановите Limits.',
@@ -89,7 +89,7 @@
   const api = {
     languages: Object.keys(strings),
     t(language, key, platform) {
-      return (platform === 'win32' ? (windowsStrings[language] || windowsStrings.ru)[key] : null) || (strings[language] || strings.ru)[key] || key;
+      return (connectionStrings[language] || connectionStrings.ru)[key] || (strings[language] || strings.ru)[key] || key;
     },
     apply(language, doc, translate = api.t) {
       doc.documentElement.lang = language;

@@ -13,6 +13,7 @@ require('../src/windows_feature/scripts/assets.cjs');
 const tempRoot = path.resolve(os.tmpdir());
 const output = fs.mkdtempSync(path.join(tempRoot, 'limits-build-'));
 const config = structuredClone(require('../package.json').build);
+require('./bundle-codex.cjs').bundleCodex(config, { platform: process.platform, arch: plan.arch });
 if (process.argv[2] === 'mac') {
   require('../src/apple_feature/scripts/build-helper.cjs').buildHelper();
   require('../src/apple_feature/scripts/build-config.cjs').configureAppleBuild(config);

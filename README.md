@@ -49,15 +49,15 @@ Ready-to-use packages include Electron and do not require Node.js.
 | System | Choose in Assets | Codex requirement |
 | --- | --- | --- |
 | Windows 10 / 11, x64 | `Limits-Setup-*.exe` to install; `Limits-*-portable.exe` without installation | Connection component included |
-| macOS, Apple Silicon | `Limits-*-arm64.dmg` or `Limits-*-arm64.zip` | Installed Codex app or native Codex CLI |
-| macOS, Intel | `Limits-*-x64.dmg` or `Limits-*-x64.zip` | Installed Codex app or native Codex CLI |
-| Linux, x64 | `Limits-*-x86_64.AppImage` or `Limits-*-amd64.deb` | Native Codex CLI accessible to the app |
+| macOS, Apple Silicon | `Limits-*-arm64.dmg` or `Limits-*-arm64.zip` | Connection component included |
+| macOS, Intel | `Limits-*-x64.dmg` or `Limits-*-x64.zip` | Connection component included |
+| Linux, x64 | `Limits-*-x86_64.AppImage` or `Limits-*-amd64.deb` | Connection component included |
 
 **Windows:** run the per-user installer or launch the portable EXE. No separate Codex installation is needed. Tray icons may initially appear under the arrow near the clock; drag them into the visible area if desired.
 
-**macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. If macOS says the developer cannot be verified, follow the [first-launch guide](#macos-first-launch) below. Limits searches for Codex in Codex.app / ChatGPT.app, Homebrew, nvm, and user directories.
+**macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. If macOS says the developer cannot be verified, follow the [first-launch guide](#macos-first-launch) below. The connection component is included; Codex does not need to be installed or kept open.
 
-**Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. Limits looks for Codex in `PATH`, common per-user CLI directories and native or Flatpak VS Code extension installations; see [configuration](docs/development.md#configuration) to specify its location manually.
+**Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. The connection component is included; a separate Codex installation is not required. Source builds can use an installed CLI; see [configuration](docs/development.md#configuration).
 
 **Platform notes:** Linux Mint 22.2 Zara, XFCE 4.18, X11, x64 is the tested Linux environment. Other desktops need testing; tray behavior varies. Linux autostart is not implemented.
 

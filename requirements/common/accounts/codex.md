@@ -14,10 +14,14 @@
 | COM-ACC-010 | Handle sign-in disconnection and timeout without permanent locks. | Locks are released after disconnection or failed remote cancellation; the user can retry. |
 | COM-ACC-011 | Disconnect an additional account through logout and profile-registry removal. | The removed account is no longer shown; if selected, a remaining profile is selected. Any sign-in preparation for that profile is cancelled first. |
 | COM-ACC-012 | Do not restore outdated account state from delayed responses. | Cancellation, removal, switching, and sign-in completion races do not mix limits or states across attempts. |
+| COM-ACC-014 | Monitor accounts without an installed or running Codex desktop app or VS Code on Windows, macOS, and Linux. | Packaged Limits includes its native connection executable and owns its app-server process. With Codex and VS Code fully closed, browser sign-in, quota polling, suspend/resume, and restarting Limits remain available. Monitoring and credential maintenance are implemented in `src/common`; platform windows use the same monitors. |
+| COM-ACC-015 | Refresh managed credentials when connecting the owned app server. | The first successful account read for each server connection requests credential refresh, including after a crash/reconnect. Failed initial reads retry with refresh enabled. Routine polls do not force token rotation on every refresh; they use the same server's automatic credential maintenance. |
 
 ## Planned improvement
 
 The following requirement describes a future change rather than an already completed implementation. It applies to Windows, macOS, and Linux.
+
+Version 1.3 satisfies runtime independence in COM-ACC-014; it does not claim the full storage/configuration isolation below. The default account may still share Codex's managed `CODEX_HOME` and credential store. Additional accounts continue to use isolated homes. Replacing the runtime prerequisite does not silently migrate or erase existing authentication data.
 
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
