@@ -35,6 +35,16 @@ class AppleNotch {
     try { return await operation(); } finally { this.modalOperations--; }
   }
 
+  async beforeBrowserLogin(wait = ms => new Promise(resolve => setTimeout(resolve, ms))) {
+    if (!this.enabled || this.phase !== 'expanded') return;
+    const activation = this.activation;
+    this.browserOpening = true; this.update();
+    try {
+      await this.withModal(() => wait(1200));
+      if (this.enabled && this.activation === activation) this.collapse();
+    } finally { this.browserOpening = false; this.update(); }
+  }
+
   async discover() {
     const revision = ++this.revision;
     const screens = await this.readNativeScreens();
@@ -128,7 +138,7 @@ class AppleNotch {
     this.setPhase('closed'); this.setInteractive(false);
     if (this.window.isFocused()) this.window.blur();
   }
-  snapshot() { return this.enabled && this.layout ? { phase: this.phase, ...this.layout } : null; }
+  snapshot() { return this.enabled && this.layout ? { phase: this.phase, browserOpening: Boolean(this.browserOpening), ...this.layout } : null; }
   update() {
     if (this.window && !this.window.isDestroyed()) this.window.webContents.send('limits:state', { ...this.getState(), appleNotch: this.snapshot() });
   }

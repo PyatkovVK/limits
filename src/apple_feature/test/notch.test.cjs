@@ -124,3 +124,31 @@ test('expanded content grows and shrinks inside a stationary notch host and surv
     assert.equal(hitBounds(notch.snapshot(), 'closed').height, info.top + 9);
   } finally { notch.destroy(); }
 });
+
+
+test('browser handoff shows a notice, waits, and collapses even if browser never takes focus', async () => {
+  const notch = await controller();
+  try {
+    await notch.enable(); clearInterval(notch.timer); notch.expand();
+    await notch.beforeBrowserLogin(async ms => {
+      assert.equal(ms, 1200); assert.equal(notch.snapshot().browserOpening, true);
+      notch.window.blur(); assert.equal(notch.phase, 'expanded');
+    });
+    assert.equal(notch.phase, 'closed'); assert.equal(notch.snapshot().browserOpening, false);
+    assert.equal(notch.hoverBlocked, true);
+  } finally { notch.destroy(); }
+});
+
+test('browser handoff does not delay tray mode or collapse a newly enabled notch', async () => {
+  const notch = await controller();
+  try {
+    await notch.beforeBrowserLogin(() => assert.fail('disabled notch delayed login'));
+    await notch.enable(); clearInterval(notch.timer); notch.expand();
+    await notch.beforeBrowserLogin(async () => {
+      notch.disable(); await notch.enable(); clearInterval(notch.timer); notch.expand();
+    });
+    assert.equal(notch.phase, 'expanded'); assert.equal(notch.snapshot().browserOpening, false);
+    await assert.rejects(notch.beforeBrowserLogin(async () => { throw new Error('cancelled'); }), /cancelled/);
+    assert.equal(notch.modalOperations, 0); assert.equal(notch.snapshot().browserOpening, false);
+  } finally { notch.destroy(); }
+});

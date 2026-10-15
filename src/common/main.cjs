@@ -262,6 +262,8 @@ async function setup() {
       const authUrl = await monitor.login(profileId);
       if (!authUrl) return {}; // Cancelled or completed while the start request was pending.
       attempt = monitor.loginAttempt;
+      if (widgetSettings.displayMode === 'notch') await appleNotch?.beforeBrowserLogin();
+      if (monitor.loginAttempt !== attempt || attempt?.cancelled) return {};
       const url = new URL(authUrl);
       if (url.protocol !== 'https:' || !['auth.openai.com', 'auth.chatgpt.com', 'chatgpt.com'].includes(url.hostname)) throw new Error('Unexpected login URL');
       if (process.platform === 'linux') await require('../linux_feature/browser.cjs').openBrowser(url.href);
