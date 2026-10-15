@@ -12,7 +12,7 @@ const { configureAppleBuild } = require('../src/apple_feature/scripts/build-conf
 const { offerSignIn } = require('../src/windows_feature/onboarding.cjs');
 const { signingEnvironment } = require('../scripts/signing.cjs');
 
-test('Mac and Linux build entrypoint preserves existing resources without importing the Windows runtime', () => {
+test('Mac and Linux build entrypoint bundles the target runtime and preserves platform resources', () => {
   for (const [target, platform, arch] of [['mac', 'darwin', 'arm64'], ['mac', 'darwin', 'x64'], ['linux', 'linux', 'x64'], ['linux', 'linux', 'arm64']]) {
     let captured;
     const config = structuredClone(pkg.build);
@@ -24,6 +24,7 @@ test('Mac and Linux build entrypoint preserves existing resources without import
       'node:child_process': { spawnSync: () => ({ status: 0 }) },
       './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch }) },
       './signing.cjs': { configureSigning: () => false, signingEnvironment },
+      './bundle-codex.cjs': { bundleCodex(_config, options) { assert.equal(options.platform, platform); assert.equal(options.arch, arch); } },
       '../src/windows_feature/scripts/assets.cjs': {},
       '../package.json': pkg,
       '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
@@ -36,7 +37,7 @@ test('Mac and Linux build entrypoint preserves existing resources without import
     requireMock.resolve = name => path.resolve('node_modules', name);
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../scripts/build.cjs'), 'utf8'), {
       require: requireMock, __dirname: path.resolve(__dirname, '../scripts'), structuredClone,
-      process: { argv: ['node', 'build.cjs', target, `--${arch}`], arch, env: {} },
+      process: { argv: ['node', 'build.cjs', target, `--${arch}`], platform, arch, env: {} },
       console: { log() {} }
     });
     if (target === 'mac') configureAppleBuild(config, {});
@@ -78,7 +79,8 @@ test('packaging reaches electron-builder with an absent Electron dist and only r
         '../src/windows_feature/scripts/assets.cjs': {}, './assets.cjs': {}, './build-taskbar-helper.cjs': {},
         '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
         '../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
-        '../../../scripts/bundle-codex.cjs': { bundleCodex() {} }
+        '../../../scripts/bundle-codex.cjs': { bundleCodex() {} },
+        './bundle-codex.cjs': { bundleCodex(_config, options) { assert.equal(options.platform, platform); assert.equal(options.arch, targetArch); } }
       };
       const requireMock = name => {
         assert.ok(Object.hasOwn(modules, name), `Unexpected build dependency: ${name}`);
