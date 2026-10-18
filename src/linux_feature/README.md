@@ -21,6 +21,12 @@ The Linux panel is 528 DIP wide with 120% interface scaling. Its height follows 
 
 When the tray host does not expose icon bounds, activation uses the current cursor position near the top or bottom of the display. Without usable bounds or cursor coordinates, startup and menu actions follow the reserved top or bottom panel on the primary display. Native Wayland compositors may restrict cursor coordinates and window placement; this fallback cannot determine an exact indicator position there.
 
+## Session recovery
+
+Waking from sleep and unlocking the desktop reconnect account monitoring immediately, including when the previous poll was still pending or waiting for a retry. Unlocking without suspend is handled separately. Recovery keeps the last known limits visible, does not open the details panel, and preserves an active browser sign-in.
+
+Electron supplies the wake event. A read-only `gdbus monitor` watches the screen saver's `ActiveChanged` signal for Cinnamon, GNOME, MATE, Xfce or the freedesktop interface (including KDE). If that tool or signal is unavailable, a five-second idle check also reconnects when the user returns after at least one minute of inactivity, where the desktop supports idle-time queries. AppImage library paths are removed from the system tool's environment.
+
 ## Validation
 
 `npm test` includes this directory's tests. `npm run smoke` checks scaling, simulated top/bottom tray activations, content growth and shrinking, both style controls, immediate tray updates, persistence and invalid-input rejection, and writes previews to `artifacts/`. The same checks run against packaged applications with `--demo --smoke-test`.

@@ -70,9 +70,10 @@ class Accounts extends EventEmitter {
     fs.writeFileSync(`${this.file}.tmp`, JSON.stringify({ version: 1, profiles: this.profiles, selectedProfileId: this.selectedProfileId }));
     fs.renameSync(`${this.file}.tmp`, this.file);
   }
-  async refresh() {
+  async refresh({ reconnect = false } = {}) {
     await Promise.all([...this.monitors.values()].map(async monitor => {
-      await monitor.refresh();
+      if (reconnect && monitor.reconnect) await monitor.reconnect();
+      else await monitor.refresh();
       // Account notifications can queue a second read during initialization.
       while (monitor.inflight) await monitor.inflight;
     }));

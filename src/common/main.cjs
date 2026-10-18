@@ -14,6 +14,7 @@ let updates;
 let resetNotifications;
 const resetToasts = new Set();
 let appearance;
+let stopSessionWatch;
 const { selectedBucket, isStale } = require('./limits.cjs');
 const { widgetBounds } = require('../windows_feature/taskbar.cjs');
 const { TaskbarWidget, taskbarHelperPath } = require('../windows_feature/widget.cjs');
@@ -346,7 +347,11 @@ async function setup() {
   } catch { state = { ...state, status: 'error', error: 'codexMissing' }; }
   update();
   tick = setInterval(update, 15000);
-  powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); void resetNotifications.resume(); });
+  if (process.platform === 'linux') {
+    stopSessionWatch = require('../linux_feature/session.cjs').watchSession({ powerMonitor,
+      refresh: () => { void monitor?.refresh({ reconnect: true }); void updates.resume(); void resetNotifications.resume(); }
+    });
+  } else powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); void resetNotifications.resume(); });
   if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden'))) await showPanel();
   updates.on('state', update);
   updates.on('offer', () => {
@@ -550,4 +555,4 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; updates?.stop(); resetNotifications?.stop(); for (const notification of resetToasts) notification.close(); resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
+app.on('before-quit', () => { quitting = true; stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop(); for (const notification of resetToasts) notification.close(); resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });

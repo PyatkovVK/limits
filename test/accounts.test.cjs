@@ -119,3 +119,19 @@ test('refresh waits for a queued account reread before returning a snapshot', as
   finish();
   assert.equal((await result).buckets[0].short.remaining, 72);
 });
+
+test('session recovery reconnects every profile and keeps demo refresh available', async t => {
+  const { accounts, clients } = fixture(t);
+  const work = accounts.add();
+  const recovered = [];
+  for (const id of ['default', work]) clients.get(id).reconnect = async () => { recovered.push(id); };
+  await accounts.refresh();
+  assert.deepEqual(recovered, []);
+  await accounts.refresh({ reconnect: true });
+  assert.deepEqual(recovered, ['default', work]);
+  delete clients.get(work).reconnect;
+  let refreshed = false;
+  clients.get(work).refresh = async () => { refreshed = true; };
+  await accounts.refresh({ reconnect: true });
+  assert.equal(refreshed, true);
+});
