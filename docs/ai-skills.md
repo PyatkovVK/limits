@@ -2,6 +2,8 @@
 
 Keep local skills in `skills/<name>/SKILL.md`. The root `/skills/` directory is ignored by Git, including supporting scripts/assets, so personal skills and edits are not committed or pushed.
 
+`skills/README.md` is the single English/Russian catalog with skill names, links to their instructions, the folder tree and instructions for adding skills. Its tracked source is [the catalog template](skill-templates/README.md). Agents read the catalog and also discover `SKILL.md` files so new personal skills are not missed.
+
 Run this once after cloning, or whenever a default skill is missing:
 
 ```sh
