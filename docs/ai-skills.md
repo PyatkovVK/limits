@@ -16,7 +16,7 @@ The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, mac
 
 ## How agents find the skills
 
-`AGENTS.md` is the common instruction entrypoint and includes the essential platform map even before bootstrapping. It tells agents to restore missing defaults, enumerate ignored skill files explicitly, and load relevant instructions before choosing implementation files. A normal Git-aware search will not list `skills/`; use, for example:
+Start with this guide and [CONTRIBUTING.md](../CONTRIBUTING.md), restore missing defaults, then read `skills/README.md` and the relevant skill before choosing implementation files. Discover every skill explicitly, including personal skills absent from the catalog. A normal Git-aware search will not list `skills/`; use, for example:
 
 ```sh
 rg --files --hidden --no-ignore skills -g SKILL.md
@@ -24,11 +24,8 @@ rg --files --hidden --no-ignore skills -g SKILL.md
 
 If an agent's file reader excludes ignored files, use an explicit named-file read allowed by that tool or read the tracked default template instead. Personal skills without a tracked template can be supplied to such an agent as context.
 
-Tracked compatibility entrypoints route to the same instructions:
+Personal `AGENTS.md`, `CLAUDE.md`, and `.cursor/` configuration are ignored by Git and may be supplied locally. Follow their instructions when present; they are not restored by `npm run setup:skills` or included in a fresh clone. For example, a local `CLAUDE.md` can import `AGENTS.md`, and a local `.cursor/rules/project-skills.mdc` can point to it.
 
-- `CLAUDE.md` imports `AGENTS.md` for [Claude Code](https://code.claude.com/docs/en/memory).
-- `GEMINI.md` imports it for [Gemini CLI](https://geminicli.com/docs/cli/gemini-md/).
-- `.github/copilot-instructions.md` points [GitHub Copilot](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-repository-instructions) to it.
-- `.cursor/rules/project-skills.mdc` is an always-applied [Cursor rule](https://cursor.com/docs/rules) pointing to it.
+The tracked [GitHub Copilot instructions](../.github/copilot-instructions.md) point to this guide and the contributing conventions, so they also work without personal agent files.
 
-These are readable instructions rather than an OS permission boundary. No single filename guarantees automatic loading in every AI product or configuration. For an agent without instruction-file discovery, give it this initial instruction: **“Read AGENTS.md at the repository root, discover the local skills, and apply the relevant SKILL.md before changing code.”** Agents without access to the repository files need those files supplied as context.
+These are readable instructions rather than an OS permission boundary. No single filename guarantees automatic loading in every AI product or configuration. For an agent without instruction-file discovery, give it this initial instruction: **“Read docs/ai-skills.md and CONTRIBUTING.md, follow local AGENTS.md when present, discover the local skills, and apply the relevant SKILL.md before changing code.”** Agents without access to the repository files need those files supplied as context.

@@ -2,13 +2,13 @@
 
 User-visible changes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
-## Unreleased
+## 1.4.0
 
 - Recover quota polling after failed account or usage reads by reconnecting with managed credentials; on Linux, reconnect immediately after waking or unlocking the desktop, including requests left pending across sleep, while preserving browser sign-in.
 - Enlarge the Linux details panel and interface, open above or below the activated tray indicator on its display, and preserve the attached edge as content grows and shrinks.
 - Move the additional-account disconnect action to a trash icon in each account heading, with localized accessible labels and protection against repeated clicks while disconnecting.
 - Celebrate a displayed 67% allowance with a brief SIX SEVEN animation and a pastel progress bar, including account cards and the Windows widget; respect reduced-motion preferences.
-- Add ignored local `skills/`, a single English/Russian README catalog with links and folder structure, a non-overwriting `setup:skills` command with tracked default templates, and shared agent instructions for choosing the correct platform implementation. Include Claude, Gemini, Copilot and Cursor entrypoints.
+- Add ignored local `skills/`, a single English/Russian README catalog with links and folder structure, a non-overwriting `setup:skills` command with tracked default templates, and a shared guide for choosing the correct platform implementation. Keep personal `AGENTS.md`, `CLAUDE.md` and Cursor configuration local; the tracked Copilot instructions use the shared guide.
 - Add [opt-in Codex Resets notifications](docs/reset-notifications.md) in Settings, disabled by default. Check codex-resets.com on enable/startup and every six hours for an announced upcoming reset or active forecast; ignore completed resets and suppress duplicate alerts across restarts. Include a right-hand help control with source attribution and thanks to @wong2__.
 - Show the Windows taskbar widget above the taskbar on first launch and when restoring it, without requiring a taskbar click or taking focus (#15).
 - Require all new feature/task branches to use the `limits/` prefix, reserve `main` and numeric release/demo branches for integration and releases, and document GitHub ruleset configuration and fork limitations.
@@ -17,7 +17,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - Define the replacement CI flow, release boundary, platform commands and acceptance checks in [build and release requirements](requirements/common/build-and-release.md).
 - Documented the agreed 1.3 scope and acceptance criteria in the shared and platform requirements, including compact weekly countdowns and the distinction between runtime independence and future account-storage isolation.
 
-## 1.3.0 (in development)
+## 1.3.0
 
 Six focused pull requests target `1.3-demo`; the release pull request targets `main`.
 
