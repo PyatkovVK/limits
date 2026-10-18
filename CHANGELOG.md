@@ -4,6 +4,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Show the Windows taskbar widget above the taskbar on first launch and when restoring it, without requiring a taskbar click or taking focus (#15).
 - Require all new feature/task branches to use the `limits/` prefix, reserve `main` and numeric release/demo branches for integration and releases, and document GitHub ruleset configuration and fork limitations.
 - Replace GitHub Actions branch routing: `main` keeps all packages in Actions artifacts; numeric version branches build and publish releases; numeric `-demo` branches run the full build, artifact upload and eight-package SHA-256 verification without creating tags or releases. Every other branch runs automated tests on Windows, macOS and Linux. Pull requests follow their source branch and never publish.
 - Group npm build commands by Windows, macOS and Linux, add explicit architecture commands, and use them in the CI build matrix while retaining existing commands.

@@ -18,6 +18,7 @@
 | WIN-WDG-014 | Prevent accidental text selection during dragging. | Labels and percentages cannot be selected by a drag gesture; account-name editing fields remain editable. |
 | WIN-WDG-016 | Display the weekly reset time beside `7д` / `7d` in a compact localized format. | At least 24 hours remaining uses days and whole hours: `5д20ч` in Russian or `5d20h` in English. Less than one day uses hours:minutes, for example `16:39`. At exactly one day show `1д0ч` / `1d0h`. The tooltip retains the full hours:minutes value; other countdown surfaces keep their existing format. |
 | WIN-WDG-017 | Keep the weekly countdown accurate and readable. | Use the selected bucket's server-provided weekly reset timestamp, update every second and on account/bucket changes, show `—` for missing/invalid timestamps and `0:00` after expiry, and never infer new percentages from the timer. RU/EN layouts remain readable without overflow at 200–400 px widths. |
+| WIN-WDG-018 | Show the widget immediately when starting in widget mode. | On Windows 11, the first usable taskbar observation displays the widget above the taskbar without clicking or activating Explorer and without taking focus. Restoring widget mode, returning from fullscreen, and recreating the widget after taskbar replacement use the same behavior; unchanged polling does not raise it repeatedly. See [#15](https://github.com/PyatkovVK/limits/issues/15). |
 
 ## Limitations
 

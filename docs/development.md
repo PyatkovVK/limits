@@ -32,6 +32,7 @@ In PowerShell, use `npm.cmd` if execution policy blocks `npm.ps1`. Reinstall dep
 | `npm run smoke:onboarding` | Windows first-run sign-in with empty storage, without opening a browser |
 | `npm run smoke:updates` | Shared update UI in RU/EN, modal dismissal, errors and trusted IPC, using simulated releases and isolated demo storage |
 | `npm run smoke:panel-follow` | Windows widget dragging with open and dismissed details panels, using isolated demo storage |
+| `npm run smoke:widget-startup` | Windows widget native order and foreground focus on a fresh launch, tray-mode/fullscreen restoration, and unchanged polling, without taskbar clicks |
 | `npm run smoke:live` | UI check using a signed-in account |
 | `npm run smoke:live -- --smoke-gpu --smoke-stability` | GPU and stability observation using a signed-in account |
 
