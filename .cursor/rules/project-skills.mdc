@@ -1,0 +1,8 @@
+---
+description: Limits repository instructions and local skill discovery.
+alwaysApply: true
+---
+
+Read and follow [AGENTS.md](../../AGENTS.md) at the repository root before changing code. It is the shared instruction entrypoint.
+
+The local `skills/` directory is ignored by Git. If its defaults are missing, run `npm run setup:skills`; explicitly include ignored files when discovering `skills/**/SKILL.md`. Load `skills/platform-routing/SKILL.md` for application code, and apply other skills only when their descriptions match the task.

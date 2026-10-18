@@ -10,6 +10,7 @@
     "================SERVE================": "",
     "start": "npm run prepare:app && electron .",
     "demo": "npm run prepare:app && electron . --demo",
+    "setup:skills": "node scripts/setup-skills.cjs",
     "================TEST================": "",
     "test": "node --test test/*.test.cjs \"src/windows_feature/test/*.test.cjs\" \"src/apple_feature/test/*.test.cjs\" \"src/linux_feature/test/*.test.cjs\"",
     "doctor": "node scripts/doctor.cjs",

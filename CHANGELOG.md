@@ -4,6 +4,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Add ignored local `skills/`, a non-overwriting `setup:skills` command with tracked default templates, and shared agent instructions for choosing the correct platform implementation. Include Claude, Gemini, Copilot and Cursor entrypoints.
 - Add [opt-in Codex Resets notifications](docs/reset-notifications.md) in Settings, disabled by default. Check codex-resets.com on enable/startup and every six hours for an announced upcoming reset or active forecast; ignore completed resets and suppress duplicate alerts across restarts. Include a right-hand help control with source attribution and thanks to @wong2__.
 - Require all new feature/task branches to use the `limits/` prefix, reserve `main` and numeric release/demo branches for integration and releases, and document GitHub ruleset configuration and fork limitations.
 - Replace GitHub Actions branch routing: `main` keeps all packages in Actions artifacts; numeric version branches build and publish releases; numeric `-demo` branches run the full build, artifact upload and eight-package SHA-256 verification without creating tags or releases. Every other branch runs automated tests on Windows, macOS and Linux. Pull requests follow their source branch and never publish.

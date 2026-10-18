@@ -24,6 +24,8 @@ If the default branch does not yet contain the app, choose `create-mvp` as your 
 
 `main`, numeric version branches and their `-demo` variants are reserved for integration and release work. See the [branch naming requirements](requirements/common/build-and-release.md#branch-naming) and [GitHub ruleset setup](docs/github-rulesets.md) for enforcement and its limits.
 
+AI contributors should start with [AGENTS.md](AGENTS.md). Run `npm run setup:skills` to restore the ignored local `skills/` directory, then load the applicable skill. Platform-specific work defaults to the current host's platform directory; explicitly shared work stays in `src/common/`. See [local AI skills](docs/ai-skills.md) for other agent entrypoints and personal skills.
+
 ## Validate your change
 
 - **Behavior changes:** run `npm test`. Add or adjust tests for meaningful behavior, especially usage calculations, account isolation, and platform regressions.
