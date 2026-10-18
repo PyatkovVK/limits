@@ -4,6 +4,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Recover quota polling after failed account or usage reads by reconnecting with managed credentials; on Linux, reconnect immediately after waking or unlocking the desktop, including requests left pending across sleep, while preserving browser sign-in.
 - Enlarge the Linux details panel and interface, open above or below the activated tray indicator on its display, and preserve the attached edge as content grows and shrinks.
 - Move the additional-account disconnect action to a trash icon in each account heading, with localized accessible labels and protection against repeated clicks while disconnecting.
 - Celebrate a displayed 67% allowance with a brief SIX SEVEN animation and a pastel progress bar, including account cards and the Windows widget; respect reduced-motion preferences.
