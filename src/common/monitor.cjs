@@ -17,6 +17,7 @@ class Monitor extends EventEmitter {
     this.accountRevision = 0;
     this.rerunRequested = false;
     this.credentialsGeneration = null;
+    this.reconnecting = null;
     client.on('notification', (method, params) => {
       if (this.stopped) return;
       if (method === 'account/rateLimits/updated') {
@@ -51,7 +52,7 @@ class Monitor extends EventEmitter {
         this.finishLogin(this.loginAttempt);
       }
       this.loginId = null;
-      if (!this.stopped) this.publish({ status: 'error', error: 'disconnected' });
+      if (!this.stopped && !this.reconnecting) this.publish({ status: 'error', error: 'disconnected' });
     });
   }
 
@@ -74,6 +75,26 @@ class Monitor extends EventEmitter {
       }
     });
     return this.inflight;
+  }
+
+  reconnect() {
+    if (this.stopped) return Promise.resolve(this.state);
+    if (this.reconnecting) return this.reconnecting;
+    // Do not interrupt a browser sign-in or its cancellation RPC.
+    if (this.loginAttempt || this.loginTask) return this.refresh();
+    const task = Promise.resolve().then(async () => {
+      if (this.stopped) return this.state;
+      if (this.loginAttempt || this.loginTask) return this.refresh();
+      this.accountRevision++;
+      this.credentialsGeneration = null;
+      this.failures = 0;
+      // Abort requests left pending across suspend before starting a fresh poll.
+      this.client.stop();
+      if (this.inflight) await this.inflight;
+      return this.refresh();
+    });
+    this.reconnecting = task.finally(() => { this.reconnecting = null; });
+    return this.reconnecting;
   }
 
   async read() {
@@ -106,7 +127,12 @@ class Monitor extends EventEmitter {
       this.failures = 0;
       this.publish({ account, buckets: normalizeLimits(result), updatedAt: Date.now(), status: 'ready', error: null });
     } catch (error) {
+      if (revision !== this.accountRevision || this.stopped) return this.state;
       this.emit('diagnostic', { stage, code: error.code || error.name });
+      // RPC errors can leave a live server holding expired or externally rotated
+      // credentials. The next backed-off poll must reconnect and reload its store.
+      this.credentialsGeneration = null;
+      if (!this.loginAttempt && !this.loginTask) this.client.stop();
       this.failures = Math.min(this.failures + 1, 4);
       this.publish({ status: 'error', error: 'refreshFailed' });
     } finally { this.publish({ refreshing: false }); }

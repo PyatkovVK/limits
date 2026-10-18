@@ -14,6 +14,7 @@ function render(next) {
   const bucket = next.buckets.find(b => b.id === next.selectedId) || next.buckets.find(b => b.id === 'codex') || next.buckets[0];
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > 90000;
   document.body.classList.toggle('stale', Boolean(stale));
+  document.body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
   document.body.classList.toggle('low', !stale && [bucket?.short?.remaining, bucket?.weekly?.remaining].some(n => typeof n === 'number' && n <= 10));
   setText($('widget-account'), next.displayName || next.account?.email || t('connectAccount'));
   $('widget-account').title = next.account?.email || t('login');
@@ -22,6 +23,7 @@ function render(next) {
     const quota = bucket?.[kind];
     setText($(`${kind}-value`), quota?.remaining == null ? '—' : String(quota.remaining));
     if ($(`${kind}-bar`).value !== (quota?.remaining ?? 0)) $(`${kind}-bar`).value = quota?.remaining ?? 0;
+    $(`${kind}-bar`).closest('.quota').classList.toggle('limit-67', quota?.remaining === 67);
   }
   resetAt = bucket?.short?.resetsAt;
   weeklyResetAt = bucket?.weekly?.resetsAt;

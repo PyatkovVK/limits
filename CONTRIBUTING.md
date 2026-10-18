@@ -15,18 +15,22 @@ For a feature request, explain the task you want to accomplish and how the propo
 ## Prepare a change
 
 1. Fork the repository on GitHub and clone your fork.
-2. Create a task branch with the `limits/` prefix, for example `git switch -c limits/improve-installation`.
+2. Create a feature/task branch **only** with the exact `limits/` prefix and a nonempty description, for example `git switch -c limits/improve-installation`. This is required for features, fixes, refactors and documentation, including branches in forks; do not create new task branches under `feature/`, `fix/` or `codex/`.
 3. Install dependencies with `npm install` using Node.js 22.12 or newer.
 4. Run `npm run demo` to view the UI without signing in. See the [development guide](docs/development.md) for platform prerequisites.
 5. Make a focused change. Keep shared behavior in `src/common` and platform behavior in the corresponding platform directory.
 
 If the default branch does not yet contain the app, choose `create-mvp` as your starting branch and PR base. Once the app is available in `main`, use `main`.
 
+`main`, numeric version branches and their `-demo` variants are reserved for integration and release work. See the [branch naming requirements](requirements/common/build-and-release.md#branch-naming) and [GitHub ruleset setup](docs/github-rulesets.md) for enforcement and its limits.
+
+AI contributors should start with [local AI skills](docs/ai-skills.md) and follow local `AGENTS.md` instructions when present. Run `npm run setup:skills` to restore the ignored local `skills/` directory, then load the applicable skill. Platform-specific work defaults to the current host's platform directory; explicitly shared work stays in `src/common/`.
+
 ## Validate your change
 
 - **Behavior changes:** run `npm test`. Add or adjust tests for meaningful behavior, especially usage calculations, account isolation, and platform regressions.
 - **UI changes:** run `npm run smoke` on the affected OS, inspect the result, and attach a demo screenshot. For Windows onboarding, use `npm run smoke:onboarding` where relevant.
-- **Packaging changes:** build on the target OS with `npm run build:win`, `npm run build:mac`, or `npm run build:linux` and check the generated package.
+- **Packaging changes:** build on the target OS with an explicit platform/architecture command, such as `npm run build:win:x64`, `npm run build:mac:arm64`, `npm run build:mac:x64`, or `npm run build:linux:x64`, and check the generated package. See the [build commands and CI routing](docs/development.md#build-packages).
 - **Documentation changes:** check links, image paths, commands, and consistency between `README.md` and `README.ru.md`. App builds are not necessary for text-only edits.
 
 Live checks require sign-in and should only be used when demo mode cannot verify the change. Do not include real account details in PR attachments.

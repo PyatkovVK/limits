@@ -1,4 +1,4 @@
-name: Build and release
+name: Test, build and release
 
 on:
   push:
@@ -6,22 +6,18 @@ on:
       - '**'
   workflow_dispatch:
   pull_request:
-    branches:
-      - '1.0-fix'
-      - '1.1-demo'
-      - '1.3-demo'
 
 permissions:
   contents: read
 
 # Serialize updates of the same release, including its tag and downloadable files.
 concurrency:
-  group: release-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   check-branch:
-    name: Check release branch
+    name: Select branch pipeline
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.branch.outputs.build }}
@@ -32,45 +28,35 @@ jobs:
       prerelease: ${{ steps.branch.outputs.prerelease }}
       check: ${{ steps.branch.outputs.check }}
     steps:
-      - name: Select release and test builds
+      - name: Select tests, packages and publication
         id: branch
         uses: actions/github-script@v9
         with:
           script: |
-            const match = /^refs\/heads\/((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)$/.exec(context.ref);
-            const isMain = context.ref === 'refs/heads/main';
-            const isFix = context.ref === 'refs/heads/1.0-fix';
-            const isTestPull = context.eventName === 'pull_request' && context.payload.pull_request?.base.ref === '1.0-fix';
-            const demoBranches = ['1.1-demo', '1.3-demo'];
-            const isDemo = demoBranches.some(branch => context.ref === `refs/heads/${branch}`) ||
-              (context.eventName === 'pull_request' && demoBranches.includes(context.payload.pull_request?.base.ref));
-            if (isDemo) {
-              core.setOutput('build', 'false');
-              core.setOutput('publish', 'false');
-              core.setOutput('tag', '');
-              core.setOutput('check', String(context.payload.deleted !== true));
-              core.info('Demo changes run tests without packaging, uploading artifacts or publishing releases.');
-              return;
-            }
-            const testBuild = isFix || isTestPull;
-            const publish = Boolean(match) && !isTestPull;
-            const build = (isMain || testBuild || Boolean(match)) && context.payload.deleted !== true;
+            const isPull = context.eventName === 'pull_request';
+            const branch = isPull ? context.payload.pull_request?.head.ref || '' :
+              context.ref.startsWith('refs/heads/') ? context.ref.slice('refs/heads/'.length) : '';
+            const active = ['push', 'workflow_dispatch', 'pull_request'].includes(context.eventName) &&
+              context.payload.deleted !== true && branch !== '';
+            const match = /^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)(-demo)?$/.exec(branch);
+            const isVersion = Boolean(match) && match[0] === branch;
+            const build = active && (branch === 'main' || isVersion);
+            const publish = build && isVersion && !match[2] && !isPull;
+            const version = build && isVersion ?
+              (match[1].split('.').length === 2 ? `${match[1]}.0` : match[1]) : '';
             core.setOutput('build', String(build));
-            if (!build) {
-              core.info(`Skipping ${context.ref}: no build or publication is needed.`);
-              return;
-            }
-            const branch = isTestPull ? context.payload.pull_request.head.ref : isMain ? 'main' : isFix ? '1.0-fix' : match[1];
-            const version = isMain || testBuild ? '' : (branch.split('.').length === 2 ? `${branch}.0` : branch);
             core.setOutput('publish', String(publish));
+            core.setOutput('check', String(active && !build));
             core.setOutput('branch', branch);
             core.setOutput('version', version);
             core.setOutput('tag', publish ? `v${branch}` : '');
-            core.setOutput('prerelease', String(isMain || testBuild));
-            core.info(`Building ${branch} for Windows, macOS and Linux.`);
+            core.setOutput('prerelease', 'false');
+            core.info(!active ? `Skipping ${context.ref}.` : build ?
+              `Testing, building and verifying ${branch}; publication: ${publish}.` :
+              `Running tests only for ${branch}.`);
 
   check:
-    name: Test demo on ${{ matrix.os }}
+    name: Test on ${{ matrix.os }}
     needs: check-branch
     if: needs.check-branch.outputs.check == 'true'
     runs-on: ${{ matrix.os }}
@@ -106,25 +92,28 @@ jobs:
             os: windows-latest
             target: win
             arch: x64
+            script: build:win:x64
           - name: macOS Apple Silicon
             os: macos-15
             target: mac
             arch: arm64
+            script: build:mac:arm64
           - name: macOS Intel
             os: macos-15-intel
             target: mac
             arch: x64
+            script: build:mac:x64
           - name: Linux x64
             os: ubuntu-24.04
             target: linux
             arch: x64
+            script: build:linux:x64
     defaults:
       run:
         shell: bash
     env:
       RELEASE_VERSION: ${{ needs.check-branch.outputs.version }}
-      BUILD_TARGET: ${{ matrix.target }}
-      BUILD_ARCH: ${{ matrix.arch }}
+      BUILD_SCRIPT: ${{ matrix.script }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -145,20 +134,15 @@ jobs:
         env:
           CODEX_LIMITS_RELEASE: '1'
           CODEX_LIMITS_ALLOW_UNSIGNED: '1'
-          WIN_CSC_LINK: ${{ matrix.target == 'win' && secrets.WIN_CSC_LINK || '' }}
-          WIN_CSC_KEY_PASSWORD: ${{ matrix.target == 'win' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
-          CSC_LINK: ${{ matrix.target == 'mac' && secrets.MAC_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.target == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
-          APPLE_ID: ${{ matrix.target == 'mac' && secrets.APPLE_ID || '' }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ matrix.target == 'mac' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ matrix.target == 'mac' && secrets.APPLE_TEAM_ID || '' }}
-        run: |
-          if [[ "$BUILD_TARGET" == 'win' ]]; then
-            npm run build:win
-          else
-            npm run "build:$BUILD_TARGET" -- "--$BUILD_ARCH"
-          fi
-      - name: Save packages for publication
+          WIN_CSC_LINK: ${{ github.event_name != 'pull_request' && matrix.target == 'win' && secrets.WIN_CSC_LINK || '' }}
+          WIN_CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && matrix.target == 'win' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+          CSC_LINK: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_TEAM_ID || '' }}
+        run: npm run "$BUILD_SCRIPT"
+      - name: Save packages
         uses: actions/upload-artifact@v7
         with:
           name: packages-${{ matrix.target }}-${{ matrix.arch }}
@@ -172,21 +156,14 @@ jobs:
           compression-level: 0
           retention-days: 7
 
-  publish:
-    name: Verify packages and publish release
+  verify:
+    name: Verify all packages and save checksums
     needs: [check-branch, build]
     if: needs.check-branch.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: write
     env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      RELEASE_BRANCH: ${{ needs.check-branch.outputs.branch }}
       RELEASE_VERSION: ${{ needs.check-branch.outputs.version }}
-      RELEASE_TAG: ${{ needs.check-branch.outputs.tag }}
-      RELEASE_PRERELEASE: ${{ needs.check-branch.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -221,8 +198,35 @@ jobs:
             fi
           done
           sha256sum "${packages[@]}" > SHA256SUMS.txt
+      - name: Save checksums
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-checksums
+          path: release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish version release
+    needs: [check-branch, verify]
+    if: needs.check-branch.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_BRANCH: ${{ needs.check-branch.outputs.branch }}
+      RELEASE_TAG: ${{ needs.check-branch.outputs.tag }}
+      RELEASE_PRERELEASE: ${{ needs.check-branch.outputs.prerelease }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: packages-*
+          path: release
+          merge-multiple: true
       - name: Point the release tag at the built commit
-        if: needs.check-branch.outputs.publish == 'true'
         uses: actions/github-script@v9
         with:
           script: |
@@ -236,7 +240,6 @@ jobs:
             }
             await github.rest.git.updateRef({ ...context.repo, ref, sha: context.sha, force: true });
       - name: Create or update the release and upload packages
-        if: needs.check-branch.outputs.publish == 'true'
         shell: bash
         run: |
           notes_file="$RUNNER_TEMP/release-notes.md"

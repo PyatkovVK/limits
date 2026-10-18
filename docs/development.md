@@ -30,8 +30,10 @@ In PowerShell, use `npm.cmd` if execution policy blocks `npm.ps1`. Reinstall dep
 | `npm run doctor` | Real Codex connection diagnostics without printing tokens or email |
 | `npm run smoke` | Demo Electron UI smoke check and screenshots in `artifacts/` |
 | `npm run smoke:onboarding` | Windows first-run sign-in with empty storage, without opening a browser |
+| `npm run smoke:accounts` | Account trash actions, errors and the 67% animation in isolated demo storage, including the Windows widget |
 | `npm run smoke:updates` | Shared update UI in RU/EN, modal dismissal, errors and trusted IPC, using simulated releases and isolated demo storage |
 | `npm run smoke:panel-follow` | Windows widget dragging with open and dismissed details panels, using isolated demo storage |
+| `npm run smoke:widget-startup` | Windows widget native order and foreground focus on a fresh launch, tray-mode/fullscreen restoration, and unchanged polling, without taskbar clicks |
 | `npm run smoke:live` | UI check using a signed-in account |
 | `npm run smoke:live -- --smoke-gpu --smoke-stability` | GPU and stability observation using a signed-in account |
 
@@ -87,12 +89,13 @@ Build on the target OS after installing dependencies:
 
 | Host | Command | Output |
 | --- | --- | --- |
-| Windows x64 | `npm run build:win` | Portable EXE and per-user NSIS installer with the Codex component |
-| macOS Apple Silicon | `npm run build:mac -- --arm64` | DMG and ZIP |
-| macOS Intel | `npm run build:mac -- --x64` | DMG and ZIP |
-| Linux x64 | `npm run build:linux -- --x64` | AppImage and DEB |
+| Windows x64 | `npm run build:win:x64` | Portable EXE and per-user NSIS installer with the Codex component |
+| macOS Apple Silicon | `npm run build:mac:arm64` | DMG and ZIP |
+| macOS Intel | `npm run build:mac:x64` | DMG and ZIP |
+| Linux x64 | `npm run build:linux:x64` | AppImage and DEB |
+| Linux arm64 (local only) | `npm run build:linux:arm64` | AppImage and DEB |
 
-macOS and Linux default to the current Node.js architecture if none is specified. Linux also accepts `--arm64` for local builds; the release matrix publishes Linux x64. `npm run build:win:standalone` is a compatibility command for the same bundled Windows app with the older Standalone filenames.
+`package.json` groups preparation, Windows, macOS and Linux commands separately. CI uses the explicit architecture commands above. The existing `build:win`, `build:mac` and `build:linux` commands remain available; macOS and Linux default to the current Node.js architecture and also accept `-- --arm64` or `-- --x64`. The release matrix includes Linux x64. `npm run build:win:standalone` is a compatibility command for the same bundled Windows app with the older Standalone filenames.
 
 Finished packages are written to `release/`; local build commands do not publish anything. Intermediate files use the OS temporary directory, which needs about 2 GB of free space. Windows builds without signing credentials are unsigned. macOS builds use ad hoc signing unless a certificate is configured. Signing and macOS notarization follow the policy below.
 
@@ -113,15 +116,22 @@ Local development builds without `CODEX_LIMITS_RELEASE=1` remain available witho
 
 ## Automated releases
 
-The [Build and release workflow](../.github/workflows/release.yml) runs on pushes, manual dispatch, and pull requests into `1.0-fix` or `1.1-demo`. Only exact numeric branches such as `1.0` or `1.0.0` build and publish releases. The `main` and `1.0-fix` branches and pull requests into `1.0-fix` build all four targets, upload packages as workflow artifacts, and verify all eight packages and their checksums, without publishing a release or creating a tag. Other branches, including `create-mvp`, only pass the branch gate. Tag pushes do not trigger a build.
+Create feature/task branches only as `limits/<description>`, for example `limits/improve-installation`; the prefix is mandatory for fixes, refactors and documentation as well. `main`, numeric versions and numeric `-demo` branches are reserved for integration and releases. The [branch naming requirements](../requirements/common/build-and-release.md#branch-naming) define this policy, and the [GitHub ruleset guide](github-rulesets.md) explains server enforcement.
 
-The `1.1-demo` branch and pull requests into it only run `npm test` on Windows, macOS and Linux. Merges into this branch do not package apps, upload Actions artifacts, create tags or publish GitHub Releases. Merge the workflow change before the feature PRs to enable these checks on the demo branch.
+The [Test, build and release workflow](../.github/workflows/release.yml) runs on every branch push, manual branch dispatch, and pull request to any target. Routing uses exact branch names and patterns, with no per-version demo list or legacy fix-branch exception. See the agreed [build and release requirements](../requirements/common/build-and-release.md).
 
-- `main` uses the version in `package.json` and saves packages in Actions artifacts for seven days; it does not create a `latest` release or tag.
-- A numeric branch publishes `v<branch>`. A two-part branch such as `1.0` produces package version `1.0.0`.
-- The version override happens inside CI, without a version commit to the branch.
-- All four build targets must pass tests and packaging before publication.
-- Each release includes eight app packages and `SHA256SUMS.txt`. Files are uploaded to a draft before the release becomes public.
-- A later push to the same numeric branch updates that release's tag and assets. Other release versions are preserved.
+| Branch | Tests | Packaging and verification | Publication |
+| --- | --- | --- | --- |
+| `main` | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | No release or tag |
+| Numeric version, e.g. `1.4`, `2.0`, `3.2.1` | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | Publish/update `v<branch>` |
+| Numeric version with `-demo`, e.g. `1.4-demo`, `2.0-demo` | Each of the four build targets | The full package pipeline, including artifact uploads and SHA-256 verification | No release or tag |
+| Every other branch, including `1.0-fix` and feature branches | Windows, macOS and Linux | No packaging or uploads | No release or tag |
 
-The workflow must exist in the selected branch. Publishing uses the job's standard `GITHUB_TOKEN` with `contents: write`. See [CHANGELOG.md](../CHANGELOG.md) for user-facing release contents.
+Pull requests use the **source** branch for this table and test the proposed merge result. A feature branch targeting `1.4-demo` therefore runs tests only; a PR from `1.4-demo` runs full package verification. PR runs never publish or move tags and receive no signing secrets. Manual branch runs use the same rules as pushes. Tag pushes do not trigger CI, and tag refs or deleted branches cannot build or publish.
+
+- `main` uses the version in `package.json`. Numeric and demo branches derive the package version from the numeric name: `1.4` and `1.4-demo` produce `1.4.0`; `3.2.1-demo` produces `3.2.1`. The override occurs inside CI without a version commit or npm-created tag.
+- All four build jobs run tests before packaging. A separate job with read-only repository access verifies that all eight packages exist and are nonempty, calculates `SHA256SUMS.txt`, and saves it as `packages-checksums`. Packages and checksums stay in Actions artifacts for seven days, including on `main` and demo branches.
+- Only numeric branch pushes or manual runs can enter the publication job, after all tests, builds and verification pass. It uses the standard `GITHUB_TOKEN` with `contents: write`, points `v<branch>` at the built commit, uploads the eight packages and checksums to a draft, then makes the release public.
+- A later run for the same numeric branch updates that release's tag and assets. Other versions are preserved, and runs for the same workflow/ref are serialized.
+
+The workflow must exist in the selected branch; manual dispatch also requires it on the default branch. See [CHANGELOG.md](../CHANGELOG.md) for release contents.

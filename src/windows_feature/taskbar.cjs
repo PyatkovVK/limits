@@ -140,7 +140,13 @@ class WidgetPlacement {
       this.actual = target.getBounds();
       this.changes.bounds++;
     }
-    if (!target.isVisible()) { target.showInactive(); this.changes.shows++; }
+    if (!target.isVisible()) {
+      target.showInactive();
+      // Ownership is assigned while hidden. Complete the first show in front of
+      // the taskbar without waiting for Explorer to be activated by a click.
+      target.moveTop();
+      this.changes.shows++;
+    }
   }
 }
 module.exports = { TaskbarProbe, widgetBounds, WidgetPlacement };

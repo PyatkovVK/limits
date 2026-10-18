@@ -132,6 +132,20 @@ class TaskbarProbe {
   }
   static void Main(string[] args) {
     try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch { SetProcessDPIAware(); }
+    if (args.Length == 3 && args[0] == "--test-widget-order") {
+      Owner = UInt32.Parse(args[1]); Widget = new IntPtr(Int64.Parse(args[2]));
+      uint pid; GetWindowThreadProcessId(Widget, out pid);
+      if (pid != Owner) { Environment.ExitCode = 1; return; }
+      // Read the actual order before any test raises the owner. This also works
+      // while the widget is hidden, so smoke checks can compare foreground focus.
+      IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
+      bool attached = taskbar != IntPtr.Zero && GetWindow(Widget, 4) == taskbar;
+      Console.WriteLine("{\"visible\":" + (IsWindowVisible(Widget) ? "true" : "false") +
+        ",\"attached\":" + (attached ? "true" : "false") +
+        ",\"aboveTaskbar\":" + (taskbar != IntPtr.Zero && AboveTaskbar(taskbar) ? "true" : "false") +
+        ",\"foreground\":\"" + GetForegroundWindow().ToInt64() + "\"}");
+      return;
+    }
     if (args.Length == 3 && args[0] == "--test-window-mode") {
       uint testOwner = UInt32.Parse(args[1]);
       IntPtr testWindow = new IntPtr(Int64.Parse(args[2]));

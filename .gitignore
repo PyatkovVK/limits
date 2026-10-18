@@ -2,6 +2,12 @@
 node_modules/
 /package-lock.json
 
+# Local AI skills (restore repository defaults with npm run setup:skills)
+/skills/
+/.cursor/
+/AGENTS.md
+/CLAUDE.md
+
 # Generated assets, builds and release artifacts
 /assets/app.ico
 /assets/app.png

@@ -8,8 +8,13 @@ const { Monitor } = require('./monitor.cjs');
 const { Accounts } = require('./accounts.cjs');
 const { AppearanceStore } = require('./appearance.cjs');
 const { Updates } = require('./updates.cjs');
+const { ResetNotifications } = require('./reset-notifications.cjs');
+const { eventText: resetEventText, words: resetWords } = require('./renderer/reset-strings.js');
 let updates;
+let resetNotifications;
+const resetToasts = new Set();
 let appearance;
+let stopSessionWatch;
 const { selectedBucket, isStale } = require('./limits.cjs');
 const { widgetBounds } = require('../windows_feature/taskbar.cjs');
 const { TaskbarWidget, taskbarHelperPath } = require('../windows_feature/widget.cjs');
@@ -41,7 +46,7 @@ function showPanel(anchor) {
   if (!window || window.isDestroyed()) return;
   if (widgetSettings.displayMode === 'notch') return appleNotch?.expand();
   if (macPanel) return macPanel.show(anchor);
-  if (linuxPanel) return linuxPanel.show();
+  if (linuxPanel) return linuxPanel.show(anchor);
   if (windowsPanel) return windowsPanel.show(anchor);
   const bounds = process.platform === 'linux' ? null : anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
   const display = bounds?.width ? screen.getDisplayMatching(bounds) : screen.getPrimaryDisplay();
@@ -56,6 +61,7 @@ function showPanel(anchor) {
 const displayModes = () => taskbarSupported ? ['widget', 'tray'] : process.platform === 'darwin' && appleNotch?.available ? ['tray', 'notch'] : ['tray'];
 function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, reducedMotion: nativeTheme.prefersReducedMotion, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: displayModes(), appleNotch: appleNotch?.snapshot() || null, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null,
   updates: updates?.snapshot(),
+  resetNotifications: resetNotifications?.snapshot(),
   preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle,
     startup: startupState({ app, platform: process.platform, demo, smoke }) } }; }
 function persistWidgetSettings() {
@@ -138,6 +144,19 @@ function update() {
 function trusted(event) { return [window, widget, appleNotch?.window].some(target => target && event.sender === target.webContents && event.senderFrame === target.webContents.mainFrame); }
 function handle(channel, fn) { ipcMain.handle(channel, (event, ...args) => { if (!trusted(event)) throw new Error('Unauthorized'); return fn(...args); }); }
 
+function showResetNotification(event) {
+  if (quitting || !Notification.isSupported()) return false;
+  const notification = new Notification({ title: 'Limits · Codex Resets', body: `${resetEventText(event, widgetSettings.language)}\n${(resetWords[widgetSettings.language] || resetWords.en).source}codex-resets.com` });
+  // Retain native objects so click/failure events survive garbage collection.
+  resetToasts.add(notification);
+  while (resetToasts.size > 8) resetToasts.delete(resetToasts.values().next().value);
+  notification.once('click', () => { void resetNotifications.openLink('site'); });
+  notification.once('close', () => resetToasts.delete(notification));
+  notification.once('failed', () => { resetToasts.delete(notification); resetNotifications.deliveryFailed(event.key); });
+  notification.show();
+  return true;
+}
+
 const webPreferences = { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true };
 const helperPath = taskbarHelperPath(app.isPackaged ? process.resourcesPath : null);
 function restrictWindow(target) {
@@ -200,6 +219,8 @@ async function setup() {
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
   updates = new Updates({ currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
+  resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'),
+    notify: showResetNotification, openExternal: url => shell.openExternal(url) });
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
@@ -218,6 +239,9 @@ async function setup() {
   handle('limits:updates-open', () => updates.openRelease());
   handle('limits:updates-dismiss', version => updates.dismiss(version));
   handle('limits:updates-demo', scenario => updates.setDemoScenario(scenario));
+  handle('limits:reset-notifications-set', value => resetNotifications.setEnabled(value));
+  handle('limits:reset-notifications-open', kind => resetNotifications.openLink(kind));
+  handle('limits:reset-notifications-demo', scenario => resetNotifications.setDemoScenario(scenario));
   const appearanceResult = action => {
     try {
       action();
@@ -323,13 +347,19 @@ async function setup() {
   } catch { state = { ...state, status: 'error', error: 'codexMissing' }; }
   update();
   tick = setInterval(update, 15000);
-  powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); });
+  if (process.platform === 'linux') {
+    stopSessionWatch = require('../linux_feature/session.cjs').watchSession({ powerMonitor,
+      refresh: () => { void monitor?.refresh({ reconnect: true }); void updates.resume(); void resetNotifications.resume(); }
+    });
+  } else powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); void resetNotifications.resume(); });
   if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden'))) await showPanel();
   updates.on('state', update);
   updates.on('offer', () => {
     if (!quitting) void Promise.resolve(showPanel()).catch(() => {});
   });
   void updates.start();
+  resetNotifications.on('state', update);
+  void resetNotifications.start();
   if (smoke && !taskbarSupported) {
     try {
       await monitor?.refresh();
@@ -525,4 +555,4 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; updates?.stop(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
+app.on('before-quit', () => { quitting = true; stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop(); for (const notification of resetToasts) notification.close(); resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });

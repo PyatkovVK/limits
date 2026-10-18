@@ -75,13 +75,14 @@ test('off-taskbar and unavailable accessibility geometry preserve the usual tray
 
 function fakeWidget() {
   return {
-    bounds: { x: 0, y: 0, width: 320, height: 39 }, visible: false,
+    bounds: { x: 0, y: 0, width: 320, height: 39 }, visible: false, aboveTaskbar: false, raises: 0,
     isDestroyed: () => false,
     isVisible() { return this.visible; },
     getBounds() { return { ...this.bounds }; },
     setBounds(bounds) { this.bounds = { ...bounds, height: Math.max(39, bounds.height) }; },
-    showInactive() { this.visible = true; },
-    hide() { this.visible = false; }
+    showInactive() { this.visible = true; this.aboveTaskbar = false; },
+    moveTop() { assert.ok(this.visible, 'Raise the widget after showing it'); this.aboveTaskbar = true; this.raises++; },
+    hide() { this.visible = false; this.aboveTaskbar = false; }
   };
 }
 test('polling accepted Windows bounds never repeatedly resizes or shows the widget', () => {
@@ -90,6 +91,18 @@ test('polling accepted Windows bounds never repeatedly resizes or shows the widg
   for (let i = 0; i < 100; i++) placement.apply(base, { visible: true, width: 320 });
   assert.deepEqual(placement.changes, { bounds: 1, shows: 1, hides: 0 });
   assert.equal(target.bounds.height, 39); // Windows rejected the requested 34 px height.
+  assert.equal(target.raises, 1);
+  assert.equal(target.aboveTaskbar, true);
+});
+
+test('the first taskbar observation shows the widget above Explorer without activation', () => {
+  const target = fakeWidget();
+  // No focus/show method: initial display must preserve the foreground app.
+  const placement = new WidgetPlacement(target);
+  placement.apply(base, { visible: true });
+  assert.equal(target.isVisible(), true);
+  assert.equal(target.aboveTaskbar, true);
+  assert.equal(target.raises, 1);
 });
 test('hiding and returning from fullscreen each happen once without redundant resizing', () => {
   const placement = new WidgetPlacement(fakeWidget());
@@ -98,6 +111,24 @@ test('hiding and returning from fullscreen each happen once without redundant re
   for (let i = 0; i < 10; i++) placement.apply({ ...base, fullscreen: true }, settings);
   for (let i = 0; i < 10; i++) placement.apply(base, settings);
   assert.deepEqual(placement.changes, { bounds: 1, shows: 2, hides: 1 });
+  assert.equal(placement.window.aboveTaskbar, true);
+  assert.equal(placement.window.raises, 2);
+});
+
+test('hidden settings and unavailable taskbars do not raise the widget; restoring it does', () => {
+  const target = fakeWidget();
+  const placement = new WidgetPlacement(target);
+  const settings = { visible: true };
+  for (const metrics of [{ available: false }, { ...base, visible: false }, { ...base, fullscreen: true }]) {
+    placement.apply(metrics, settings);
+  }
+  placement.apply(base, { visible: false });
+  assert.equal(target.raises, 0);
+  placement.apply(base, settings);
+  placement.apply(base, { visible: false });
+  placement.apply(base, settings);
+  assert.equal(target.aboveTaskbar, true);
+  assert.equal(target.raises, 2);
 });
 test('actual geometry changes still update widget position and width', () => {
   const placement = new WidgetPlacement(fakeWidget());

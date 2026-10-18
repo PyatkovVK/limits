@@ -11,7 +11,7 @@ const pkg = require('../package.json');
 
 const workflow = yaml.load(fs.readFileSync(path.join(__dirname, '../.github/workflows/release.yml'), 'utf8'));
 const steps = workflow.jobs.publish.steps;
-const verification = steps.find(step => step.name === 'Verify all packages and calculate checksums').run;
+const verification = workflow.jobs.verify.steps.find(step => step.name === 'Verify all packages and calculate checksums').run;
 const publication = steps.find(step => step.name === 'Create or update the release and upload packages').run;
 const bash = process.platform === 'win32'
   ? path.join(process.env.ProgramFiles || 'C:/Program Files', 'Git', 'bin', 'bash.exe') : '/bin/bash';
@@ -44,8 +44,8 @@ function fixture(version, callback) {
   }
 }
 
-test('actual publication preflight verifies eight packages and hashes main and overridden versions', options, () => {
-  for (const version of ['', '2.1.0']) fixture(version, (root, run) => {
+test('actual package preflight verifies eight packages and hashes main, demo and release versions', options, () => {
+  for (const version of ['', '1.4.0', '2.1.0', '3.10.2']) fixture(version, (root, run) => {
     const result = run(verification);
     assert.equal(result.status, 0, result.stderr);
     const lines = fs.readFileSync(path.join(root, 'release', 'SHA256SUMS.txt'), 'utf8').trim().split('\n');
