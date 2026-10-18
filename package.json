@@ -20,6 +20,7 @@
     "smoke:updates": "npm run prepare:app && electron scripts/smoke-updates.cjs",
     "smoke:resets": "npm run prepare:app && electron scripts/smoke-resets.cjs",
     "smoke:panel-follow": "npm run prepare:app && electron scripts/smoke-windows-panel-follow.cjs",
+    "smoke:widget-startup": "npm run prepare:app && electron src/windows_feature/scripts/smoke-widget-startup.cjs",
     "================BUILD================": "",
     "prepare:app": "node \"src/windows_feature/scripts/assets.cjs\" && node \"src/windows_feature/scripts/build-taskbar-helper.cjs\" && node \"src/apple_feature/scripts/build-helper.cjs\"",
     "prepare:assets": "node \"src/windows_feature/scripts/assets.cjs\"",
