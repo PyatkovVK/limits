@@ -45,7 +45,7 @@ function showPanel(anchor) {
   if (!window || window.isDestroyed()) return;
   if (widgetSettings.displayMode === 'notch') return appleNotch?.expand();
   if (macPanel) return macPanel.show(anchor);
-  if (linuxPanel) return linuxPanel.show();
+  if (linuxPanel) return linuxPanel.show(anchor);
   if (windowsPanel) return windowsPanel.show(anchor);
   const bounds = process.platform === 'linux' ? null : anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
   const display = bounds?.width ? screen.getDisplayMatching(bounds) : screen.getPrimaryDisplay();

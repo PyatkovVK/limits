@@ -5,13 +5,18 @@ window.limitsLinuxPanelReady = window.renderReady.then(async () => {
   await document.fonts.ready;
   const main = document.querySelector('main');
   const titlebar = document.querySelector('.titlebar');
+  const content = document.createElement('div');
+  content.className = 'linux-panel-content';
+  content.append(...main.childNodes);
+  main.append(content);
   let lastHeight, frame = null;
   function measure() {
     const style = getComputedStyle(document.body);
+    const mainStyle = getComputedStyle(main);
     const border = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
-    // main.scrollHeight includes content beyond the current scroll viewport.
-    // body/document scrollHeight would retain the old, oversized window height.
-    return Math.ceil(titlebar.getBoundingClientRect().height + main.scrollHeight + border);
+    const padding = parseFloat(mainStyle.paddingTop) + parseFloat(mainStyle.paddingBottom);
+    // Measure intrinsic content so the minimum window height cannot prevent shrinking.
+    return Math.ceil(titlebar.getBoundingClientRect().height + content.getBoundingClientRect().height + padding + border);
   }
   function report() {
     frame = null;
@@ -26,7 +31,7 @@ window.limitsLinuxPanelReady = window.renderReady.then(async () => {
   const mutations = new MutationObserver(schedule);
   mutations.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
   const sizes = new ResizeObserver(schedule);
-  sizes.observe(main); sizes.observe(titlebar);
+  sizes.observe(content); sizes.observe(titlebar);
   // A details toggle can grow scrollHeight without changing the viewport size.
   document.addEventListener('toggle', schedule, true);
   window.addEventListener('resize', schedule);
