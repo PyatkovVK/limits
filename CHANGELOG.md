@@ -4,6 +4,10 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## Unreleased
 
+- Require all new feature/task branches to use the `limits/` prefix, reserve `main` and numeric release/demo branches for integration and releases, and document GitHub ruleset configuration and fork limitations.
+- Replace GitHub Actions branch routing: `main` keeps all packages in Actions artifacts; numeric version branches build and publish releases; numeric `-demo` branches run the full build, artifact upload and eight-package SHA-256 verification without creating tags or releases. Every other branch runs automated tests on Windows, macOS and Linux. Pull requests follow their source branch and never publish.
+- Group npm build commands by Windows, macOS and Linux, add explicit architecture commands, and use them in the CI build matrix while retaining existing commands.
+- Define the replacement CI flow, release boundary, platform commands and acceptance checks in [build and release requirements](requirements/common/build-and-release.md).
 - Documented the agreed 1.3 scope and acceptance criteria in the shared and platform requirements, including compact weekly countdowns and the distinction between runtime independence and future account-storage isolation.
 
 ## 1.3.0 (in development)

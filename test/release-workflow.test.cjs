@@ -21,31 +21,33 @@ async function checkBranch(ref, payload = {}, eventName = 'push') {
 test('main builds and verifies packages without creating a release or tag', async () => {
   for (const event of ['push', 'workflow_dispatch']) {
     assert.deepEqual(await checkBranch('refs/heads/main', {}, event), {
-      build: 'true', publish: 'false', branch: 'main', version: '', tag: '', prerelease: 'true',
+      build: 'true', publish: 'false', check: 'false', branch: 'main', version: '', tag: '', prerelease: 'false',
     });
   }
 });
 
 test('release gate publishes exact numeric version branches', async () => {
-  for (const [branch, version] of [['1.0', '1.0.0'], ['1.2', '1.2.0'], ['2.1', '2.1.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
-    assert.deepEqual(await checkBranch(`refs/heads/${branch}`), {
-      build: 'true', publish: 'true', branch, version, tag: `v${branch}`, prerelease: 'false',
-    });
+  for (const [branch, version] of [['1.4', '1.4.0'], ['2.1', '2.1.0'], ['3.0', '3.0.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
+    for (const event of ['push', 'workflow_dispatch']) {
+      assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), {
+        build: 'true', publish: 'true', check: 'false', branch, version, tag: `v${branch}`, prerelease: 'false',
+      });
+    }
   }
 });
 
-test('demo pushes and pull requests only run checks, including merge pushes', async () => {
-  const expected = { build: 'false', publish: 'false', tag: '', check: 'true' };
-  for (const branch of ['1.1-demo', '1.3-demo']) {
-    for (const event of ['push', 'workflow_dispatch']) assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), expected);
-    const payload = { pull_request: { base: { ref: branch }, head: { ref: 'limits/feature' } } };
+test('all version-demo branches run the full package pipeline without publication', async () => {
+  for (const [branch, version] of [['1.1-demo', '1.1.0'], ['1.3-demo', '1.3.0'], ['1.4-demo', '1.4.0'], ['2.0-demo', '2.0.0'], ['3.10.2-demo', '3.10.2']]) {
+    const expected = { build: 'true', publish: 'false', check: 'false', branch, version, tag: '', prerelease: 'false' };
+    for (const event of ['push', 'workflow_dispatch']) {
+      assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), expected);
+    }
+    const payload = { pull_request: { base: { ref: 'main' }, head: { ref: branch } } };
     assert.deepEqual(await checkBranch('refs/pull/10/merge', payload, 'pull_request'), expected);
-    assert.deepEqual(await checkBranch(`refs/heads/${branch}`, { deleted: true }), { ...expected, check: 'false' });
-    assert.deepEqual(await checkBranch(`refs/heads/${branch}-feature`), { build: 'false' });
   }
 });
 
-test('demo checks run portable tests on every OS without packaging or uploads', () => {
+test('ordinary branches run portable tests on every OS without packaging or uploads', () => {
   assert.equal(workflow.jobs.check.needs, 'check-branch');
   assert.equal(workflow.jobs.check.if, "needs.check-branch.outputs.check == 'true'");
   assert.deepEqual(workflow.jobs.check.strategy.matrix.os, ['windows-latest', 'macos-15', 'ubuntu-24.04']);
@@ -54,48 +56,62 @@ test('demo checks run portable tests on every OS without packaging or uploads', 
   assert.equal(workflow.jobs['check-branch'].outputs.check, '${{ steps.branch.outputs.check }}');
 });
 
-test('1.0-fix builds packages for testing without publishing a release', async () => {
-  assert.deepEqual(await checkBranch('refs/heads/1.0-fix'), {
-    build: 'true', publish: 'false', branch: '1.0-fix', version: '', tag: '', prerelease: 'true',
-  });
-  assert.deepEqual(await checkBranch('refs/heads/1.0-fix', { deleted: true }), { build: 'false' });
-});
-
-test('pull requests into 1.0-fix build test packages without publication', async () => {
-  const payload = { pull_request: { base: { ref: '1.0-fix' }, head: { ref: 'codex/fix-macos-signing-env' } } };
-  assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'pull_request'), {
-    build: 'true', publish: 'false', branch: 'codex/fix-macos-signing-env', version: '', tag: '', prerelease: 'true',
-  });
-  assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'workflow_dispatch'), { build: 'false' });
-  payload.pull_request.base.ref = 'main';
-  assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'pull_request'), { build: 'false' });
-});
-
-test('other branches, tags and branch deletions exit successfully without building', async () => {
-  for (const branch of ['create-mvp', 'develop', 'feature/2.1', 'release/2.1', 'fix-1.0', '1.0-fix/feature', '1.0-fix\n', 'v2.1', '2', '2.1-beta', '2.1.3.4', '02.1', 'main/feature', '2.1\n']) {
-    assert.deepEqual(await checkBranch(`refs/heads/${branch}`), { build: 'false' }, branch);
+test('pull requests use the source branch and cannot publish, including numeric sources', async () => {
+  for (const base of ['main', '1.4-demo', '2.0', 'develop']) {
+    for (const [branch, build, version] of [['codex/feature', false, ''], ['1.0-fix', false, ''], ['main', true, ''], ['1.4', true, '1.4.0'], ['2.0.1-demo', true, '2.0.1']]) {
+      const payload = { pull_request: { base: { ref: base }, head: { ref: branch } } };
+      assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'pull_request'), {
+        build: String(build), publish: 'false', check: String(!build), branch, version, tag: '', prerelease: 'false',
+      });
+    }
   }
-  assert.deepEqual(await checkBranch('refs/tags/2.1'), { build: 'false' });
-  assert.deepEqual(await checkBranch('refs/tags/main'), { build: 'false' });
-  assert.deepEqual(await checkBranch('refs/heads/2.1', { deleted: true }), { build: 'false' });
-  assert.deepEqual(await checkBranch('refs/heads/main', { deleted: true }), { build: 'false' });
+});
+
+test('every other branch runs tests, with no legacy or partial-name build exceptions', async () => {
+  for (const branch of ['create-mvp', 'develop', 'feature/2.1', 'release/2.1', 'fix-1.0', '1.0-fix', '1.0-fix/feature', '1.0-fix\n', 'v2.1', '2', '2.1-beta', '2.1.3.4', '02.1', '1.04-demo', 'main/feature', '2.1\n', '1.4-demo\n', '1.4-demo-feature', 'feature/1.4-demo', '1.x', '1.x-demo']) {
+    for (const event of ['push', 'workflow_dispatch']) {
+      assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), {
+        build: 'false', publish: 'false', check: 'true', branch, version: '', tag: '', prerelease: 'false',
+      }, branch);
+    }
+  }
+});
+
+test('tags, deleted branches and unsupported events do not test, build or publish', async () => {
+  const inactive = { build: 'false', publish: 'false', check: 'false', version: '', tag: '', prerelease: 'false' };
+  for (const ref of ['refs/tags/2.1', 'refs/tags/main', 'refs/pull/2/merge']) {
+    assert.deepEqual(await checkBranch(ref), { ...inactive, branch: '' });
+    assert.deepEqual(await checkBranch(ref, {}, 'workflow_dispatch'), { ...inactive, branch: '' });
+  }
+  for (const branch of ['main', '1.4', '1.4-demo', 'codex/feature']) {
+    assert.deepEqual(await checkBranch(`refs/heads/${branch}`, { deleted: true }), { ...inactive, branch });
+    assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, 'pull_request_target'), { ...inactive, branch });
+  }
+  assert.deepEqual(await checkBranch('refs/pull/2/merge', {}, 'pull_request'), { ...inactive, branch: '' });
 });
 
 test('all push branches reach the gate, and builds and publication require its approval', () => {
   assert.deepEqual(workflow.on.push.branches, ['**']);
   assert.ok(Object.hasOwn(workflow.on, 'workflow_dispatch'));
-  assert.deepEqual(workflow.on.pull_request.branches, ['1.0-fix', '1.1-demo', '1.3-demo']);
+  assert.ok(Object.hasOwn(workflow.on, 'pull_request'));
+  assert.equal(workflow.on.pull_request, null);
   assert.equal(workflow.jobs.build.needs, 'check-branch');
   assert.equal(workflow.jobs.build.if, "needs.check-branch.outputs.build == 'true'");
-  assert.deepEqual(workflow.jobs.publish.needs, ['check-branch', 'build']);
-  assert.equal(workflow.jobs.publish.if, "needs.check-branch.outputs.build == 'true'");
-  for (const name of ['Point the release tag at the built commit', 'Create or update the release and upload packages']) {
-    assert.equal(workflow.jobs.publish.steps.find(step => step.name === name).if, "needs.check-branch.outputs.publish == 'true'");
-  }
-  assert.equal(workflow.jobs.publish.steps.find(step => step.name === 'Verify all packages and calculate checksums').if, undefined);
+  assert.deepEqual(workflow.jobs.verify.needs, ['check-branch', 'build']);
+  assert.equal(workflow.jobs.verify.if, "needs.check-branch.outputs.build == 'true'");
+  assert.deepEqual(workflow.jobs.publish.needs, ['check-branch', 'verify']);
+  assert.equal(workflow.jobs.publish.if, "needs.check-branch.outputs.publish == 'true'");
+  assert.deepEqual(workflow.permissions, { contents: 'read' });
+  for (const job of ['check-branch', 'check', 'build', 'verify']) assert.equal(workflow.jobs[job].permissions, undefined);
+  assert.deepEqual(workflow.jobs.publish.permissions, { contents: 'write' });
   assert.equal(workflow.jobs['check-branch'].outputs.publish, '${{ steps.branch.outputs.publish }}');
-  // The only job on an unrelated branch performs no checkout or dependency install.
-  assert.equal(workflow.jobs['check-branch'].steps.length, 1);
+  const save = workflow.jobs.verify.steps.find(step => step.name === 'Save checksums');
+  assert.equal(save.with.name, 'packages-checksums');
+  assert.equal(save.with.path, 'release/SHA256SUMS.txt');
+  assert.equal(save.with['retention-days'], 7);
+  const download = workflow.jobs.publish.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.equal(download.with.pattern, 'packages-*');
+  assert.equal(download.with['merge-multiple'], true);
 });
 
 test('every release OS runs the full portable test suite', () => {
@@ -104,6 +120,27 @@ test('every release OS runs the full portable test suite', () => {
   assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'win'));
   assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'mac'));
   assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'linux'));
+});
+
+test('CI uses explicit package scripts for every target and keeps local publication disabled', () => {
+  const pkg = require('../package.json');
+  const { buildPlan } = require('../scripts/build-plan.cjs');
+  const matrix = workflow.jobs.build.strategy.matrix.include;
+  assert.deepEqual(matrix.map(target => target.script), ['build:win:x64', 'build:mac:arm64', 'build:mac:x64', 'build:linux:x64']);
+  for (const { target, arch, script } of matrix) {
+    assert.ok(pkg.scripts[script], script);
+    if (target === 'win') {
+      assert.equal(pkg.scripts[script], 'npm run build:win');
+      continue;
+    }
+    const [command, entrypoint, platform, flag] = pkg.scripts[script].split(' ');
+    assert.equal(command, 'node');
+    assert.equal(entrypoint, 'scripts/build.cjs');
+    assert.equal(platform, target);
+    assert.deepEqual(buildPlan(platform, [flag], { platform: target === 'mac' ? 'darwin' : 'linux' }).args,
+      [`--${target}`, `--${arch}`, '--publish=never']);
+  }
+  assert.equal(workflow.jobs.build.steps.find(step => step.name === 'Build packages').run, 'npm run "$BUILD_SCRIPT"');
 });
 
 test('publication expects the filenames electron-builder generates for all eight packages', () => {
@@ -128,7 +165,7 @@ test('publication expects the filenames electron-builder generates for all eight
     });
     return packager.expandArtifactNamePattern(pkg.build[target], extension, arch);
   });
-  const script = workflow.jobs.publish.steps.find(step => step.name === 'Verify all packages and calculate checksums').run;
+  const script = workflow.jobs.verify.steps.find(step => step.name === 'Verify all packages and calculate checksums').run;
   const list = /packages=\(([\s\S]*?)\)/.exec(script)[1];
   const expected = [...list.matchAll(/"([^"]+)"/g)].map(match => match[1].replaceAll('$version', pkg.version));
   assert.deepEqual(expected.sort(), actual.sort());
@@ -141,6 +178,9 @@ test('release builds allow absent certificates and receive signing secrets only 
   assert.ok(step.env.WIN_CSC_LINK.includes('secrets.WIN_CSC_LINK'));
   assert.ok(step.env.CSC_LINK.includes('secrets.MAC_CSC_LINK'));
   for (const key of ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID']) assert.ok(step.env[key].includes(`secrets.${key}`));
+  for (const value of Object.values(step.env).filter(value => value.includes('secrets.'))) {
+    assert.ok(value.includes("github.event_name != 'pull_request'"));
+  }
   assert.equal(workflow.jobs.build.env.CSC_LINK, undefined);
   assert.equal(workflow.jobs.build.env.CODEX_LIMITS_ALLOW_UNSIGNED, undefined);
 });
