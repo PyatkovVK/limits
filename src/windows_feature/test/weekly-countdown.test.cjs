@@ -10,7 +10,16 @@ const windowsI18n = require('../i18n.js');
 
 test('weekly widget countdown updates between samples and switches selected buckets', async () => {
   const nodes = new Map(); let listener, tick;
-  const node = id => { if (!nodes.has(id)) nodes.set(id, { textContent: '', value: 0, addEventListener() {} }); return nodes.get(id); };
+  const rows = new Map();
+  const node = id => {
+    if (!nodes.has(id)) {
+      const classes = new Set();
+      rows.set(id, classes);
+      nodes.set(id, { textContent: '', value: 0, addEventListener() {},
+        closest: () => ({ classList: { toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); } } }) });
+    }
+    return nodes.get(id);
+  };
   const now = Date.now(), unix = Math.ceil(now / 1000);
   const bucket = { id: 'codex', short: { resetsAt: unix + 3600, remaining: 50 }, weekly: { resetsAt: unix + 7 * 86400, remaining: 80 } };
   const sample = { language: 'ru', buckets: [bucket], updatedAt: now };
@@ -25,5 +34,14 @@ test('weekly widget countdown updates between samples and switches selected buck
   listener({ ...sample, language: 'en', selectedId: 'other', buckets: [bucket, { id: 'other', weekly: { resetsAt: unix - 1 } }] });
   assert.equal(node('weekly-reset').textContent, '0:00'); assert.equal(node('weekly-reset').language, 'en');
   listener({ ...sample, buckets: [] }); assert.equal(node('weekly-reset').textContent, '—');
+  listener({ ...sample, buckets: [{ ...bucket, short: { remaining: 67 }, weekly: { remaining: 66 } }] });
+  assert.equal(rows.get('short-bar').has('limit-67'), true);
+  assert.equal(rows.get('weekly-bar').has('limit-67'), false);
+  assert.equal(node('short-value').textContent, '67');
+  listener({ ...sample, buckets: [{ ...bucket, short: { remaining: 68 }, weekly: { remaining: 67 } }] });
+  assert.equal(rows.get('short-bar').has('limit-67'), false);
+  assert.equal(rows.get('weekly-bar').has('limit-67'), true);
+  listener({ ...sample, buckets: [] });
+  assert.equal(rows.get('weekly-bar').has('limit-67'), false);
   assert.equal(windowsI18n.t('ru', 'weeklyCompact'), '7д'); assert.equal(windowsI18n.t('en', 'weeklyCompact'), '7d');
 });

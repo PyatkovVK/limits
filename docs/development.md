@@ -30,6 +30,7 @@ In PowerShell, use `npm.cmd` if execution policy blocks `npm.ps1`. Reinstall dep
 | `npm run doctor` | Real Codex connection diagnostics without printing tokens or email |
 | `npm run smoke` | Demo Electron UI smoke check and screenshots in `artifacts/` |
 | `npm run smoke:onboarding` | Windows first-run sign-in with empty storage, without opening a browser |
+| `npm run smoke:accounts` | Account trash actions, errors and the 67% animation in isolated demo storage, including the Windows widget |
 | `npm run smoke:updates` | Shared update UI in RU/EN, modal dismissal, errors and trusted IPC, using simulated releases and isolated demo storage |
 | `npm run smoke:panel-follow` | Windows widget dragging with open and dismissed details panels, using isolated demo storage |
 | `npm run smoke:widget-startup` | Windows widget native order and foreground focus on a fresh launch, tray-mode/fullscreen restoration, and unchanged polling, without taskbar clicks |
