@@ -1,0 +1,15 @@
+.reset-section { border-top: 1px solid var(--edge, #414650); margin-top: 14px; padding-top: 12px; }
+.reset-section h3 { font-size: 12px; margin: 0 0 12px; }
+.reset-toggle-row { display: flex; align-items: center; gap: 12px; }
+.reset-toggle { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; font-size: 12px; line-height: 1.5; cursor: pointer; }
+.reset-toggle input { flex: none; margin: 0; width: 16px; height: 16px; accent-color: #7ecfba; }
+.reset-help-button { flex: none; border: 1px solid var(--edge, #414650); border-radius: 50%; width: 22px; height: 22px; padding: 0; background: var(--control, #222a33); color: var(--ink, #eee); font-weight: 600; }
+.reset-help { margin-top: 10px; border: 1px solid var(--edge, #414650); border-radius: 8px; padding: 10px; background: var(--surface, #202632); font-size: 11px; line-height: 1.6; }
+.reset-help p { margin: 0; }
+.reset-help p + p { margin-top: 8px; }
+.reset-section a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.reset-source { font-size: 10px; color: var(--muted, #aab3c3); margin: 8px 0; }
+.reset-result, .reset-summary { font-size: 11px; line-height: 1.6; margin: 8px 0; }
+.reset-section .footnote { color: var(--muted, #aab3c3); line-height: 1.5; }
+.reset-section select { color: var(--ink, #eee); background: var(--control, #222a33); }
+.reset-section button:focus-visible, .reset-section input:focus-visible, .reset-section a:focus-visible { outline: 2px solid #7ecfba; outline-offset: 3px; }

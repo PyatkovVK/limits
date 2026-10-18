@@ -17,6 +17,7 @@
     "smoke:live": "npm run prepare:app && electron . --smoke-test",
     "smoke:onboarding": "npm run prepare:app && electron scripts/smoke-onboarding.cjs",
     "smoke:updates": "npm run prepare:app && electron scripts/smoke-updates.cjs",
+    "smoke:resets": "npm run prepare:app && electron scripts/smoke-resets.cjs",
     "smoke:panel-follow": "npm run prepare:app && electron scripts/smoke-windows-panel-follow.cjs",
     "================BUILD================": "",
     "prepare:app": "node \"src/windows_feature/scripts/assets.cjs\" && node \"src/windows_feature/scripts/build-taskbar-helper.cjs\" && node \"src/apple_feature/scripts/build-helper.cjs\"",
