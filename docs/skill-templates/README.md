@@ -22,9 +22,9 @@ skills/
     └── SKILL.md                  # Instructions / Инструкция навыка
 ```
 
-`README.md` is the index; each skill's `SKILL.md` contains its full instructions. Read the linked skill before applying it. The repository's `AGENTS.md` is the starting point for agent discovery.
+`README.md` is the index; each skill's `SKILL.md` contains its full instructions. Read the linked skill before applying it. Start with the repository guide at `docs/ai-skills.md` and follow local `AGENTS.md` instructions when present.
 
-`README.md` — оглавление; полные правила каждого навыка находятся в его `SKILL.md`. Перед применением прочитайте навык по ссылке. Общая точка входа для AI — файл `AGENTS.md` в корне проекта.
+`README.md` — оглавление; полные правила каждого навыка находятся в его `SKILL.md`. Перед применением прочитайте навык по ссылке. Начните с руководства `docs/ai-skills.md` и следуйте локальным инструкциям `AGENTS.md`, если файл существует.
 
 ## Adding a skill / Добавление навыка
 
