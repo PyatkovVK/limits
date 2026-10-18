@@ -1,5 +1,7 @@
+body[data-platform="linux"] { min-height: 100vh; }
 body[data-platform="linux"] main {
   /* Keep line wrapping stable as the window grows and the scrollbar disappears. */
   scrollbar-gutter: stable;
 }
 body[data-platform="linux"] #settings-tray-style { width: 190px; }
+body[data-platform="linux"] .linux-panel-content { display: flow-root; }

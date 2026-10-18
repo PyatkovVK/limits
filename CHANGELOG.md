@@ -4,6 +4,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## 1.4.0
 
+- Enlarge the Linux details panel and interface, open above or below the activated tray indicator on its display, and preserve the attached edge as content grows and shrinks.
 - Move the additional-account disconnect action to a trash icon in each account heading, with localized accessible labels and protection against repeated clicks while disconnecting.
 - Celebrate a displayed 67% allowance with a brief SIX SEVEN animation and a pastel progress bar, including account cards and the Windows widget; respect reduced-motion preferences.
 - Add ignored local `skills/`, a single English/Russian README catalog with links and folder structure, a non-overwriting `setup:skills` command with tracked default templates, and a shared guide for choosing the correct platform implementation. Keep personal `AGENTS.md`, `CLAUDE.md` and Cursor configuration local; the tracked Copilot instructions use the shared guide.
