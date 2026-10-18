@@ -1,0 +1,70 @@
+/* A brief celebration on entering 67; ordinary refreshes keep the same class. */
+.limit-67 { --spark-a: #9af4e1; --spark-b: #c4adff; --spark-c: #ffb4d9; position: relative; }
+.limit-67 :is(.remaining-value, .profile-value, .percentage) {
+  display: inline-block;
+  color: var(--spark-a);
+  font-weight: 750;
+  text-shadow: 0 0 12px #8bf1dc66;
+  animation: sixty-seven-pop 900ms cubic-bezier(.2,.8,.3,1) 2;
+}
+.limit-67 progress::-webkit-progress-value,
+.profile-card .profile-quota.limit-67 progress::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--spark-a), var(--spark-b), var(--spark-c));
+  box-shadow: 0 0 8px #bba0ff66;
+}
+.quota-card.limit-67 { isolation: isolate; }
+.quota-card.limit-67::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 52% 28%, #9af4e1 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 72%, #ffb4d9 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 91% 68%, #c4adff 0 1px, transparent 2px),
+    radial-gradient(ellipse at 90% 50%, #a891ff30, transparent 75%);
+  pointer-events: none;
+  animation: sixty-seven-glow 2400ms ease-out both;
+}
+.quota-card.limit-67::after {
+  content: '✦ SIX SEVEN ✦';
+  position: absolute;
+  right: 55px;
+  top: 8px;
+  padding: 3px 7px;
+  border: 1px solid #bca3ff66;
+  border-radius: 20px;
+  background: #211d35;
+  color: #e1d8ff;
+  font-size: 8px;
+  line-height: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  pointer-events: none;
+  animation: sixty-seven-badge 3200ms ease-out both;
+}
+body[data-background="light"] .limit-67 { --spark-a: #176d62; --spark-b: #7750ad; --spark-c: #a83970; }
+@keyframes sixty-seven-pop {
+  0%, 100% { transform: scale(1) rotate(0); }
+  35% { transform: scale(1.22) rotate(-7deg); }
+  65% { transform: scale(1.1) rotate(5deg); }
+}
+@keyframes sixty-seven-glow {
+  0%, 100% { opacity: 0; }
+  20%, 60% { opacity: 1; }
+}
+@keyframes sixty-seven-badge {
+  0% { opacity: 0; transform: translateY(5px) scale(.85); }
+  15%, 75% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-5px) scale(.95); }
+}
+body.reduced-motion .limit-67 :is(.remaining-value, .profile-value, .percentage),
+body.reduced-motion .quota-card.limit-67::before,
+body.reduced-motion .quota-card.limit-67::after { animation: none; }
+body.reduced-motion .quota-card.limit-67::before { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .limit-67 :is(.remaining-value, .profile-value, .percentage),
+  .quota-card.limit-67::before, .quota-card.limit-67::after { animation: none; }
+  .quota-card.limit-67::before { display: none; }
+}

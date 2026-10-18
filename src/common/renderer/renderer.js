@@ -3,11 +3,17 @@ const $ = id => document.getElementById(id);
 let state = null;
 let actionError = null;
 const profileCards = new Map();
+const removingProfiles = new Set();
 const bucketFor = profile => profile.buckets.find(item => item.id === profile.selectedId) || profile.buckets.find(item => item.id === 'codex') || profile.buckets[0];
 async function accountAction(action, id, value) {
+  if (action === 'remove' && removingProfiles.has(id)) return;
+  if (action === 'remove') removingProfiles.add(id);
   actionError = null;
-  const result = await window.limits.accountAction(action, id, value);
-  actionError = result.error || null;
+  try {
+    const result = await window.limits.accountAction(action, id, value);
+    actionError = result.error || null;
+  } catch { actionError = 'accountActionFailed'; }
+  finally { if (action === 'remove') removingProfiles.delete(id); }
   render(await window.limits.get());
 }
 function element(tag, className, parent) {
@@ -30,6 +36,17 @@ function renderAccounts(next, t) {
       const name = element('span', 'profile-name', heading);
       const select = element('button', 'profile-select', heading);
       select.onclick = () => accountAction('select', profile.id);
+      const remove = element('button', 'profile-remove', heading);
+      remove.type = 'button';
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24'); icon.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5');
+      icon.append(path); remove.append(icon);
+      remove.onclick = () => {
+        remove.disabled = true;
+        void accountAction('remove', profile.id);
+      };
       const status = element('div', 'profile-status', node);
       const quotas = element('div', 'profile-quotas', node);
       const values = {};
@@ -38,7 +55,7 @@ function renderAccounts(next, t) {
         const label = element('span', '', row);
         const bar = element('progress', '', row); bar.max = 100;
         const value = element('span', 'profile-value', row);
-        values[kind] = { label, bar, value };
+        values[kind] = { row, label, bar, value };
       }
       const reset = element('time', 'profile-reset', values.short.label);
       const edit = element('details', 'profile-edit', node);
@@ -52,8 +69,6 @@ function renderAccounts(next, t) {
       login.onclick = () => beginLogin(profile.id);
       const cancel = element('button', 'profile-action', buttons);
       cancel.onclick = () => accountAction('cancel', profile.id);
-      const remove = element('button', 'profile-action', buttons);
-      remove.onclick = () => accountAction('remove', profile.id);
       card = { node, name, select, status, quotas, values, reset, summary, input, save, login, cancel, remove };
       profileCards.set(profile.id, card);
     }
@@ -78,6 +93,7 @@ function renderAccounts(next, t) {
       card.values[kind].bar.value = quota?.remaining ?? 0;
       card.values[kind].bar.setAttribute('aria-label', t(kind));
       card.values[kind].value.textContent = quota?.remaining == null ? '—' : `${quota.remaining}%`;
+      card.values[kind].row.classList.toggle('limit-67', quota?.remaining === 67);
     }
     card.summary.textContent = t('editAccount');
     card.input.placeholder = t('nickname'); card.input.setAttribute('aria-label', t('nickname'));
@@ -86,7 +102,9 @@ function renderAccounts(next, t) {
     card.login.textContent = t(profile.account ? 'switchAccount' : 'login');
     card.login.disabled = next.demo || Boolean(next.loginProfileId && next.loginProfileId !== profile.id) || profile.refreshing;
     card.cancel.textContent = t('cancelLogin'); card.cancel.hidden = next.loginProfileId !== profile.id;
-    card.remove.textContent = t('removeAccount'); card.remove.hidden = profile.id === 'default'; card.remove.disabled = next.demo;
+    const removeLabel = `${t('removeAccount')}: ${card.name.textContent}`;
+    card.remove.title = removeLabel; card.remove.setAttribute('aria-label', removeLabel);
+    card.remove.hidden = profile.id === 'default'; card.remove.disabled = next.demo || removingProfiles.has(profile.id);
   }
   $('add-account').disabled = next.demo || Boolean(next.loginProfileId) || !profiles.length;
 }
@@ -105,6 +123,7 @@ function render(next) {
   document.body.dataset.platform = next.platform || '';
   document.body.dataset.theme = next.dark ? 'dark' : 'light';
   document.body.classList.toggle('reduced-transparency', Boolean(next.reducedTransparency));
+  document.body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
   const language = next.language || 'ru';
   const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsApple?.translate(lang, key, next) : null) || (next.platform === 'win32' ? window.limitsWindowsI18n?.t(lang, key) : null) || window.limitsI18n.t(lang, key, next.platform);
   const t = key => translate(language, key);
@@ -146,6 +165,7 @@ function render(next) {
     const card = $(`${kind}-bar`).closest('.quota-card');
     card.classList.toggle('low', remaining !== null && remaining <= 10);
     card.classList.toggle('caution', remaining !== null && remaining > 10 && remaining <= 25);
+    card.classList.toggle('limit-67', remaining === 67);
   }
   $('other').hidden = !bucket?.other?.length;
   $('other').textContent = bucket?.other?.map(item => `${item.duration ?? '?'} ${t('minutes')}: ${item.remaining === null ? t('noData') : `${item.remaining}%`}`).join(' · ') || '';
