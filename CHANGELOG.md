@@ -2,7 +2,7 @@
 
 User-visible changes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
-## Unreleased
+## 1.4.0
 
 - Move the additional-account disconnect action to a trash icon in each account heading, with localized accessible labels and protection against repeated clicks while disconnecting.
 - Celebrate a displayed 67% allowance with a brief SIX SEVEN animation and a pastel progress bar, including account cards and the Windows widget; respect reduced-motion preferences.
@@ -15,7 +15,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - Define the replacement CI flow, release boundary, platform commands and acceptance checks in [build and release requirements](requirements/common/build-and-release.md).
 - Documented the agreed 1.3 scope and acceptance criteria in the shared and platform requirements, including compact weekly countdowns and the distinction between runtime independence and future account-storage isolation.
 
-## 1.3.0 (in development)
+## 1.3.0
 
 Six focused pull requests target `1.3-demo`; the release pull request targets `main`.
 

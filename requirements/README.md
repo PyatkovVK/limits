@@ -1,6 +1,6 @@
 # Core requirements for Limits
 
-This directory describes the core requirements for the Limits application: common features and Windows, macOS, and Linux specifics. Requirements for the details window, its content, and settings are in common. [Version 1.3](1.3.md) records the six agreed changes and their acceptance checks. Runtime independence and the separate future goal of fully isolated Codex account storage are described in [common/accounts/codex.md](common/accounts/codex.md).
+This directory describes the core requirements for the Limits application: common features and Windows, macOS, and Linux specifics. Requirements for the details window, its content, and settings are in common. Runtime independence and the separate future goal of fully isolated Codex account storage are described in [common/accounts/codex.md](common/accounts/codex.md).
 
 [Build and release requirements](common/build-and-release.md) define the replacement GitHub Actions flow introduced on `1.4-demo`, including the mandatory `limits/*` naming for new feature/task branches, branch routing, complete demo builds without release publication, and platform-specific npm commands.
 
@@ -13,7 +13,6 @@ Before editing, adding, deleting, renaming, or moving any of these files, descri
 ## Requirements tree
 
 - **requirements/**
-  - [1.3.md](1.3.md) — Version 1.3 scope, feature PRs, and acceptance checks
   - **common/**
     - **accounts/**
       - [codex.md](common/accounts/codex.md) — Codex accounts and authentication, including planned independent connection

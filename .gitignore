@@ -4,6 +4,9 @@ node_modules/
 
 # Local AI skills (restore repository defaults with npm run setup:skills)
 /skills/
+/.cursor/
+/AGENTS.md
+/CLAUDE.md
 
 # Generated assets, builds and release artifacts
 /assets/app.ico

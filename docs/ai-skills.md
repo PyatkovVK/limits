@@ -27,7 +27,6 @@ If an agent's file reader excludes ignored files, use an explicit named-file rea
 Tracked compatibility entrypoints route to the same instructions:
 
 - `CLAUDE.md` imports `AGENTS.md` for [Claude Code](https://code.claude.com/docs/en/memory).
-- `GEMINI.md` imports it for [Gemini CLI](https://geminicli.com/docs/cli/gemini-md/).
 - `.github/copilot-instructions.md` points [GitHub Copilot](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-repository-instructions) to it.
 - `.cursor/rules/project-skills.mdc` is an always-applied [Cursor rule](https://cursor.com/docs/rules) pointing to it.
 
