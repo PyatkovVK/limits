@@ -21,10 +21,18 @@
     "================BUILD================": "",
     "prepare:app": "node \"src/windows_feature/scripts/assets.cjs\" && node \"src/windows_feature/scripts/build-taskbar-helper.cjs\" && node \"src/apple_feature/scripts/build-helper.cjs\"",
     "prepare:assets": "node \"src/windows_feature/scripts/assets.cjs\"",
+    "================BUILD WINDOWS================": "",
     "build:win": "node \"src/windows_feature/scripts/build-windows.cjs\"",
+    "build:win:x64": "npm run build:win",
+    "build:win:standalone": "node \"src/windows_feature/scripts/build-windows.cjs\" --standalone",
+    "================BUILD MACOS================": "",
     "build:mac": "node scripts/build.cjs mac",
+    "build:mac:arm64": "node scripts/build.cjs mac --arm64",
+    "build:mac:x64": "node scripts/build.cjs mac --x64",
+    "================BUILD LINUX================": "",
     "build:linux": "node scripts/build.cjs linux",
-    "build:win:standalone": "node \"src/windows_feature/scripts/build-windows.cjs\" --standalone"
+    "build:linux:x64": "node scripts/build.cjs linux --x64",
+    "build:linux:arm64": "node scripts/build.cjs linux --arm64"
   },
   "devDependencies": {
     "@openai/codex": "0.162.1",

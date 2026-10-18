@@ -2,6 +2,8 @@
 
 This directory describes the core requirements for the Limits application: common features and Windows, macOS, and Linux specifics. Requirements for the details window, its content, and settings are in common. [Version 1.3](1.3.md) records the six agreed changes and their acceptance checks. Runtime independence and the separate future goal of fully isolated Codex account storage are described in [common/accounts/codex.md](common/accounts/codex.md).
 
+[Build and release requirements](common/build-and-release.md) define the replacement GitHub Actions flow introduced on `1.4-demo`, including the mandatory `limits/*` naming for new feature/task branches, branch routing, complete demo builds without release publication, and platform-specific npm commands.
+
 ## Editing policy
 
 All requirements files in this directory, including translations and this README, are **read-only by default**.
@@ -15,6 +17,7 @@ Before editing, adding, deleting, renaming, or moving any of these files, descri
   - **common/**
     - **accounts/**
       - [codex.md](common/accounts/codex.md) — Codex accounts and authentication, including planned independent connection
+    - [build-and-release.md](common/build-and-release.md) — Feature branch naming, branch pipelines, package verification, releases, and local build commands
     - [interface.md](common/interface.md) — Details window, settings, and appearance
     - [updates.md](common/updates.md) — Update checks and opening GitHub releases
     - [privacy.md](common/privacy.md) — Data and privacy
