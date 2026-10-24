@@ -78,6 +78,19 @@ test('damaged downloads and a changed signing team cannot be installed', async t
   }
 });
 
+test('a later current-version result clears the prepared package and permits a fresh download', async t => {
+  const { updater } = fixture(t);
+  updater.publish({ status: 'available', release });
+  await updater.downloadTask;
+  const job = updater.job;
+  assert.equal(updater.snapshot().installation.status, 'ready');
+  updater.publish({ status: 'current', release: null });
+  assert.equal(updater.snapshot().installation.status, 'idle');
+  assert.equal(fs.existsSync(job), false);
+  updater.publish({ status: 'available', release }); await updater.downloadTask;
+  assert.equal(updater.snapshot().installation.status, 'ready');
+});
+
 test('package URLs, checksum manifests, redirects and archive paths are restricted', async () => {
   assert.equal(assetUrl({ name: 'SHA256SUMS.txt', browser_download_url: urlFor('SHA256SUMS.txt') }, release), urlFor('SHA256SUMS.txt'));
   for (const url of ['http://github.com/x', 'https://evil.test/file', `${urlFor('SHA256SUMS.txt')}?token=x`]) {

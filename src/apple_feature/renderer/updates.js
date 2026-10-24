@@ -4,7 +4,7 @@
     ru: {
       downloading: 'Скачиваем обновление', verifying: 'Проверяем обновление…', ready: 'Обновление готово к установке.',
       installing: 'Устанавливаем обновление…', restart: 'Установить и перезапустить', retry: 'Повторить скачивание',
-      automaticHint: 'Limits сам скачивает ZIP для вашего Mac из GitHub Releases, собранный в Actions, и проверяет SHA-256. Установите обновление с перезапуском, когда удобно.',
+      automaticHint: 'Обновление скачивается автоматически. Нажмите «Установить и перезапустить», когда удобно. Данные и настройки сохранятся.',
       downloadFailed: 'Не удалось скачать обновление. Проверьте подключение и повторите скачивание.',
       invalidPackage: 'Пакет не прошёл проверку. Установка отменена. Попробуйте скачать обновление ещё раз.',
       moveToApplications: 'Переместите Limits в папку «Программы» и перезапустите приложение для автообновлений.',
@@ -13,7 +13,7 @@
     en: {
       downloading: 'Downloading update', verifying: 'Verifying update…', ready: 'The update is ready to install.',
       installing: 'Installing update…', restart: 'Install and restart', retry: 'Retry download',
-      automaticHint: 'Limits downloads the Actions-built ZIP for your Mac from GitHub Releases and verifies SHA-256. Install and restart when convenient.',
+      automaticHint: 'Updates download automatically. Choose Install and restart when convenient. Your accounts and settings are preserved.',
       downloadFailed: 'Could not download the update. Check your connection and retry.',
       invalidPackage: 'Package verification failed. Installation was cancelled. Try downloading the update again.',
       moveToApplications: 'Move Limits to Applications and restart it to enable automatic updates.',
