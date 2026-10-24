@@ -21,7 +21,7 @@ Disconnecting an added account calls Codex logout and removes it from the local 
 
 There is no app-level analytics or telemetry integration in the Limits source. This does not make the app offline: Codex connects to OpenAI for authentication and usage information, and Codex's own network behavior and settings remain its responsibility. This document describes Limits' implementation, not OpenAI's data-retention policy.
 
-Limits also makes anonymous HTTPS requests to `api.github.com` to check public releases at startup, every six hours and on manual checks. These requests contain no account data, OAuth tokens or usage limits. The Update action opens the selected release on `github.com` in the default browser. Demo and smoke checks simulate this behavior locally.
+Limits also makes anonymous HTTPS requests to `api.github.com` to check public releases at startup, every six hours and on manual checks. These requests contain no account data, OAuth tokens or usage limits. On packaged macOS 1.5, it downloads release checksums and the matching ZIP over HTTPS from GitHub and its release-asset hosts into `mac-updates/` in app storage. `mac-update-result.json` records an installer outcome. Installation replaces the app bundle and preserves account/settings storage. Windows, Linux and source runs open the release in the browser for manual installation. Demo and smoke checks simulate this behavior locally.
 
 The RPC client discards the subprocess's stderr instead of forwarding potential account details. Diagnostic output and screenshots should still be reviewed before sharing. Never upload authorization files, OAuth tokens, API keys, or full app data directories.
 
@@ -43,6 +43,6 @@ Limits запускает локальный процесс Codex App Server и 
 
 В исходниках Limits нет собственной интеграции аналитики или телеметрии. Приложение не работает полностью офлайн: Codex подключается к OpenAI для авторизации и чтения лимитов, а его сетевое поведение и настройки определяются самим Codex. Этот документ описывает реализацию Limits, а не политику хранения данных OpenAI.
 
-Limits также отправляет анонимные HTTPS-запросы к `api.github.com` для проверки публичных релизов при запуске, каждые шесть часов и вручную. Запросы не содержат данных аккаунта, OAuth-токенов или лимитов. Кнопка «Обновить» открывает выбранный релиз на `github.com` в стандартном браузере. В demo и smoke проверках это поведение имитируется локально.
+Limits также отправляет анонимные HTTPS-запросы к `api.github.com` для проверки публичных релизов при запуске, каждые шесть часов и вручную. Запросы не содержат данных аккаунта, OAuth-токенов или лимитов. Установленная версия macOS 1.5 скачивает контрольные суммы и ZIP по HTTPS с GitHub и его серверов файлов релизов в `mac-updates/` внутри данных приложения. `mac-update-result.json` содержит результат установки. Обновление заменяет приложение и сохраняет аккаунты и настройки. Windows, Linux и запуск из исходников открывают релиз в браузере для ручной установки. В demo и smoke проверках это поведение имитируется локально.
 
 RPC-клиент не выводит stderr дочернего процесса, где могут быть данные аккаунта. Перед публикацией всё равно проверьте диагностику и скриншоты. Не передавайте файлы авторизации, токены, API-ключи или весь каталог данных приложения.

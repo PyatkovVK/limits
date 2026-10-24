@@ -126,7 +126,9 @@ When the area beside the tray is crowded, the widget automatically shrinks to fi
 
 Limits checks stable releases on GitHub in the background at startup and every six hours. After waking, it checks if the scheduled time has passed. Open **Settings → Updates → Check for updates** for a manual check, the installed version and the last check result.
 
-When a newer version is found, choose **Update** to open that release on GitHub, or **Later** to dismiss the offer. Dismissal is remembered for that version; the release remains available in Settings. Download the appropriate file and install it manually. Update checking does not download or install packages. A failed check does not interrupt usage monitoring.
+**macOS (1.5):** installed copies in `/Applications` or `~/Applications` automatically download the matching Apple Silicon or Intel ZIP from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
+
+**Windows, Linux and source runs:** choose **Update** to open the release on GitHub, then download and install the appropriate file manually. **Later** remembers dismissal for that version; the update remains available in Settings. A failed check or download does not interrupt usage monitoring.
 
 Demo mode simulates update checks without contacting GitHub or opening a browser; **Demo result** in Updates lets you preview current, available and failed states.
 
