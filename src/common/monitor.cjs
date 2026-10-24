@@ -3,9 +3,10 @@ const { EventEmitter } = require('node:events');
 const { normalizeLimits } = require('./limits.cjs');
 
 class Monitor extends EventEmitter {
-  constructor(client) {
+  constructor(client, { refreshCredentials = true, reloadOnPoll = false } = {}) {
     super();
     this.client = client;
+    Object.assign(this, { refreshCredentials, reloadOnPoll, reloading: false });
     this.state = { account: null, buckets: [], selectedId: 'codex', updatedAt: null, error: null, status: 'connecting', refreshing: false, interval: 30 };
     this.failures = 0;
     this.timer = null;
@@ -52,7 +53,7 @@ class Monitor extends EventEmitter {
         this.finishLogin(this.loginAttempt);
       }
       this.loginId = null;
-      if (!this.stopped && !this.reconnecting) this.publish({ status: 'error', error: 'disconnected' });
+      if (!this.stopped && !this.reconnecting && !this.reloading) this.publish({ status: 'error', error: 'disconnected' });
     });
   }
 
@@ -61,16 +62,17 @@ class Monitor extends EventEmitter {
     this.emit('state', this.state);
   }
 
-  refresh() {
+  refresh({ reload = true } = {}) {
     if (this.stopped) return Promise.resolve(this.state);
     if (this.inflight) return this.inflight;
     clearTimeout(this.timer);
-    this.inflight = this.read().finally(() => {
+    // Publish the lock before read() can receive a synchronous account event.
+    this.inflight = Promise.resolve().then(() => this.stopped ? this.state : this.read(reload)).finally(() => {
       this.inflight = null;
       const delay = Math.min(300000, 30000 * 2 ** this.failures);
       this.publish({ interval: delay / 1000 });
       if (!this.stopped) {
-        if (this.rerunRequested) { this.rerunRequested = false; void this.refresh(); }
+        if (this.rerunRequested) { this.rerunRequested = false; void this.refresh({ reload: false }); }
         else this.timer = setTimeout(() => void this.refresh(), delay);
       }
     });
@@ -97,17 +99,21 @@ class Monitor extends EventEmitter {
     return this.reconnecting;
   }
 
-  async read() {
+  async read(reload = true) {
     const revision = this.accountRevision;
     let stage = 'start';
     this.publish({ refreshing: true });
     try {
+      if (this.reloadOnPoll && reload) {
+        this.reloading = true;
+        try { this.client.stop(); } finally { this.reloading = false; }
+      }
       await this.client.start();
       stage = 'account/read';
       const generation = this.client.generation ?? 0;
       // Our own app-server refreshes stored credentials on every connection.
       // Routine polls leave automatic token maintenance to that same process.
-      const { account } = await this.client.request('account/read', { refreshToken: this.credentialsGeneration !== generation });
+      const { account } = await this.client.request('account/read', { refreshToken: this.refreshCredentials && this.credentialsGeneration !== generation });
       this.credentialsGeneration = generation;
       if (revision !== this.accountRevision || this.stopped) return this.state;
       if (!account) {

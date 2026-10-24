@@ -6,7 +6,9 @@ Limits starts a local Codex App Server subprocess and communicates with it over 
 
 The UI receives email, subscription plan, usage limits, reset timestamps, and connection state. Local names are chosen in Limits because the account response does not provide a ChatGPT display name.
 
-The default profile inherits `CODEX_HOME` from the environment, or uses Codex's default storage. That storage is shared with Codex CLI. Signing in to a different default account affects the CLI if it uses the same home directory.
+On macOS 1.5, the default profile tracks Codex's current local `CODEX_HOME` without offering login/logout into that source. Connections created in Limits use isolated accounts. Optional external profiles store directory references in `mac-subscriptions.json`, together with the subscription view mode and selected profile. Forgetting an external source does not delete its files or log it out. External account reads do not force refresh-token rotation and reload the managed store on each poll.
+
+On Windows and Linux, the default profile inherits `CODEX_HOME` from the environment, or uses Codex's default storage. That storage is shared with Codex CLI. Signing in to a different default account affects the CLI if it uses the same home directory.
 
 Additional profiles use separate `CODEX_HOME` directories under the app's data directory: `accounts/<profile-id>`. Codex manages their sign-in credentials using its file credential store. Limits does not load OAuth tokens into the renderer. These directories still contain sensitive credential files managed by Codex; do not publish or attach them to issues.
 
@@ -31,7 +33,9 @@ Limits запускает локальный процесс Codex App Server и 
 
 Интерфейс получает email, тариф, лимиты, время сброса и состояние подключения. Локальные имена задаются в Limits: ответ аккаунта не содержит отображаемого имени ChatGPT.
 
-Основной профиль использует `CODEX_HOME` из окружения либо стандартное хранилище Codex. Если CLI использует то же хранилище, смена основного аккаунта влияет и на его авторизацию.
+На macOS 1.5 основной профиль отслеживает текущий локальный `CODEX_HOME` без входа/выхода через Limits. Подключение из Limits создаёт отдельный аккаунт. Дополнительные внешние профили сохраняются как ссылки на каталоги в `mac-subscriptions.json` вместе с режимом просмотра и выбранным профилем. Удаление из отслеживания не удаляет файлы и не выполняет выход. Внешний профиль перечитывается при каждом опросе без принудительной ротации refresh-токена.
+
+На Windows и Linux основной профиль использует `CODEX_HOME` из окружения либо стандартное хранилище Codex. Если CLI использует то же хранилище, смена основного аккаунта влияет и на его авторизацию.
 
 Добавленные аккаунты используют отдельные каталоги `accounts/<profile-id>` внутри данных приложения. Авторизацией и файлами учётных данных управляет Codex. Limits не загружает OAuth-токены в интерфейс, но в этих каталогах есть чувствительные файлы Codex: не публикуйте их и не прикладывайте к issues.
 

@@ -160,3 +160,6 @@ body.apple-notch.reduced-motion .apple-mini { transition-duration: 1ms; transiti
 @media (prefers-reduced-motion: reduce) {
   .apple-shell, .apple-content, .apple-preview, .apple-mini { transition-duration: 1ms !important; transition-delay: 0ms !important; }
 }
+body[data-platform="darwin"] .apple-subscription-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+body[data-platform="darwin"] .apple-subscription-controls select { max-width: 100%; min-width: 0; }
+body[data-platform="darwin"] .profile-card[hidden] { display: none; }
