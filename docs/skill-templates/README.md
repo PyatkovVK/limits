@@ -1,7 +1,7 @@
 # Skills / Навыки
 
-One catalog for local repository skills, in English and Russian.
-Единый каталог локальных навыков проекта на английском и русском.
+Reference catalog for repository skill templates, in English and Russian. This file stays in `docs/skill-templates/` and is not copied into local `skills/`.
+Справочный каталог шаблонов навыков проекта на английском и русском. Этот файл остаётся в `docs/skill-templates/` и не копируется в локальную папку `skills/`.
 
 ## Catalog / Каталог
 
@@ -17,14 +17,13 @@ One catalog for local repository skills, in English and Russian.
 
 ```text
 skills/
-├── README.md                    # Bilingual catalog / Двуязычный каталог
 └── platform-routing/
     └── SKILL.md                  # Instructions / Инструкция навыка
 ```
 
-`README.md` is the index; each skill's `SKILL.md` contains its full instructions. Read the linked skill before applying it. Start with the repository guide at `docs/ai-skills.md` and follow local `AGENTS.md` instructions when present.
+Each skill's `SKILL.md` contains its full instructions. Discover those files directly in local `skills/`; no root README is generated there. Start with the repository guide at `docs/ai-skills.md` and follow local `AGENTS.md` instructions when present.
 
-`README.md` — оглавление; полные правила каждого навыка находятся в его `SKILL.md`. Перед применением прочитайте навык по ссылке. Начните с руководства `docs/ai-skills.md` и следуйте локальным инструкциям `AGENTS.md`, если файл существует.
+Полные правила каждого навыка находятся в его `SKILL.md`. Находите эти файлы напрямую в локальной папке `skills/`: корневой README там не создаётся. Начните с руководства `docs/ai-skills.md` и следуйте локальным инструкциям `AGENTS.md`, если файл существует.
 
 ## Adding a skill / Добавление навыка
 
@@ -38,9 +37,9 @@ skills/
 
 ## Local storage / Локальное хранение
 
-The entire `skills/` folder, including this README, is ignored by Git. Restore missing default files with:
+The entire local `skills/` folder is ignored by Git. This catalog remains tracked in `docs/skill-templates/`. Restore missing default files with:
 
-Вся папка `skills/`, включая этот README, игнорируется Git. Для восстановления отсутствующих стандартных файлов выполните:
+Вся локальная папка `skills/` игнорируется Git. Этот каталог остаётся версионируемым в `docs/skill-templates/`. Для восстановления отсутствующих стандартных файлов выполните:
 
 ```sh
 npm run setup:skills
