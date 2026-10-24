@@ -9,6 +9,7 @@ One catalog for local repository skills, in English and Russian.
 | --- | --- | --- | --- |
 | `platform-routing` | Platform routing | Выбор платформы для изменений | [SKILL.md](platform-routing/SKILL.md) |
 | `changelog` | Changelog updates | Обновление списка изменений | [SKILL.md](changelog/SKILL.md) |
+| `focused-pull-requests` | One task per pull request | Отдельный MR на каждую задачу | [SKILL.md](focused-pull-requests/SKILL.md) |
 
 **Platform routing:** selects the Linux, macOS or Windows implementation for platform-specific work. An explicit user target takes priority over the host OS; shared behavior stays in `src/common/`.
 
@@ -21,8 +22,10 @@ skills/
 ├── README.md                    # Bilingual catalog / Двуязычный каталог
 ├── platform-routing/
 │   └── SKILL.md                  # Instructions / Инструкция навыка
-└── changelog/
-    └── SKILL.md                  # Record release-worthy changes / Запись изменений
+├── changelog/
+│   └── SKILL.md                  # Record release-worthy changes / Запись изменений
+└── focused-pull-requests/
+    └── SKILL.md                  # Separate task branches / Отдельные ветки задач
 ```
 
 `README.md` is the index; each skill's `SKILL.md` contains its full instructions. Read the linked skill before applying it. Start with the repository guide at `docs/ai-skills.md` and follow local `AGENTS.md` instructions when present.

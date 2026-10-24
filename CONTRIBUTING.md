@@ -37,6 +37,8 @@ Live checks require sign-in and should only be used when demo mode cannot verify
 
 ## Open a pull request
 
+Create a separate `limits/<description>` branch and MR/PR for each independent bug, feature or other task. Keep its tests, translations, documentation and changelog entry together in that PR. For a multi-item request, target the requested base directly and keep unrelated tasks out of each diff. See the generated `focused-pull-requests` skill for the workflow.
+
 Push your branch to your fork and choose **Compare & pull request** on GitHub. Choose the appropriate base branch as described above. Fill in the PR template with the problem, resulting behavior, validation, and related issue.
 
 Keep English and Russian README content aligned when changing user-facing documentation. Add release-worthy behavior to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md). Avoid including generated packages, `node_modules`, local credentials, or unrelated formatting changes.
