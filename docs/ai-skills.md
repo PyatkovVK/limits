@@ -16,6 +16,8 @@ The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, mac
 
 ## How agents find the skills
 
+The bundled `focused-pull-requests` skill keeps independent bugs, features and other tasks in separate `limits/<description>` branches and MR/PRs. The existing `npm run setup:skills` script in `package.json` generates `skills/focused-pull-requests/SKILL.md` together with the other defaults.
+
 Start with this guide and [CONTRIBUTING.md](../CONTRIBUTING.md), restore missing defaults, then read `skills/README.md` and the relevant skill before choosing implementation files. Discover every skill explicitly, including personal skills absent from the catalog. A normal Git-aware search will not list `skills/`; use, for example:
 
 ```sh
