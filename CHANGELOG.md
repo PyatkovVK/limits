@@ -2,6 +2,12 @@
 
 User-visible changes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
+## Unreleased
+
+### Added
+
+- macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails. Windows and Linux retain manual installation.
+
 ## 1.4.0
 
 - Recover quota polling after failed account or usage reads by reconnecting with managed credentials; on Linux, reconnect immediately after waking or unlocking the desktop, including requests left pending across sleep, while preserving browser sign-in.

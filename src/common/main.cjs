@@ -218,7 +218,8 @@ async function setup() {
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
-  updates = new Updates({ currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
+  const UpdateService = process.platform === 'darwin' ? require('../apple_feature/updates.cjs').AppleUpdates : Updates;
+  updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
   resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'),
     notify: showResetNotification, openExternal: url => shell.openExternal(url) });
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
