@@ -16,6 +16,8 @@ The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, mac
 
 ## How agents find the skills
 
+The bundled `changelog` skill records user-visible fixes and features in `CHANGELOG.md` as part of their own focused PR. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
+
 Start with this guide and [CONTRIBUTING.md](../CONTRIBUTING.md), restore missing defaults, then read `skills/README.md` and the relevant skill before choosing implementation files. Discover every skill explicitly, including personal skills absent from the catalog. A normal Git-aware search will not list `skills/`; use, for example:
 
 ```sh
