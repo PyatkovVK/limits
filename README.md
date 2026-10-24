@@ -134,7 +134,9 @@ Demo mode simulates update checks without contacting GitHub or opening a browser
 
 Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required; API-key authentication does not expose these subscription limits. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
 
-The default account shares Codex's `CODEX_HOME`. Signing in to a different default account also changes the account used by Codex CLI with that same storage. Accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
+**macOS (1.5):** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Use **Add Codex profile** to select another local `CODEX_HOME` if your clients use different stores. Forgetting it stops tracking without logging it out. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
+
+On Windows and Linux the default account continues to share Codex's `CODEX_HOME`; switching it also affects CLI clients using that storage. Accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
 
 Limits has no app-level analytics or telemetry integration in its source. Codex connects to OpenAI services for sign-in and usage data; its behavior is managed by Codex. See [data storage and privacy](docs/privacy.md).
 

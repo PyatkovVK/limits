@@ -280,7 +280,11 @@ async function setup() {
   handle('limits:quit', () => app.quit());
   async function openLogin(id) {
     if (!monitor || demo) return { error: 'loginUnavailable' };
-    const profileId = id === undefined ? monitor.selectedProfileId : id;
+    let profileId = id === undefined ? monitor.selectedProfileId : id;
+    if (monitor.isExternal?.(profileId)) {
+      if (monitor.loginActive) return { error: 'loginBusy' };
+      profileId = monitor.add(); monitor.selectProfile(profileId);
+    }
     let attempt;
     try {
       const authUrl = await monitor.login(profileId);
@@ -315,6 +319,20 @@ async function setup() {
       return {};
     } catch { return { error: 'accountActionFailed' }; }
   });
+  handle('limits:subscriptions-mode', mode => {
+    if (process.platform !== 'darwin' || !monitor?.setMode) return { error: 'accountActionFailed' };
+    try { monitor.setMode(mode); return {}; } catch { return { error: 'accountActionFailed' }; }
+  });
+  handle('limits:subscriptions-add-source', async () => {
+    if (process.platform !== 'darwin' || !monitor?.addSource || demo) return { error: 'accountActionFailed' };
+    try {
+      const parent = widgetSettings.displayMode === 'notch' ? appleNotch?.window : window;
+      const choose = () => dialog.showOpenDialog(parent, { properties: ['openDirectory', 'showHiddenFiles'] });
+      const result = widgetSettings.displayMode === 'notch' ? await appleNotch.withModal(choose) : await choose();
+      if (!result.canceled && result.filePaths.length === 1) monitor.addSource(result.filePaths[0]);
+      return {};
+    } catch { return { error: 'accountActionFailed' }; }
+  });
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   if (linuxPanel) await window.webContents.executeJavaScript('window.limitsLinuxPanelReady');
   if (macPanel) await window.webContents.executeJavaScript('window.limitsMacPanelReady');
@@ -332,12 +350,14 @@ async function setup() {
   if (taskbarSupported) await createWidget();
   try {
       const root = app.getPath('userData');
+      const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : Accounts;
       if (demo) {
         const { DemoMonitor } = require('./demo-monitor.cjs');
-        monitor = new Accounts({ root, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
+        monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
       } else {
         const binary = findCodex({ resourcesPath: app.isPackaged ? process.resourcesPath : null });
-        monitor = new Accounts({ root, createMonitor: (_profile, options) => new Monitor(new CodexClient(binary, options)) });
+        monitor = new AccountService({ root, createMonitor: (_profile, options) => new Monitor(new CodexClient(binary, options),
+          { refreshCredentials: !options.readOnly, reloadOnPoll: Boolean(options.readOnly) }) });
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
       monitor.on('state', next => { state = { ...next, demo }; update(); });
