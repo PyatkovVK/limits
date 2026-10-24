@@ -23,7 +23,18 @@ async function verifyContentSizing(window, notch = null) {
   if (await height() !== compact) throw new Error('Mac panel did not shrink after removing content');
   await window.webContents.executeJavaScript('window.limitsSettings.open()');
   const settings = await height();
-  if (settings <= compact) throw new Error('Mac panel did not grow for Settings');
+  if (settings <= compact) throw new Error('Mac panel did not grow for Settings: ' + JSON.stringify({ compact, settings, notch: Boolean(notch) }));
+  const modal = await window.webContents.executeJavaScript(`(() => {
+    const dialog = document.getElementById('settings-dialog');
+    const bounds = dialog.getBoundingClientRect();
+    const close = dialog.querySelector('.settings-close').getBoundingClientRect();
+    const cap = document.body.classList.contains('apple-notch') ? parseFloat(getComputedStyle(document.body).getPropertyValue('--cap-height')) : 0;
+    const bottom = document.body.classList.contains('apple-notch') ? parseFloat(getComputedStyle(document.body).getPropertyValue('--full-height')) : innerHeight;
+    return { top: bounds.top, bottom: bounds.bottom, safeTop: cap, safeBottom: bottom,
+      closeWidth: close.width, closeHeight: close.height, contained: close.top >= bounds.top && close.right <= bounds.right && close.bottom <= bounds.bottom };
+  })()`);
+  if (modal.top < modal.safeTop || modal.bottom > modal.safeBottom + 1) throw new Error('Mac Settings overlaps the notch or leaves its panel: ' + JSON.stringify(modal));
+  if (modal.closeWidth !== 32 || modal.closeHeight !== 32 || !modal.contained) throw new Error('Mac Settings close button is stretched: ' + JSON.stringify(modal));
   await window.webContents.executeJavaScript('window.limitsSettings.dialog.close()');
   if (await height() !== compact) throw new Error('Mac panel did not shrink after closing Settings');
   await window.webContents.executeJavaScript(`(() => {
@@ -35,7 +46,7 @@ async function verifyContentSizing(window, notch = null) {
   if (!scrolls || (notch && capped !== notch.snapshot().maxFullHeight)) throw new Error('Mac panel does not scroll when content exceeds available height');
   await window.webContents.executeJavaScript("document.getElementById('sizing-smoke').remove()");
   if (await height() !== compact) throw new Error('Mac panel remained large after overflowing content was removed');
-  return { compact, expanded, settings, capped, shrinks: true, scrolls };
+  return { compact, expanded, settings, capped, modal, shrinks: true, scrolls };
 }
 
 async function verifyMacPanel({ window, trayPresentation, artifactRoot, demo }) {
@@ -61,6 +72,11 @@ async function verifyMacPanel({ window, trayPresentation, artifactRoot, demo }) 
         await new Promise(resolve => setTimeout(resolve, 100));
         const image = await window.webContents.capturePage();
         fs.writeFileSync(path.join(artifactRoot, `mac-panel-${theme}.png`), image.toPNG());
+        await window.webContents.executeJavaScript('window.limitsSettings.open()');
+        await new Promise(resolve => setTimeout(resolve, 600));
+        fs.writeFileSync(path.join(artifactRoot, `mac-settings-${theme}.png`), (await window.webContents.capturePage()).toPNG());
+        await window.webContents.executeJavaScript('window.limitsSettings.dialog.close()');
+        await new Promise(resolve => setTimeout(resolve, 600));
       }
       themes.push(report);
     }
@@ -97,6 +113,11 @@ async function verifyAppleNotch({ appleNotch, window, trayPresentation, setDispl
     monitor.selectProfile('default'); await renderState();
     await delay(550);
     fs.writeFileSync(path.join(artifactRoot, 'apple-notch-expanded.png'), (await target.webContents.capturePage()).toPNG());
+    await target.webContents.executeJavaScript('window.limitsSettings.open()');
+    await delay(600);
+    fs.writeFileSync(path.join(artifactRoot, 'apple-notch-settings.png'), (await target.webContents.capturePage()).toPNG());
+    await target.webContents.executeJavaScript('window.limitsSettings.dialog.close()');
+    await delay(600);
   }
   appleNotch.collapse(); await renderState(); await delay(500);
   if (demo) fs.writeFileSync(path.join(artifactRoot, 'apple-notch-closed.png'), (await target.webContents.capturePage()).toPNG());
