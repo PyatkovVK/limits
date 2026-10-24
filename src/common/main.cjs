@@ -281,12 +281,12 @@ async function setup() {
   async function openLogin(id) {
     if (!monitor || demo) return { error: 'loginUnavailable' };
     let profileId = id === undefined ? monitor.selectedProfileId : id;
-    if (monitor.isExternal?.(profileId)) {
-      if (monitor.loginActive) return { error: 'loginBusy' };
-      profileId = monitor.add(); monitor.selectProfile(profileId);
-    }
     let attempt;
     try {
+      if (monitor.isExternal?.(profileId)) {
+        if (monitor.loginActive) return { error: 'loginBusy' };
+        profileId = monitor.add(); monitor.selectProfile(profileId);
+      }
       const authUrl = await monitor.login(profileId);
       if (!authUrl) return {}; // Cancelled or completed while the start request was pending.
       attempt = monitor.loginAttempt;

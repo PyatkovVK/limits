@@ -66,7 +66,8 @@ class Monitor extends EventEmitter {
     if (this.stopped) return Promise.resolve(this.state);
     if (this.inflight) return this.inflight;
     clearTimeout(this.timer);
-    this.inflight = this.read(reload).finally(() => {
+    // Publish the lock before read() can receive a synchronous account event.
+    this.inflight = Promise.resolve().then(() => this.stopped ? this.state : this.read(reload)).finally(() => {
       this.inflight = null;
       const delay = Math.min(300000, 30000 * 2 ** this.failures);
       this.publish({ interval: delay / 1000 });

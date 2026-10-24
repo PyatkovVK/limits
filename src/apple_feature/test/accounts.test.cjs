@@ -92,3 +92,21 @@ test('current-account polling reloads external sign-in changes without forced re
   client.account = null; await monitor.refresh();
   assert.equal(monitor.state.status, 'signed-out'); assert.deepEqual(monitor.state.buckets, []);
 });
+
+test('startup account notifications do not cause an external reconnect loop', async t => {
+  const client = new EventEmitter();
+  client.generation = 0;
+  client.start = async () => {
+    if (client.connected) return;
+    client.connected = true; client.generation++;
+    client.emit('notification', 'account/updated', {});
+  };
+  client.stop = () => { client.connected = false; };
+  client.request = async method => method === 'account/read' ? { account: { type: 'chatgpt', email: 'fixture@example.com' } } : { rateLimits: {} };
+  const monitor = new Monitor(client, { refreshCredentials: false, reloadOnPoll: true });
+  t.after(() => monitor.stop());
+  await monitor.refresh();
+  while (monitor.inflight) await monitor.inflight;
+  assert.equal(client.generation, 1);
+  assert.equal(monitor.state.status, 'ready');
+});

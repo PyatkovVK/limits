@@ -48,6 +48,7 @@
       card.hidden = mode.value !== 'all' && profile.source !== mode.value;
       if (!card.hidden) visible++;
       card.querySelector('.profile-edit').hidden = profile.readOnly;
+      card.querySelector('.profile-quotas').hidden = false;
       const status = card.querySelector('.profile-status');
       // The shared renderer refreshes this text on every account state event.
       const prefix = `${profile.sourceLabel} · `;
