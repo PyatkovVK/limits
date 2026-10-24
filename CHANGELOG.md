@@ -12,6 +12,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 ### Fixed
 
 - On macOS, reconnect usage monitoring after waking or unlocking, cancel requests left pending across sleep and bypass retry backoff. Preserve active browser sign-in and coalesce overlapping wake/unlock events.
+- On macOS, place Settings below the physical notch with balanced margins, keep long content scrollable inside the panel and give the close button a fixed circular shape.
 
 ## 1.4.0
 
