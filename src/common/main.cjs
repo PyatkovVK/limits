@@ -225,7 +225,7 @@ async function setup() {
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
-    window, screen, ipcMain, getWidgetHost: () => widgetHost,
+    window, screen, ipcMain, getWidgetHost: () => widgetHost, root: app.getPath('userData'),
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
