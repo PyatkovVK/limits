@@ -21,6 +21,7 @@
     "smoke:updates": "npm run prepare:app && electron scripts/smoke-updates.cjs",
     "smoke:resets": "npm run prepare:app && electron scripts/smoke-resets.cjs",
     "smoke:panel-follow": "npm run prepare:app && electron scripts/smoke-windows-panel-follow.cjs",
+    "smoke:linux-widget": "npm run prepare:app && electron src/linux_feature/scripts/smoke-widget.cjs",
     "smoke:widget-startup": "npm run prepare:app && electron src/windows_feature/scripts/smoke-widget-startup.cjs",
     "================BUILD================": "",
     "prepare:app": "node \"src/windows_feature/scripts/assets.cjs\" && node \"src/windows_feature/scripts/build-taskbar-helper.cjs\" && node \"src/apple_feature/scripts/build-helper.cjs\"",
@@ -48,7 +49,7 @@
     "appId": "dev.codexlimits.desktop",
     "productName": "Limits",
     "directories": { "output": "release" },
-    "files": ["src/**/*", "!src/windows_feature/native/**/*", "!src/windows_feature/scripts/**/*", "!src/windows_feature/test/**/*", "!src/windows_feature/README.md", "!src/apple_feature/native/**/*", "!src/apple_feature/scripts/**/*", "!src/apple_feature/test/**/*", "!src/apple_feature/README.md", "!src/linux_feature/test/**/*", "!src/linux_feature/README.md", "assets/app.ico", "assets/app.png", "package.json", "LICENSE", "!node_modules/**/*"],
+    "files": ["src/**/*", "!src/windows_feature/native/**/*", "!src/windows_feature/scripts/**/*", "!src/windows_feature/test/**/*", "!src/windows_feature/README.md", "!src/apple_feature/native/**/*", "!src/apple_feature/scripts/**/*", "!src/apple_feature/test/**/*", "!src/apple_feature/README.md", "!src/linux_feature/test/**/*", "!src/linux_feature/scripts/**/*", "!src/linux_feature/README.md", "assets/app.ico", "assets/app.png", "package.json", "LICENSE", "!node_modules/**/*"],
     "extraResources": [
       { "from": "THIRD-PARTY-NOTICES.md", "to": "THIRD-PARTY-NOTICES.md" }
     ],

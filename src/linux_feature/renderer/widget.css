@@ -1,0 +1,24 @@
+:root { color-scheme: dark; font-family: 'Segoe UI', sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; height: 100vh; display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 4px; padding: 2px 6px; background: #171717; color: #f4f4f4; border: 1px solid #292929; border-radius: 4px; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-app-region: drag; cursor: move; }
+.account { display: flex; flex-direction: column; justify-content: center; min-width: 0; -webkit-app-region: drag; cursor: move; }
+#widget-account { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+#widget-plan { margin-top: 1px; font-size: 8px; color: #aaa; text-transform: uppercase; letter-spacing: .2px; }
+.quotas { display: grid; grid-template-columns: max-content minmax(20px, 1fr) max-content; align-content: center; column-gap: 4px; row-gap: 2px; min-width: 0; border: 0; color: inherit; background: none; padding: 0; font: inherit; cursor: pointer; text-align: left; -webkit-app-region: no-drag; }
+.quota { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; font-size: 9px; line-height: 10px; }
+.period { display: flex; gap: 3px; align-items: center; white-space: nowrap; }
+#short-reset, #weekly-reset { color: #aaa; font-size: 8px; font-variant-numeric: tabular-nums; }
+.percentage { text-align: right; font-variant-numeric: tabular-nums; }
+progress { width: 100%; height: 3px; display: block; border: 0; border-radius: 1px; background: #333; accent-color: white; }
+progress::-webkit-progress-bar { background: #333; }
+progress::-webkit-progress-value { background: #f0f0f0; }
+body.stale progress::-webkit-progress-value { background: #888; }
+body.low progress::-webkit-progress-value { background: #ff8686; }
+button:focus-visible { outline: 1px solid white; }
+@media (max-width: 260px) { body { grid-template-columns: 80px minmax(0,1fr); } .quotas { column-gap: 3px; } .quota { font-size: 8px; } }
+@media (max-width: 220px) { body { grid-template-columns: 54px minmax(0,1fr); padding-inline: 4px; } #widget-plan { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+
+.quota:first-child progress::-webkit-progress-value { background: #79d4c1; }
+.quota:last-child progress::-webkit-progress-value { background: #bc9df4; }
+body.stale .quota progress::-webkit-progress-value { background: #888; }
+body.low .quota progress::-webkit-progress-value { background: #ff8686; }

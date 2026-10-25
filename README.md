@@ -167,3 +167,5 @@ These are ideas for future work, not current features:
 - Try to connect send notify about Codex reset.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
+
+Linux also supports a separate compact widget with two quota bars. Select Widget in Settings, drag its account label to move it, and click the bars to open details. Width, visibility and position persist. It is a floating desktop window; placement is controlled by the compositor on Wayland. Tray mode remains available.

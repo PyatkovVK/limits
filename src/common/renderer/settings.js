@@ -37,7 +37,7 @@
     const t = texts[next.language] || texts.en;
     button.textContent = t.settings; button.title = t.settings;
     title.textContent = t.settings; close.setAttribute('aria-label', t.close);
-    languageText.textContent = t.language; widgetTitle.textContent = t.widget;
+    languageText.textContent = t.language; widgetTitle.textContent = next.platform === 'linux' ? next.language === 'ru' ? 'Виджет Linux' : 'Linux widget' : t.widget;
     widthText.textContent = t.width; visibleText.textContent = t.visible; reset.textContent = t.reset;
     startupText.textContent = t.startup; startupHint.textContent = t.installed;
     const prefs = next.preferences;
