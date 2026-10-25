@@ -50,7 +50,7 @@
   const later = make('button', dialogActions, 'refresh-button'); later.id = 'updates-later'; later.type = 'button';
   const update = make('button', dialogActions, 'refresh-button'); update.id = 'updates-install'; update.type = 'button';
   let current, messageKey = null, opening = false, dismissing = false;
-  const text = () => ({ ...(words[current?.language] || words.en), ...window.limitsAppleUpdates?.words(current) });
+  const text = () => ({ ...(words[current?.language] || words.en), ...window.limitsInstallation?.words(current) });
   function activeHost() {
     const notch = document.body.classList.contains('apple-notch');
     return current?.displayMode === 'notch' ? notch && current.appleNotch?.phase === 'expanded' : !notch;
@@ -72,7 +72,7 @@
     const value = next.updates;
     if (!value) return;
     const t = text();
-    const installation = window.limitsAppleUpdates?.presentation(next);
+    const installation = window.limitsInstallation?.presentation(next);
     title.textContent = t.title; version.textContent = `${t.version} ${value.currentVersion}`;
     result.textContent = value.status === 'available' ? `${t.available} ${value.release.version}` : value.status === 'error' ? t[value.error] || t.checkFailed : t[value.status] || t.idle;
     if (installation?.result) result.textContent = installation.result;
