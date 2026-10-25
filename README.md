@@ -167,3 +167,5 @@ These are ideas for future work, not current features:
 - Try to connect send notify about Codex reset.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
+
+On Linux, Settings → Subscriptions also distinguishes accounts connected in Limits from current local Codex / VS Code profiles. Choose All, Connected in Limits, or In Codex / VS Code; add other CODEX_HOME folders to monitor multiple local sign-ins. Removing an external source never signs it out.

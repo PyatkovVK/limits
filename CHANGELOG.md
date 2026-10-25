@@ -6,6 +6,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Added
 
+- Extend connected/current subscription tracking to Linux and Windows through the shared registry and interface; retain independent local Codex homes, persisted filters and selection, and removal without logout.
+
 - macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails. Windows and Linux retain manual installation.
 - On macOS, distinguish subscriptions connected in Limits from current local Codex / VS Code profiles. Show both together or filter either source, retain selection and mode, reload external sign-in changes, and track additional CODEX_HOME directories without logging them out when removed.
 
