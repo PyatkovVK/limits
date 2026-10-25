@@ -20,12 +20,17 @@
       installFailed: 'Could not install the update. The previous version was preserved. Try again.',
     },
   };
-  window.limitsAppleUpdates = {
-    words(next) { return next?.platform === 'darwin' ? words[next.language] || words.en : {}; },
+  window.limitsInstallation = {
+    words(next) {
+      if (!['darwin', 'win32'].includes(next?.platform)) return {};
+      const t = { ...(words[next.language] || words.en) };
+      if (next.platform === 'win32') t.installFailed = next.language === 'ru' ? 'Не удалось завершить установку. Повторите попытку.' : 'Could not complete installation. Try again.';
+      return t;
+    },
     presentation(next) {
       const value = next.updates?.installation;
-      if (next.platform !== 'darwin' || !value?.enabled) return null;
-      const t = words[next.language] || words.en;
+      if (!['darwin', 'win32'].includes(next.platform) || !value?.enabled) return null;
+      const t = this.words(next);
       const busy = ['downloading', 'verifying', 'installing'].includes(value.status);
       if (next.updates.status === 'checking' || next.updates.status === 'error') return { hint: t.automaticHint, disabled: busy };
       return { result: value.status === 'downloading' ? `${t.downloading}${value.progress == null ? '…' : ` · ${value.progress}%`}` : value.status === 'error' ? t[value.error] : t[value.status],

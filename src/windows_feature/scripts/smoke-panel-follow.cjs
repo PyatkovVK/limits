@@ -103,6 +103,8 @@ app.whenReady().then(async () => {
     }
     // A stationary widget must not snap a manually moved details window back on polling.
     panel.setPosition(area.x + 40, area.y + 40);
+    await pause();
+    panel.emit('moved');
     const manual = panel.getPosition();
     await drag(widget.getBounds().x);
     assert.deepEqual(panel.getPosition(), manual);
@@ -112,8 +114,20 @@ app.whenReady().then(async () => {
     assert.deepEqual(panel.getPosition(), manual);
     assert.deepEqual(calls, openings);
     await widget.webContents.executeJavaScript('window.limits.open()');
-    const expected = expectedPosition();
-    assert.deepEqual(panel.getPosition(), [expected.x, expected.y]);
+    assert.deepEqual(panel.getPosition(), manual);
+    const saved = JSON.parse(fs.readFileSync(path.join(profile, 'windows-panel-position.json'), 'utf8'));
+    assert.deepEqual(saved, { x: manual[0], y: manual[1] });
+    await panel.webContents.executeJavaScript('window.limitsSettings.open(); window.limitsWindowsPanel.report()');
+    await pause();
+    assert.deepEqual(panel.getPosition(), [manual[0], Math.max(area.y, Math.min(manual[1], area.y + area.height - panel.getSize()[1]))], 'Settings must preserve placement unless the work area requires clamping');
+    await panel.webContents.executeJavaScript('window.limitsSettings.dialog.close(); window.limitsWindowsPanel.report()');
+    await pause();
+    assert.deepEqual(panel.getPosition(), manual, 'Shrinking content restores the preferred position');
+    const restoredWindow = new BrowserWindow({ width: 440, height: compactHeight, show: false });
+    const restored = require('../panel.cjs').createPanelController({ window: restoredWindow, screen, root: profile });
+    restored.show(); await pause();
+    assert.deepEqual(restoredWindow.getPosition(), manual, 'A new controller must restore the persisted position');
+    restoredWindow.destroy(); panel.show();
     fs.writeFileSync(path.join(artifactRoot, 'windows-panel-compact.png'), (await panel.webContents.capturePage()).toPNG());
     const clickTargets = dragTargets.filter(selector => !['.account', 'body'].includes(selector));
     for (const selector of clickTargets) {
@@ -132,7 +146,7 @@ app.whenReady().then(async () => {
     await pause();
     assert.ok(panel.isVisible(), 'Non-pointer activation must still open details');
     screen.getCursorScreenPoint = readCursor;
-    const report = { compactHeight, settingsHeight, shrankAfterSettings: true, continuousCursorDrag: true, before, moves, clickTargets, nonPointerClickOpensDetails: true, manualPositionPreserved: true, hiddenPanelStayedHidden: true, reopenedAtWidget: true };
+    const report = { compactHeight, settingsHeight, shrankAfterSettings: true, continuousCursorDrag: true, before, moves, clickTargets, nonPointerClickOpensDetails: true, manualPositionPreserved: true, hiddenPanelStayedHidden: true, restoredSavedPosition: true };
     fs.writeFileSync(path.join(artifactRoot, 'panel-follow-smoke.json'), JSON.stringify(report, null, 2));
     console.log('PANEL_FOLLOW_SMOKE_OK', JSON.stringify(report));
     app.exit(0);

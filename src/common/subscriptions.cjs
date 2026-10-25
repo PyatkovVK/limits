@@ -42,7 +42,8 @@ class Subscriptions extends Accounts {
   addSource(home) {
     if (this.demo || typeof home !== 'string' || !path.isAbsolute(home) || !fs.statSync(home).isDirectory()) throw new Error('Invalid Codex home');
     home = fs.realpathSync(home);
-    const privateHome = path.resolve(this.root, 'accounts');
+    let privateHome = path.resolve(this.root, 'accounts');
+    try { privateHome = fs.realpathSync(privateHome); } catch { /* No connected profiles yet. */ }
     if (home === privateHome || home.startsWith(privateHome + path.sep)) throw new Error('Use connected accounts for Limits profiles');
     if (this.external.size >= 33 && ![...this.external.values()].includes(home)) throw new Error('Too many sources');
     const id = this.attachSource(home);
