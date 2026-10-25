@@ -9,6 +9,8 @@
       invalidPackage: 'Пакет не прошёл проверку. Установка отменена. Попробуйте скачать обновление ещё раз.',
       moveToApplications: 'Переместите Limits в папку «Программы» и перезапустите приложение для автообновлений.',
       installFailed: 'Не удалось установить обновление. Предыдущая версия сохранена. Повторите попытку.',
+      installLocation: 'Папка приложения недоступна для обновления. Выберите доступную для записи папку или переустановите Limits.',
+      packageManagerMissing: 'Для установки DEB нужны dpkg и системный запрос прав pkexec. Установите их или используйте AppImage.',
     },
     en: {
       downloading: 'Downloading update', verifying: 'Verifying update…', ready: 'The update is ready to install.',
@@ -18,18 +20,21 @@
       invalidPackage: 'Package verification failed. Installation was cancelled. Try downloading the update again.',
       moveToApplications: 'Move Limits to Applications and restart it to enable automatic updates.',
       installFailed: 'Could not install the update. The previous version was preserved. Try again.',
+      installLocation: 'The application location cannot be updated. Use a writable directory or reinstall Limits.',
+      packageManagerMissing: 'DEB updates require dpkg and the system authorization tool pkexec. Install them or use AppImage.',
     },
   };
   window.limitsInstallation = {
     words(next) {
-      if (!['darwin', 'win32'].includes(next?.platform)) return {};
+      if (!['darwin', 'win32', 'linux'].includes(next?.platform)) return {};
       const t = { ...(words[next.language] || words.en) };
       if (next.platform === 'win32') t.installFailed = next.language === 'ru' ? 'Не удалось завершить установку. Повторите попытку.' : 'Could not complete installation. Try again.';
+      if (next.platform === 'linux') t.installFailed = next.language === 'ru' ? 'Не удалось установить обновление. Перезапустите приложение и повторите попытку.' : 'Could not install the update. Restart the application and retry.';
       return t;
     },
     presentation(next) {
       const value = next.updates?.installation;
-      if (!['darwin', 'win32'].includes(next.platform) || !value?.enabled) return null;
+      if (!['darwin', 'win32', 'linux'].includes(next.platform) || !value?.enabled) return null;
       const t = this.words(next);
       const busy = ['downloading', 'verifying', 'installing'].includes(value.status);
       if (next.updates.status === 'checking' || next.updates.status === 'error') return { hint: t.automaticHint, disabled: busy };

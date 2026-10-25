@@ -10,6 +10,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - Add a separate compact Linux desktop widget with two quota bars, reset countdowns, account switching, width/visibility controls and persisted draggable placement; retain tray mode. Wayland placement follows compositor policy.
 
 - macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails. Windows and Linux retain manual installation.
+- On Linux, automatically download the matching AppImage/DEB update from Actions-published stable Releases, verify SHA-256 and package identity/architecture, and install from the app with restart. AppImage replacement restores the previous executable on launch failure; DEB uses system authorization through pkexec.
+
 - Windows downloads the matching NSIS or portable update from Actions-published stable GitHub Releases, verifies SHA-256, product/version and publisher when signed, then installs and restarts on request. Portable replacement keeps a backup until relaunch.
 
 - macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails. Linux retains manual installation.

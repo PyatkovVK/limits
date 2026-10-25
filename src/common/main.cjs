@@ -221,7 +221,7 @@ async function setup() {
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
-  const UpdateService = process.platform === 'darwin' ? require('../apple_feature/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('../windows_feature/updates.cjs').WindowsUpdates : Updates;
+  const UpdateService = process.platform === 'darwin' ? require('../apple_feature/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('../windows_feature/updates.cjs').WindowsUpdates : process.platform === 'linux' ? require('../linux_feature/updates.cjs').LinuxUpdates : Updates;
   updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
   resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'),
     notify: showResetNotification, openExternal: url => shell.openExternal(url) });

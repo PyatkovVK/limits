@@ -1,6 +1,6 @@
 # macOS updates — 1.5
 
-Packaged macOS installs in a user-writable `/Applications` or `~/Applications` download the architecture-specific ZIP automatically from stable Actions-published GitHub Releases. Main/demo Actions artifacts are not an update channel. Windows, Linux and source runs retain their existing manual release action.
+Packaged macOS installs in a user-writable `/Applications` or `~/Applications` download the architecture-specific ZIP automatically from stable Actions-published GitHub Releases. Main/demo Actions artifacts are not an update channel. Windows and Linux use their native package adapters; see [cross-platform installation](in-app-updates.md). Source and unpacked runs retain the manual release action.
 
 Download without credentials, constrain URLs and redirects to GitHub release hosts, bound size and time, and verify the matching `SHA256SUMS.txt` entry before extraction. Validate archive paths, bundle ID, semantic version, native architecture and code signature; a Developer ID build must retain its signing team. Ad hoc signed project packages remain supported.
 
