@@ -128,7 +128,9 @@ Limits checks stable releases on GitHub in the background at startup and every s
 
 **macOS (1.5):** installed copies in `/Applications` or `~/Applications` automatically download the matching Apple Silicon or Intel ZIP from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
 
-**Windows, Linux and source runs:** choose **Update** to open the release on GitHub, then download and install the appropriate file manually. **Later** remembers dismissal for that version; the update remains available in Settings. A failed check or download does not interrupt usage monitoring.
+**Windows:** installed and portable x64 builds download their matching update automatically from Actions-published stable GitHub Releases. Packages are checked against SHA256SUMS.txt and product/version metadata; signed installations also require a valid matching publisher. Choose **Install and restart** when ready. Portable updates replace the original executable and keep a backup until relaunch. Accounts and settings are retained. The app reports download, verification and installation errors and allows retries.
+
+**Linux and source runs:** choose **Update** to open the release on GitHub, then download and install the appropriate file manually. **Later** remembers dismissal for that version; the update remains available in Settings. A failed check or download does not interrupt usage monitoring.
 
 Demo mode simulates update checks without contacting GitHub or opening a browser; **Demo result** in Updates lets you preview current, available and failed states.
 
