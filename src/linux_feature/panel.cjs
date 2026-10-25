@@ -1,4 +1,5 @@
 'use strict';
+const { createPanelPosition } = require('../common/panel-position.cjs');
 
 const PANEL_WIDTH = 528;
 const PANEL_ZOOM = 1.2;
@@ -31,7 +32,8 @@ function panelBounds({ area, contentHeight, width = PANEL_WIDTH, anchor, edge = 
   };
 }
 
-function createPanelController({ window, screen }) {
+function createPanelController({ window, screen, root }) {
+  const remembered = createPanelPosition({ window, root, name: 'linux' });
   let contentHeight = MAX_HEIGHT, anchor = null, clickedTray = null, edge = 'bottom';
   window.webContents.setZoomFactor(PANEL_ZOOM);
   window.webContents.once('dom-ready', () => window.webContents.setZoomFactor(PANEL_ZOOM));
@@ -57,11 +59,13 @@ function createPanelController({ window, screen }) {
     if (window.isDestroyed()) return false;
     const current = window.getBounds();
     const visible = window.isVisible();
-    const display = preservePosition && visible ? screen.getDisplayMatching(current)
+    const display = remembered.point ? screen.getDisplayMatching({ ...remembered.point, width: PANEL_WIDTH, height: contentHeight }) : preservePosition && visible ? screen.getDisplayMatching(current)
       : anchor ? screen.getDisplayMatching(anchor) : screen.getPrimaryDisplay();
     if (!preservePosition || !visible) edge = panelEdge(display, anchor);
-    const bounds = panelBounds({ area: display.workArea, contentHeight, anchor, edge,
+    let bounds = panelBounds({ area: display.workArea, contentHeight, anchor, edge,
       position: preservePosition && visible ? current : null });
+    bounds = remembered.bounds(display.workArea, [PANEL_WIDTH, bounds.height]) || bounds;
+    remembered.expect(bounds);
     if (['x', 'y', 'width', 'height'].some(key => current[key] !== bounds[key])) window.setBounds(bounds, false);
     return true;
   }
@@ -86,6 +90,7 @@ function createPanelController({ window, screen }) {
     place();
   };
   const dispose = () => {
+    remembered.dispose();
     for (const event of ['display-metrics-changed', 'display-added', 'display-removed']) screen.removeListener(event, onDisplayChange);
   };
   for (const event of ['display-metrics-changed', 'display-added', 'display-removed']) screen.on(event, onDisplayChange);

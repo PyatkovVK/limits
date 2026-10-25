@@ -167,3 +167,5 @@ These are ideas for future work, not current features:
 - Try to connect send notify about Codex reset.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
+
+On Linux and macOS, drag the details title bar to keep a custom position across openings and restarts. The panel is kept inside the available screen after monitor changes.

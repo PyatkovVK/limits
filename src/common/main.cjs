@@ -230,10 +230,10 @@ async function setup() {
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
   trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '../..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
-  if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds: () => trayPresentation.entries.map(entry => {
+  if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData'), reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds: () => trayPresentation.entries.map(entry => {
     try { return entry.tray.getBounds(); } catch { return null; }
   }) });
-  if (process.platform === 'linux') linuxPanel = require('../linux_feature/panel.cjs').createPanelController({ window, screen });
+  if (process.platform === 'linux') linuxPanel = require('../linux_feature/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData') });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
   handle('limits:updates-check', () => updates.check());
