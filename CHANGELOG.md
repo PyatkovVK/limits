@@ -13,6 +13,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Fixed
 
+- Windows remembers a manually moved details panel across tray/widget clicks and restarts, clamps it to available displays, and preserves its position while content resizes.
+
 - On macOS, reconnect usage monitoring after waking or unlocking, cancel requests left pending across sleep and bypass retry backoff. Preserve active browser sign-in and coalesce overlapping wake/unlock events.
 - On macOS, place Settings below the physical notch with balanced margins, keep long content scrollable inside the panel and give the close button a fixed circular shape.
 
