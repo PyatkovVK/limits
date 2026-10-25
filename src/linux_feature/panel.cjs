@@ -33,6 +33,7 @@ function panelBounds({ area, contentHeight, width = PANEL_WIDTH, anchor, edge = 
 
 function createPanelController({ window, screen }) {
   let contentHeight = MAX_HEIGHT, anchor = null, clickedTray = null, edge = 'bottom';
+  const activationAnchors = new Map();
   window.webContents.setZoomFactor(PANEL_ZOOM);
   window.webContents.once('dom-ready', () => window.webContents.setZoomFactor(PANEL_ZOOM));
 
@@ -50,7 +51,11 @@ function createPanelController({ window, screen }) {
       const display = screen.getDisplayNearestPoint(point);
       const bounds = display.bounds || display.workArea;
       if (Math.min(Math.abs(point.y - bounds.y), Math.abs(point.y - bounds.y - bounds.height)) > 64) return null;
-      return { ...point, width: 1, height: 1 };
+      // SNI hosts often expose no icon rectangle. A click can land anywhere
+      // inside the icon, so retain the first activation point on this edge.
+      const key = `${bounds.x}:${bounds.y}:${bounds.width}:${bounds.height}:${point.y < bounds.y + bounds.height / 2 ? 'top' : 'bottom'}`;
+      if (!activationAnchors.has(key)) activationAnchors.set(key, { ...point, width: 1, height: 1 });
+      return activationAnchors.get(key);
     } catch { return null; /* Cursor coordinates are unavailable on Wayland. */ }
   }
   function place(preservePosition = false) {
@@ -72,13 +77,13 @@ function createPanelController({ window, screen }) {
     return place(true);
   }
   function show(tray) {
-    clickedTray = tray || null;
-    anchor = readAnchor(clickedTray);
+    if (tray) { clickedTray = tray; anchor = readAnchor(clickedTray); }
     if (!place()) return false;
     window.show(); window.focus();
     return true;
   }
   const onDisplayChange = () => {
+    activationAnchors.clear();
     try {
       const bounds = clickedTray?.getBounds?.();
       if (validAnchor(bounds)) anchor = bounds;

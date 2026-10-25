@@ -167,3 +167,34 @@ test('short Linux content shrinks below the old 480px floor and grows again', ()
   assert.equal(window.bounds.y + window.bounds.height, bottom);
   assert.equal(panelBounds({ area, contentHeight: 1 }).height, 80);
 });
+
+test('unknown tray geometry keeps a stable activation point across repeated clicks and Settings', () => {
+  const { window, screen, panel } = controller();
+  let cursor = { x: 600, y: 790 };
+  screen.getCursorScreenPoint = () => cursor;
+  const tray = { getBounds: () => ({ x: 0, y: 0, width: 0, height: 0 }) };
+  panel.resize(410); panel.show(tray);
+  const expected = window.getBounds();
+  for (const x of [594, 607, 591, 610]) {
+    cursor = { x, y: 785 };
+    window.visible = false; panel.show(tray);
+    assert.deepEqual(window.bounds, expected);
+  }
+  cursor = { x: 300, y: 300 };
+  panel.show();
+  assert.deepEqual(window.bounds, expected, 'opening Settings reuses the last tray anchor');
+});
+
+test('a different display edge gets its own stable fallback and valid icon bounds take priority', () => {
+  const { window, screen, panel } = controller();
+  screen.getCursorScreenPoint = () => ({ x: 600, y: 790 });
+  const tray = {};
+  panel.show(tray);
+  const bottom = window.getBounds();
+  screen.getCursorScreenPoint = () => ({ x: 400, y: 10 });
+  panel.show(tray);
+  assert.notEqual(window.bounds.x, bottom.x);
+  tray.getBounds = () => ({ x: 700, y: 0, width: 24, height: 24 });
+  panel.show(tray);
+  assert.equal(window.bounds.x, 448);
+});
