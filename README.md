@@ -172,3 +172,4 @@ Tell us which feature would help you in a [feature request](https://github.com/P
 
 On Linux, Settings → Subscriptions also distinguishes accounts connected in Limits from current local Codex / VS Code profiles. Choose All, Connected in Limits, or In Codex / VS Code; add other CODEX_HOME folders to monitor multiple local sign-ins. Removing an external source never signs it out.
 On Linux and macOS, drag the details title bar to keep a custom position across openings and restarts. The panel is kept inside the available screen after monitor changes.
+Linux also supports a separate compact widget with two quota bars. Select Widget in Settings, drag its account label to move it, and click the bars to open details. Width, visibility and position persist. It is a floating desktop window; placement is controlled by the compositor on Wayland. Tray mode remains available.

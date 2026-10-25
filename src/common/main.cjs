@@ -24,6 +24,8 @@ const { startupState, changePreference } = require('./preferences.cjs');
 
 const demo = process.argv.includes('--demo');
 const smoke = process.argv.includes('--smoke-test');
+const linuxWidgetSupported = process.platform === 'linux' && !process.argv.includes('--smoke-tray-only');
+let linuxWidget;
 const taskbarSupported = process.platform === 'win32' && !process.argv.includes('--smoke-tray-only');
 const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '../..'), 'artifacts');
 if (smoke && !process.argv.includes('--smoke-gpu')) app.disableHardwareAcceleration();
@@ -58,11 +60,11 @@ function showPanel(anchor) {
   window.show(); window.focus();
 }
 
-const displayModes = () => taskbarSupported ? ['widget', 'tray'] : process.platform === 'darwin' && appleNotch?.available ? ['tray', 'notch'] : ['tray'];
+const displayModes = () => taskbarSupported ? ['widget', 'tray'] : process.platform === 'darwin' && appleNotch?.available ? ['tray', 'notch'] : linuxWidgetSupported ? ['tray', 'widget'] : ['tray'];
 function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, reducedMotion: nativeTheme.prefersReducedMotion, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: displayModes(), appleNotch: appleNotch?.snapshot() || null, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null,
   updates: updates?.snapshot(),
   resetNotifications: resetNotifications?.snapshot(),
-  preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle,
+  preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported || linuxWidgetSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle,
     startup: startupState({ app, platform: process.platform, demo, smoke }) } }; }
 function persistWidgetSettings() {
   const target = path.join(app.getPath('userData'), 'widget-settings.json');
@@ -74,13 +76,14 @@ function saveWidgetSettings() {
   saveTimer = setTimeout(persistWidgetSettings, 200);
 }
 function placeWidget() {
+  if (linuxWidget) { linuxWidget.apply(widgetSettings); return; }
   const before = widget && !widget.isDestroyed() ? widget.getBounds() : null;
   placement?.apply(taskbarMetrics, { ...widgetSettings, visible: widgetSettings.visible && widgetSettings.displayMode === 'widget' });
   if (!before || !windowsPanel || widgetSettings.displayMode !== 'widget' || !widget || widget.isDestroyed()) return;
   const after = widget.getBounds();
   if (['x', 'y', 'width', 'height'].some(key => before[key] !== after[key])) windowsPanel.follow(widget);
 }
-function resetWidget() { widgetSettings.xRatio = null; widgetSettings.visible = true; saveWidgetSettings(); placeWidget(); update(); }
+function resetWidget() { linuxWidget?.reset(); widgetSettings.xRatio = null; widgetSettings.visible = true; saveWidgetSettings(); placeWidget(); update(); }
 function setLanguage(language) {
   if (!['ru', 'en'].includes(language)) return publicState();
   widgetSettings.language = language;
@@ -89,7 +92,7 @@ function setLanguage(language) {
 }
 function setDisplayMode(mode) {
   if (!['widget', 'tray', 'notch'].includes(mode)) return publicState();
-  if (mode === 'widget' && !taskbarSupported) mode = 'tray';
+  if (mode === 'widget' && !taskbarSupported && !linuxWidgetSupported) mode = 'tray';
   if (!displayModes().includes(mode)) return publicState();
   const previous = widgetSettings.displayMode;
   widgetSettings.displayMode = mode;
@@ -268,7 +271,7 @@ async function setup() {
   handle('limits:display-mode', setDisplayMode);
   handle('limits:preference', (key, value) => {
     const changed = changePreference(key, value, { app, settings: widgetSettings, platform: process.platform,
-      taskbarSupported, demo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget });
+      taskbarSupported: taskbarSupported || linuxWidgetSupported, demo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget });
     return { ...publicState(), preferenceError: changed ? null : 'unavailable' };
   });
   ipcMain.handle('limits:panel-size', (event, height) => {
@@ -349,6 +352,11 @@ async function setup() {
     }
   }
   if (taskbarSupported) await createWidget();
+  if (linuxWidgetSupported) {
+    const { LinuxWidget } = require('../linux_feature/widget.cjs');
+    linuxWidget = new LinuxWidget({ BrowserWindow, screen, Menu, root: app.getPath('userData'), webPreferences, restrictWindow, getMenu: presentationMenu, getSettings: () => widgetSettings });
+    widget = linuxWidget.window; await linuxWidget.start();
+  }
   try {
       const root = app.getPath('userData');
       const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : require('./subscriptions.cjs').Subscriptions;
@@ -398,7 +406,7 @@ async function setup() {
         window.hide(); entry.tray.emit('click');
         if (!window.isVisible()) throw new Error('Tray click did not open the panel');
       }
-      if (setDisplayMode('widget').displayMode !== 'tray' || widget) throw new Error('Windows widget was enabled in tray-only mode');
+      if (!linuxWidgetSupported && (setDisplayMode('widget').displayMode !== 'tray' || widget)) throw new Error('Windows widget was enabled in tray-only mode');
       if (demo) {
         monitor.selectProfile(state.profiles[1].id);
         await window.webContents.executeJavaScript('window.limits.get().then(render)');
@@ -582,4 +590,4 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop(); for (const notification of resetToasts) notification.close(); resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
+app.on('before-quit', () => { quitting = true; stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop(); for (const notification of resetToasts) notification.close(); resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); linuxWidget?.destroy(); monitor?.stop(); trayPresentation?.destroy(); });
