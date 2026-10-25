@@ -114,3 +114,20 @@ test('resizing rejects invalid content, respects reduced motion and fits the dis
   assert.equal(window.animations.at(-1), false);
   assert.ok(window.bounds.y + window.bounds.height <= display.workArea.y + display.workArea.height - 8);
 });
+
+
+test('saved manual placement is restored by the platform controller and kept during resize', async t => {
+  const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-panel-restore-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'mac-panel-position.json'), JSON.stringify({ x: 200, y: 70 }));
+  const window = new FakeWindow();
+  const display = { bounds: { x: 0, y: 0, width: 1440, height: 1000 }, workArea: { x: 0, y: 24, width: 1440, height: 976 } };
+  const screen = new (require('node:events').EventEmitter)(); screen.getPrimaryDisplay = screen.getDisplayMatching = () => display;
+  const panel = createPanelController({ window, screen, root, getTrayBounds: () => [], wait: async () => {}, attempts: 1 });
+  await panel.show();
+  assert.equal(window.bounds.x, 200); assert.equal(window.bounds.y, 70);
+  panel.resize(420);
+  assert.equal(window.bounds.x, 200); assert.equal(window.bounds.y, 70);
+  window.emit('closed');
+});

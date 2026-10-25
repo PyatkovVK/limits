@@ -21,6 +21,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 - On Linux, fit short panels to their content below the previous 480px minimum and include Settings in height measurements; grow and shrink without moving the attached edge.
 - On Linux tray hosts without icon geometry, retain a stable activation position across repeated clicks and reuse it when opening Settings from the menu.
+- On Linux and macOS, remember the details panel position after title-bar dragging across reopening and restart; keep it within the available screen when displays change and preserve it during content resizing.
 - Windows remembers a manually moved details panel across tray/widget clicks and restarts, clamps it to available displays, and preserves its position while content resizes.
 
 - On macOS, reconnect usage monitoring after waking or unlocking, cancel requests left pending across sleep and bypass retry backoff. Preserve active browser sign-in and coalesce overlapping wake/unlock events.
