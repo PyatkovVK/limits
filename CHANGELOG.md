@@ -11,6 +11,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Fixed
 
+- On Linux tray hosts without icon geometry, retain a stable activation position across repeated clicks and reuse it when opening Settings from the menu.
+
 - On macOS, reconnect usage monitoring after waking or unlocking, cancel requests left pending across sleep and bypass retry backoff. Preserve active browser sign-in and coalesce overlapping wake/unlock events.
 - On macOS, place Settings below the physical notch with balanced margins, keep long content scrollable inside the panel and give the close button a fixed circular shape.
 
