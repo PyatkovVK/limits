@@ -34,6 +34,9 @@ test('Windows tracks multiple Codex homes independently from connected subscript
   assert.equal(restored.snapshot().subscriptions.mode, 'active');
   await assert.rejects(accounts.login(external));
   assert.throws(() => accounts.addSource(path.join(root, 'accounts', connected)));
+  const alias = path.join(root, 'accounts-alias');
+  fs.symlinkSync(path.join(root, 'accounts'), alias, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.throws(() => accounts.addSource(path.join(alias, connected)));
   await accounts.remove(external);
   assert.equal(logouts, 0); assert.equal(fs.existsSync(work), true);
   assert.equal(accounts.selectedProfileId, 'default');
