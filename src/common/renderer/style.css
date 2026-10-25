@@ -65,3 +65,6 @@ select { flex: 1; min-width: 0; background: #111; border: 1px solid #333; border
 .profile-editor { display: flex; gap: 6px; margin-top: 6px; }
 .profile-editor input { min-width: 0; width: 100%; background: #111; color: #eee; border: 1px solid #333; border-radius: 4px; padding: 4px 6px; }
 .profile-buttons { display: flex; gap: 6px; margin-top: 6px; }
+
+.subscription-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.subscription-controls select { max-width: 100%; min-width: 0; }
