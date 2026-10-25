@@ -11,7 +11,7 @@ function createPanelPosition({ window, root, name }) {
     clearTimeout(timer); timer = null;
     if (window.isDestroyed()) return;
     const bounds = window.getBounds();
-    if (!valid(bounds) || (bounds.x === expected?.x && bounds.y === expected?.y)) return;
+    if (!valid(bounds) || (expected && Math.abs(bounds.x - expected.x) <= 1 && Math.abs(bounds.y - expected.y) <= 1)) return;
     point = expected = { x: bounds.x, y: bounds.y };
     if (file) try {
       fs.mkdirSync(path.dirname(file), { recursive: true });

@@ -29,3 +29,11 @@ test('invalid storage falls back to the tray and pending move listeners are clea
   position.expect(window.bounds); window.emit('move'); position.dispose();
   assert.equal(window.listenerCount('move'), 0); assert.equal(window.listenerCount('moved'), 0);
 });
+
+test('native one-pixel rounding is not recorded as a manual drag', t => {
+  const { position, window } = setup(t);
+  position.expect(window.bounds);
+  window.bounds = { ...window.bounds, x: window.bounds.x + 1, y: window.bounds.y - 1 };
+  window.emit('move'); position.flush();
+  assert.equal(position.point, null);
+});
