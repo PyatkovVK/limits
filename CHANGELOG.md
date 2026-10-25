@@ -6,6 +6,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Added
 
+- Windows distinguishes accounts connected in Limits from current Codex / VS Code subscriptions, supports all/connected/current views and multiple local Codex homes, and reloads external account switches without signing those profiles in or out.
 - Windows reset labels show the local clock time, with a date for other days and a full localized date in the tooltip.
 
 - macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails. Windows and Linux retain manual installation.
