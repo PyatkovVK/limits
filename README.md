@@ -130,7 +130,7 @@ Limits checks stable releases on GitHub in the background at startup and every s
 
 **Windows:** installed and portable x64 builds download their matching update automatically from Actions-published stable GitHub Releases. Packages are checked against SHA256SUMS.txt and product/version metadata; signed installations also require a valid matching publisher. Choose **Install and restart** when ready. Portable updates replace the original executable and keep a backup until relaunch. Accounts and settings are retained. The app reports download, verification and installation errors and allows retries.
 
-**Linux and source runs:** choose **Update** to open the release on GitHub, then download and install the appropriate file manually. **Later** remembers dismissal for that version; the update remains available in Settings. A failed check or download does not interrupt usage monitoring.
+**Linux:** Linux also downloads stable update packages automatically and verifies SHA-256 before offering Install and restart. Writable AppImages update in place; installed DEBs use dpkg/pkexec and ask for system authorization only when installing. Accounts and settings remain in place. See [platform installation details](docs/in-app-updates.md). Source/unpacked builds retain manual installation.
 
 Demo mode simulates update checks without contacting GitHub or opening a browser; **Demo result** in Updates lets you preview current, available and failed states.
 
@@ -169,5 +169,3 @@ These are ideas for future work, not current features:
 - Try to connect send notify about Codex reset.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
-
-Linux also downloads stable update packages automatically and verifies SHA-256 before offering Install and restart. Writable AppImages update in place; installed DEBs use dpkg/pkexec and ask for system authorization only when installing. Accounts and settings remain in place. See [platform installation details](docs/in-app-updates.md).
