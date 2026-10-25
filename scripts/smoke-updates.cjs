@@ -54,6 +54,7 @@ app.whenReady().then(async () => {
       await waitFor(() => run('document.getElementById("updates-dialog").open'), 'deferred offer');
       await waitFor(() => run('window.limits.get().then(next => next.updates.installation?.status === "ready")'), 'verified package ready');
       assert.equal(await run('document.getElementById("updates-install").textContent'), language === 'ru' ? 'Установить и перезапустить' : 'Install and restart');
+      await pause(); await pause();
       fs.writeFileSync(path.join(root, `offer-${language}.png`), (await panel.webContents.capturePage()).toPNG());
       // Background checks must retain the same open modal in a hidden host.
       await run('(() => { const dialog = document.getElementById("updates-dialog"); const show = dialog.showModal.bind(dialog); window.updateModalChecks = {shows:0,closes:0}; dialog.showModal = () => { window.updateModalChecks.shows++; show(); }; dialog.addEventListener("close", () => window.updateModalChecks.closes++); })()');
