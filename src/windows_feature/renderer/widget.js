@@ -3,8 +3,8 @@ const $ = id => document.getElementById(id);
 let resetAt = null, weeklyResetAt = null, language = 'ru';
 const setText = (element, text) => { if (element.textContent !== text) element.textContent = text; };
 function renderCountdown() {
-  window.limitsCountdown.render($('short-reset'), resetAt, language);
-  window.limitsCountdown.render($('weekly-reset'), weeklyResetAt, language, Date.now(), { compactDays: true });
+  window.limitsWindowsResetClock.render($('short-reset'), resetAt, language);
+  window.limitsWindowsResetClock.render($('weekly-reset'), weeklyResetAt, language);
 }
 function render(next) {
   language = next.language || 'ru';
