@@ -5,3 +5,5 @@ body[data-platform="linux"] main {
 }
 body[data-platform="linux"] #settings-tray-style { width: 190px; }
 body[data-platform="linux"] .linux-panel-content { display: flow-root; }
+
+body[data-platform="linux"] .linux-settings-content { display: flow-root; }

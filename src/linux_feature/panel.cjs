@@ -2,7 +2,7 @@
 
 const PANEL_WIDTH = 528;
 const PANEL_ZOOM = 1.2;
-const MIN_HEIGHT = 480;
+const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 720;
 const margin = 8;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
