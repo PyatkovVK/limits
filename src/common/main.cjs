@@ -351,7 +351,7 @@ async function setup() {
   if (taskbarSupported) await createWidget();
   try {
       const root = app.getPath('userData');
-      const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : process.platform === 'win32' ? require('./subscriptions.cjs').Subscriptions : Accounts;
+      const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : require('./subscriptions.cjs').Subscriptions;
       if (demo) {
         const { DemoMonitor } = require('./demo-monitor.cjs');
         monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });

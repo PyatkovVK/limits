@@ -6,6 +6,9 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Added
 
+- Extend connected/current subscription tracking to Linux and Windows through the shared registry and interface; retain independent local Codex homes, persisted filters and selection, and removal without logout.
+
+- macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails. Windows and Linux retain manual installation.
 - Windows downloads the matching NSIS or portable update from Actions-published stable GitHub Releases, verifies SHA-256, product/version and publisher when signed, then installs and restarts on request. Portable replacement keeps a backup until relaunch.
 
 - macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails. Linux retains manual installation.

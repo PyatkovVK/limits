@@ -20,10 +20,10 @@
     if (!controls) {
       controls = make('div', section, 'subscription-controls');
       section.insertBefore(controls, document.getElementById('accounts'));
-      const mode = make('select', controls); mode.id = 'subscription-mode';
+      const mode = make('select', controls); mode.id = next.platform === 'darwin' ? 'apple-subscription-mode' : 'subscription-mode';
       for (const value of ['all', 'connected', 'active']) { const option = make('option', mode); option.value = value; }
       mode.onchange = async () => { await window.limits.subscriptionMode(mode.value); render(await window.limits.get()); };
-      const source = make('button', controls, 'refresh-button'); source.id = 'subscription-add-source'; source.type = 'button';
+      const source = make('button', controls, 'refresh-button'); source.id = next.platform === 'darwin' ? 'apple-subscription-add-source' : 'subscription-add-source'; source.type = 'button';
       source.onclick = async () => {
         source.disabled = true;
         const result = await window.limits.addSubscriptionSource();
@@ -31,14 +31,14 @@
         render(await window.limits.get());
       };
       const error = make('p', controls, 'footnote warning'); error.setAttribute('role', 'status');
-      const empty = make('p', section, 'footnote'); empty.id = 'subscription-empty';
+      const empty = make('p', section, 'footnote'); empty.id = next.platform === 'darwin' ? 'apple-subscription-empty' : 'subscription-empty';
     }
     section.querySelector('.accounts-heading > span').textContent = t.title;
     section.querySelector('.footnote:not(.warning)').textContent = t.hint;
-    const mode = document.getElementById('subscription-mode'); mode.value = next.subscriptions.mode;
+    const mode = controls.querySelector('select'); mode.value = next.subscriptions.mode;
     mode.setAttribute('aria-label', t.title);
     for (const option of mode.options) option.textContent = t[option.value];
-    const source = document.getElementById('subscription-add-source');
+    const source = controls.querySelector('button');
     source.textContent = t.addSource; source.title = t.sourceHint; source.disabled = next.demo;
     source.hidden = mode.value === 'connected';
     let visible = 0;
@@ -59,7 +59,7 @@
         remove.title = label; remove.setAttribute('aria-label', label);
       }
     }
-    const empty = document.getElementById('subscription-empty'); empty.textContent = t.empty; empty.hidden = visible > 0;
+    const empty = section.querySelector('[id$="subscription-empty"]'); empty.textContent = t.empty; empty.hidden = visible > 0;
     if (next.readOnly) document.getElementById('login').textContent = t.connect;
   }
   window.limits.subscribe(render);
