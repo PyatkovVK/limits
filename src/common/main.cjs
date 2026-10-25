@@ -221,14 +221,14 @@ async function setup() {
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
-  const UpdateService = process.platform === 'darwin' ? require('../apple_feature/updates.cjs').AppleUpdates : Updates;
+  const UpdateService = process.platform === 'darwin' ? require('../apple_feature/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('../windows_feature/updates.cjs').WindowsUpdates : Updates;
   updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
   resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'),
     notify: showResetNotification, openExternal: url => shell.openExternal(url) });
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
-    window, screen, ipcMain, getWidgetHost: () => widgetHost,
+    window, screen, ipcMain, getWidgetHost: () => widgetHost, root: app.getPath('userData'),
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
@@ -324,15 +324,15 @@ async function setup() {
     } catch { return { error: 'accountActionFailed' }; }
   });
   handle('limits:subscriptions-mode', mode => {
-    if (process.platform !== 'darwin' || !monitor?.setMode) return { error: 'accountActionFailed' };
+    if (!monitor?.setMode) return { error: 'accountActionFailed' };
     try { monitor.setMode(mode); return {}; } catch { return { error: 'accountActionFailed' }; }
   });
   handle('limits:subscriptions-add-source', async () => {
-    if (process.platform !== 'darwin' || !monitor?.addSource || demo) return { error: 'accountActionFailed' };
+    if (!monitor?.addSource || demo) return { error: 'accountActionFailed' };
     try {
       const parent = widgetSettings.displayMode === 'notch' ? appleNotch?.window : window;
       const choose = () => dialog.showOpenDialog(parent, { properties: ['openDirectory', 'showHiddenFiles'] });
-      const result = widgetSettings.displayMode === 'notch' ? await appleNotch.withModal(choose) : await choose();
+      const result = widgetSettings.displayMode === 'notch' ? await appleNotch.withModal(choose) : windowsPanel ? await windowsPanel.withModal(choose) : await choose();
       if (!result.canceled && result.filePaths.length === 1) monitor.addSource(result.filePaths[0]);
       return {};
     } catch { return { error: 'accountActionFailed' }; }
@@ -359,7 +359,7 @@ async function setup() {
   }
   try {
       const root = app.getPath('userData');
-      const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : Accounts;
+      const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : process.platform === 'win32' ? require('./subscriptions.cjs').Subscriptions : Accounts;
       if (demo) {
         const { DemoMonitor } = require('./demo-monitor.cjs');
         monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
@@ -450,9 +450,11 @@ async function setup() {
         const labels = await window.webContents.executeJavaScript(`({ language: document.documentElement.lang, short: document.querySelector('.short [data-i18n="short"]').textContent, reset: document.getElementById('short-reset').textContent, refresh: document.getElementById('refresh').textContent, clean: !/До сброса|Осталось|каждые 30|Resets in|Remaining|every 30/.test(document.body.textContent) })`);
         if (labels.language !== language || labels.short !== translate(language, 'short') || labels.refresh !== translate(language, 'refresh') || !labels.clean) throw new Error(JSON.stringify(labels));
         const reset = await widget.webContents.executeJavaScript(`document.getElementById('short-reset').textContent`);
-        if (reset !== labels.reset || (demo && reset !== '2:19')) throw new Error('Short reset countdown is missing or inconsistent.');
+        const expectedClock = await widget.webContents.executeJavaScript(`window.limits.get().then(s => window.limitsWindowsResetClock.format(s.buckets.find(b => b.id === s.selectedId).short.resetsAt, s.language))`);
+        if (reset !== labels.reset || reset !== expectedClock) throw new Error('Short reset clock is missing or inconsistent.');
         const weekly = await widget.webContents.executeJavaScript(`({ label: document.querySelector('[data-i18n="weeklyCompact"]').textContent, reset: document.getElementById('weekly-reset').textContent })`);
-        if (weekly.label !== (language === 'ru' ? '7д' : '7d') || (demo && !/^\d+[дd]\d+[чh]$/.test(weekly.reset))) throw new Error('Weekly reset countdown is missing or inconsistent.');
+        const expectedWeekly = await widget.webContents.executeJavaScript(`window.limits.get().then(s => window.limitsWindowsResetClock.format(s.buckets.find(b => b.id === s.selectedId).weekly.resetsAt, s.language))`);
+        if (weekly.label !== (language === 'ru' ? '7д' : '7d') || weekly.reset !== expectedWeekly) throw new Error('Weekly reset clock is missing or inconsistent.');
         // Exercise the automatic compact sizes independently of live taskbar space.
         for (const width of [200, 210, 220, 240, 280, 320, 400]) {
           widgetSettings.width = width; placeWidget();
