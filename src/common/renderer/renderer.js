@@ -110,11 +110,12 @@ function renderAccounts(next, t) {
 }
 function renderCountdown() {
   if (!state) return;
+  const timer = state.platform === 'win32' ? window.limitsWindowsResetClock : window.limitsCountdown;
   const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets.find(item => item.id === 'codex') || state.buckets[0];
-  window.limitsCountdown.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
+  timer.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
   for (const profile of state.profiles || []) {
     const card = profileCards.get(profile.id);
-    if (card) window.limitsCountdown.render(card.reset, bucketFor(profile)?.short?.resetsAt, state.language || 'ru');
+    if (card) timer.render(card.reset, bucketFor(profile)?.short?.resetsAt, state.language || 'ru');
   }
 }
 

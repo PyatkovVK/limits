@@ -5,11 +5,19 @@ const os = require('node:os');
 const { execFile, spawn } = require('node:child_process');
 const { promisify } = require('node:util');
 const { Updates, compareVersions } = require('../common/updates.cjs');
+const { assetUrl, checksumFor, responseFor, download } = require('../common/update-download.cjs');
 const run = promisify(execFile);
 const API = 'https://api.github.com/repos/PyatkovVK/limits/releases/tags/';
 const MAX_ARCHIVE = 1024 * 1024 * 1024;
 
-const { assetUrl, checksumFor, validateArchiveListing, responseFor, download } = require('../common/update-download.cjs');
+function validateArchiveListing(list) {
+  const names = list.trim().split(/\r?\n/);
+  if (!names.length || !names.some(name => name.startsWith('Limits.app/'))) throw new Error('invalidPackage');
+  for (const name of names) {
+    if ((!name.startsWith('Limits.app/') && !name.startsWith('__MACOSX/')) || name.includes('\\') ||
+        name.split('/').some(part => part === '..') || /[\x00-\x1f\x7f]/.test(name)) throw new Error('invalidPackage');
+  }
+}
 async function verifyBundle(bundle, { version, arch, currentApp, runCommand = run }) {
   const plist = path.join(bundle, 'Contents', 'Info.plist');
   const read = async key => (await runCommand('/usr/bin/plutil', ['-extract', key, 'raw', '-o', '-', plist])).stdout.trim();

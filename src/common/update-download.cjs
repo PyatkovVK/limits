@@ -15,19 +15,11 @@ function checksumFor(text, name) {
   if (matches.length !== 1) throw new Error('invalidPackage');
   return matches[0][1].toLowerCase();
 }
-function validateArchiveListing(list) {
-  const names = list.trim().split(/\r?\n/);
-  if (!names.length || !names.some(name => name.startsWith('Limits.app/'))) throw new Error('invalidPackage');
-  for (const name of names) {
-    if ((!name.startsWith('Limits.app/') && !name.startsWith('__MACOSX/')) || name.includes('\\') ||
-        name.split('/').some(part => part === '..') || /[\x00-\x1f\x7f]/.test(name)) throw new Error('invalidPackage');
-  }
-}
 async function responseFor(url, { signal, fetchImpl }) {
   for (let redirects = 0; redirects <= 5; redirects++) {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:' || parsed.port || parsed.username || parsed.password || !DOWNLOAD_HOSTS.has(parsed.hostname)) throw new Error('invalidPackage');
-    const response = await fetchImpl(url, { signal, redirect: 'manual', credentials: 'omit', headers: { 'User-Agent': 'Limits-mac-update' } });
+    const response = await fetchImpl(url, { signal, redirect: 'manual', credentials: 'omit', headers: { 'User-Agent': 'Limits-update' } });
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get('location');
       await response.body?.cancel();
@@ -61,4 +53,4 @@ async function download(url, file, { signal, fetchImpl, maxBytes, onProgress = (
   return { hash: hash.digest('hex'), size };
 }
 
-module.exports = { assetUrl, checksumFor, validateArchiveListing, responseFor, download };
+module.exports = { assetUrl, checksumFor, responseFor, download };

@@ -6,7 +6,7 @@ const { panelPosition, createPanelController } = require('../panel.cjs');
 
 const area = { x: 0, y: 0, width: 1920, height: 1032 };
 const bounds = { x: 800, y: 1032, width: 280, height: 34 };
-function controller() {
+function controller(root) {
   const window = Object.assign(new EventEmitter(), {
     destroyed: false, visible: false, position: [0, 0], moves: 0, shows: 0, focuses: 0,
     isDestroyed() { return this.destroyed; },
@@ -30,7 +30,7 @@ function controller() {
     getBounds() { return this.bounds; },
   };
   const screen = { getDisplayMatching: () => ({ workArea: area }), getPrimaryDisplay: () => ({ workArea: area }) };
-  const panel = createPanelController({ window, screen, getAnchorBounds: () => widget.bounds });
+  const panel = createPanelController({ window, screen, getAnchorBounds: () => widget.bounds, root });
   return { window, widget, screen, panel };
 }
 
@@ -147,4 +147,24 @@ test('native dialogs keep details open and release the blur guard on failure', a
   });
   await assert.rejects(panel.withModal(async () => { throw new Error('cancelled'); }), /cancelled/);
   window.emit('blur'); assert.equal(window.isVisible(), false);
+});
+
+
+test('user placement survives reopening, widget motion and restart; only native movement is persisted', t => {
+  const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-panel-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const { window, panel, widget } = controller(root);
+  panel.show(); window.emit('moved');
+  assert.equal(fs.existsSync(path.join(root, 'windows-panel-position.json')), false);
+  window.position = [123, 145]; window.emit('moved'); window.hide();
+  widget.bounds.x = 1400; panel.show();
+  assert.deepEqual(window.position, [123, 145]);
+  assert.equal(panel.follow(widget), false);
+  panel.resize(700); assert.deepEqual(window.position, [123, 145]);
+  const restored = controller(root); restored.panel.show();
+  assert.deepEqual(restored.window.position, [123, 145]);
+  restored.screen.getDisplayMatching = () => ({ workArea: { x: -1000, y: -800, width: 1000, height: 800 } });
+  restored.panel.resize(1000);
+  assert.deepEqual(restored.window.position, [-440, -784]);
 });

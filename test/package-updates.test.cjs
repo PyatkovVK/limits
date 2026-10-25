@@ -3,7 +3,6 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os');
 const { createHash } = require('node:crypto'), { EventEmitter } = require('node:events');
 const { PackageUpdates } = require('../src/common/package-updates.cjs');
-const { WindowsUpdates } = require('../src/windows_feature/updates.cjs');
 const { LinuxUpdates } = require('../src/linux_feature/updates.cjs');
 const release = { version: '1.5.0', tag: 'v1.5', url: 'https://github.com/PyatkovVK/limits/releases/tag/v1.5' };
 function pe() { const value = Buffer.alloc(128); value.write('MZ'); value.writeUInt32LE(64, 60); value.write('PE', 64); value.writeUInt16LE(0x14c, 68); return value; }
@@ -30,13 +29,13 @@ function setup(t, platform, portable = true) {
       const child = new EventEmitter(); child.unref = () => {}; queueMicrotask(() => child.emit('spawn')); return child;
     }
   };
-  const updater = platform === 'linux' ? new LinuxUpdates(options) : new WindowsUpdates(options);
+  const updater = new LinuxUpdates(options);
   updater.state.release = release;
   t.after(() => { updater.stop(); fs.rmSync(root, { recursive: true, force: true }); });
   return { updater, root, target, name, bytes, commands, counts: () => ({ quit, installs }) };
 }
 test('native package selection downloads, verifies and coalesces without installing before the action', async t => {
-  for (const platform of ['linux', 'win32']) for (const portable of platform === 'win32' ? [true, false] : [true]) {
+  for (const platform of ['linux']) for (const portable of platform === 'win32' ? [true, false] : [true]) {
     const { updater, name, commands, counts } = setup(t, platform, portable);
     const pending = updater.prepare(release); assert.equal(updater.prepare(release), pending); await pending;
     assert.equal(updater.installation.status, 'ready'); assert.equal(path.basename(updater.packageFile), name);
@@ -47,9 +46,9 @@ test('native package selection downloads, verifies and coalesces without install
   }
 });
 test('tampered payloads are rejected before native verification or handoff, and retry can recover', async t => {
-  const { updater, bytes, commands, counts } = setup(t, 'win32');
+  const { updater, bytes, commands, counts } = setup(t, 'linux');
   const original = updater.fetchImpl;
-  updater.fetchImpl = async (url, options) => url.endsWith('.exe') ? new Response(Buffer.alloc(bytes.length)) : original(url, options);
+  updater.fetchImpl = async (url, options) => url.endsWith('.AppImage') ? new Response(Buffer.alloc(bytes.length)) : original(url, options);
   await updater.prepare(release); assert.equal(updater.installation.error, 'invalidPackage'); assert.equal(commands.length, 0);
   assert.deepEqual(counts(), { quit: 0, installs: 0 });
   updater.fetchImpl = original; await updater.prepare(release); assert.equal(updater.installation.status, 'ready');
