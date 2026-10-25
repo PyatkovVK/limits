@@ -42,7 +42,18 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
       fs.writeFileSync(path.join(artifactRoot, filename), (await window.webContents.capturePage()).toPNG());
       placements.push({ edge, bounds: collapsed, screenshot: filename });
     }
-    return { zoom: 1.2, simulatedTrayPlacements: placements, growsAndShrinks: true };
+    const compact = await window.webContents.executeJavaScript(`(() => {
+      const content = document.querySelector('.linux-panel-content');
+      window.linuxSmokeChildren = [...content.childNodes];
+      content.replaceChildren();
+      return window.limitsLinuxPanel.report();
+    })()`);
+    await delay(150);
+    const compactHeight = window.getBounds().height;
+    if (compactHeight >= 480) throw new Error('Short Linux content retained the old height floor');
+    await window.webContents.executeJavaScript(`document.querySelector('.linux-panel-content').append(...window.linuxSmokeChildren); delete window.linuxSmokeChildren`);
+    await delay(150);
+    return { zoom: 1.2, simulatedTrayPlacements: placements, growsAndShrinks: true, compactHeight };
   } finally {
     if (original) Object.defineProperty(tray, 'getBounds', original);
     else delete tray.getBounds;

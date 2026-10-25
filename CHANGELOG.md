@@ -11,6 +11,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Fixed
 
+- On Linux, fit short panels to their content below the previous 480px minimum and include Settings in height measurements; grow and shrink without moving the attached edge.
+
 - On macOS, reconnect usage monitoring after waking or unlocking, cancel requests left pending across sleep and bypass retry backoff. Preserve active browser sign-in and coalesce overlapping wake/unlock events.
 - On macOS, place Settings below the physical notch with balanced margins, keep long content scrollable inside the panel and give the close button a fixed circular shape.
 

@@ -27,7 +27,7 @@ function controller() {
 }
 
 test('Linux panel enlarges content and keeps its bottom above the taskbar', () => {
-  assert.deepEqual(panelBounds({ area, contentHeight: 410 }), { x: 736, y: 279, width: 528, height: 480 });
+  assert.deepEqual(panelBounds({ area, contentHeight: 410 }), { x: 736, y: 349, width: 528, height: 410 });
   const { window, panel } = controller();
   panel.resize(410); panel.show();
   assert.equal(window.visible, true);
@@ -152,4 +152,18 @@ test('display changes re-read tray placement and move the open panel to the new 
   screen.emit('display-metrics-changed');
   assert.equal(window.bounds.x, 448);
   assert.equal(window.bounds.y + window.bounds.height, 759);
+});
+
+
+test('short Linux content shrinks below the old 480px floor and grows again', () => {
+  const { window, panel } = controller();
+  panel.resize(150); panel.show();
+  assert.equal(window.bounds.height, 180);
+  const bottom = window.bounds.y + window.bounds.height;
+  panel.resize(600);
+  assert.equal(window.bounds.height, 720);
+  panel.resize(150);
+  assert.equal(window.bounds.height, 180);
+  assert.equal(window.bounds.y + window.bounds.height, bottom);
+  assert.equal(panelBounds({ area, contentHeight: 1 }).height, 80);
 });
