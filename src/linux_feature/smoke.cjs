@@ -2,6 +2,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
+// Native X11 window sizes may round a CSS/zoom conversion by one DIP.
+const near = (left, right) => Math.abs(left - right) <= 1;
 
 async function verifyPanel({ window, trayPresentation, artifactRoot }) {
   const { screen } = require('electron');
@@ -24,7 +26,7 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
       const expectedY = edge === 'top'
         ? Math.max(area.y + 8, Math.min(area.y + area.height - bounds.height - 8, Math.max(area.y, anchor.y + anchor.height) + 8))
         : Math.max(area.y + 8, Math.min(area.y + area.height, anchor.y) - 8 - bounds.height);
-      if (bounds.y !== expectedY) throw new Error(`Linux panel did not open at the ${edge} tray`);
+      if (!near(bounds.y, expectedY)) throw new Error(`Linux panel did not open at the ${edge} tray`);
       // Grow intrinsic content beyond the height cap, then remove it to check shrinking.
       await window.webContents.executeJavaScript(`(() => {
         const spacer = document.createElement('div'); spacer.id = 'linux-smoke-spacer'; spacer.style.height = '900px';
@@ -32,12 +34,12 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
       })()`);
       await delay(150);
       const expanded = window.getBounds();
-      if (expanded.height !== Math.min(720, area.height - 16)) throw new Error('Linux panel did not grow to its height cap');
-      if (edge === 'top' ? expanded.y !== bounds.y : expanded.y + expanded.height !== bounds.y + bounds.height) throw new Error('Linux resizing moved the attached edge');
+      if (!near(expanded.height, Math.min(720, area.height - 16))) throw new Error('Linux panel did not grow to its height cap');
+      if (edge === 'top' ? !near(expanded.y, bounds.y) : !near(expanded.y + expanded.height, bounds.y + bounds.height)) throw new Error('Linux resizing moved the attached edge');
       await window.webContents.executeJavaScript("document.getElementById('linux-smoke-spacer').remove()");
       await delay(150);
       const collapsed = window.getBounds();
-      if (collapsed.height !== bounds.height || collapsed.y !== bounds.y) throw new Error('Linux panel did not shrink back to its content');
+      if (!near(collapsed.height, bounds.height) || !near(collapsed.y, bounds.y)) throw new Error('Linux panel did not shrink back to its content');
       const filename = `linux-panel-${edge}.png`;
       fs.writeFileSync(path.join(artifactRoot, filename), (await window.webContents.capturePage()).toPNG());
       placements.push({ edge, bounds: collapsed, screenshot: filename });
