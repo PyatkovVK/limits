@@ -91,6 +91,10 @@ function setLanguage(language) {
   return publicState();
 }
 function setDisplayMode(mode) {
+  if (process.platform === 'linux' && ['classic', 'bar'].includes(mode)) {
+    widgetSettings.linuxTrayStyle = mode;
+    mode = 'tray';
+  }
   if (!['widget', 'tray', 'notch'].includes(mode)) return publicState();
   if (mode === 'widget' && !taskbarSupported && !linuxWidgetSupported) mode = 'tray';
   if (!displayModes().includes(mode)) return publicState();
@@ -117,7 +121,7 @@ function presentationMenu() {
   return [
       { label: t('details'), click: showPanel },
       { label: t('settings'), click: showSettings },
-      { label: t('refresh'), enabled: !demo && !state.refreshing, click: () => void monitor?.refresh() },
+      { label: t('refresh'), enabled: !demo && (process.platform === 'linux' || !state.refreshing), click: () => void monitor?.refresh() },
       { type: 'separator' },
       { label: t('quit'), click: () => app.quit() }
     ];
@@ -233,7 +237,13 @@ async function setup() {
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
-  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '../..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
+  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '../..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => {
+    if (!linuxPanel) return showPanel(tray);
+    if (widgetSettings.displayMode !== 'widget') return linuxPanel.toggle(tray);
+    widgetSettings.visible = widgetSettings.visible === false;
+    if (!widgetSettings.visible) linuxPanel.hide();
+    saveWidgetSettings(); placeWidget(); update();
+  } });
   if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData'), reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds: () => trayPresentation.entries.map(entry => {
     try { return entry.tray.getBounds(); } catch { return null; }
   }) });
@@ -267,6 +277,7 @@ async function setup() {
   });
   handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
   handle('limits:open', showPanel);
+  handle('limits:toggle-details', () => linuxPanel ? linuxPanel.toggle(widget) : showPanel());
   handle('limits:select', id => { if (typeof id === 'string') monitor?.select(id); });
   handle('limits:language', setLanguage);
   handle('limits:display-mode', setDisplayMode);
@@ -367,7 +378,7 @@ async function setup() {
       } else {
         const binary = findCodex({ resourcesPath: app.isPackaged ? process.resourcesPath : null });
         monitor = new AccountService({ root, createMonitor: (_profile, options) => new Monitor(new CodexClient(binary, options),
-          { refreshCredentials: !options.readOnly, reloadOnPoll: Boolean(options.readOnly) }) });
+          { refreshCredentials: !options.readOnly, reloadOnPoll: Boolean(options.readOnly), preserveStartupSample: process.platform === 'linux' }) });
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
       monitor.on('state', next => { state = { ...next, demo }; update(); });
@@ -401,7 +412,7 @@ async function setup() {
       await window.webContents.executeJavaScript('window.renderReady');
       await window.webContents.executeJavaScript('window.limits.get().then(render)');
       const report = await window.webContents.executeJavaScript(`({ values: [...document.querySelectorAll('.remaining-value')].map(el => el.textContent), isolated: typeof require === 'undefined', mode: document.getElementById('display-mode').value })`);
-      if (!report.isolated || report.mode !== 'tray' || trayPresentation.entries.length !== 2 || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready')) throw new Error('Tray-only startup failed');
+      if (!report.isolated || report.mode !== (process.platform === 'linux' ? widgetSettings.linuxTrayStyle : 'tray') || trayPresentation.entries.length !== 2 || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready')) throw new Error('Tray-only startup failed');
       const firstPlacement = macPanel?.snapshot();
       if (firstPlacement && (firstPlacement.fallback || !require('../apple_feature/panel.cjs').isMenuBarAnchor(firstPlacement.anchor, firstPlacement.display) || !window.isVisible() || window.getBounds().y !== firstPlacement.bounds.y)) throw new Error('Mac first launch did not open below a menu-bar indicator');
       for (const entry of trayPresentation.entries) {

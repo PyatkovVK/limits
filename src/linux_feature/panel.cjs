@@ -86,6 +86,15 @@ function createPanelController({ window, screen, root }) {
     window.show(); window.focus();
     return true;
   }
+  function hide() {
+    if (window.isDestroyed()) return false;
+    window.hide();
+    return true;
+  }
+  function toggle(tray) {
+    if (window.isDestroyed()) return false;
+    return window.isVisible() ? hide() : show(tray);
+  }
   const onDisplayChange = () => {
     activationAnchors.clear();
     try {
@@ -100,7 +109,7 @@ function createPanelController({ window, screen, root }) {
   };
   for (const event of ['display-metrics-changed', 'display-added', 'display-removed']) screen.on(event, onDisplayChange);
   window.once('closed', dispose);
-  return { resize, show, dispose };
+  return { resize, show, hide, toggle, dispose };
 }
 
 module.exports = { panelBounds, panelEdge, createPanelController };

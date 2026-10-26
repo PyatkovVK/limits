@@ -130,10 +130,12 @@ function render(next) {
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);
   $('language').value = language;
-  $('display-mode').value = next.displayMode || 'widget';
-  const modes = next.displayModes || ['widget', 'tray'];
-  for (const option of $('display-mode').options) option.hidden = option.disabled = !modes.includes(option.value);
-  $('display-mode').closest('.display-settings').hidden = modes.length < 2;
+  if (!window.limitsLinuxDisplay?.render(next)) {
+    $('display-mode').value = next.displayMode || 'widget';
+    const modes = next.displayModes || ['widget', 'tray'];
+    for (const option of $('display-mode').options) option.hidden = option.disabled = !modes.includes(option.value);
+    $('display-mode').closest('.display-settings').hidden = modes.length < 2;
+  }
   $('display-hint').textContent = t(next.displayMode === 'notch' ? 'notchFootnote' : next.displayMode === 'tray' ? 'trayFootnote' : 'footnote');
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > 90000;
   const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets.find(item => item.id === 'codex') || next.buckets[0];

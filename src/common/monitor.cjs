@@ -3,10 +3,10 @@ const { EventEmitter } = require('node:events');
 const { normalizeLimits } = require('./limits.cjs');
 
 class Monitor extends EventEmitter {
-  constructor(client, { refreshCredentials = true, reloadOnPoll = false } = {}) {
+  constructor(client, { refreshCredentials = true, reloadOnPoll = false, preserveStartupSample = false } = {}) {
     super();
     this.client = client;
-    Object.assign(this, { refreshCredentials, reloadOnPoll, reloading: false });
+    Object.assign(this, { refreshCredentials, reloadOnPoll, preserveStartupSample, identifyingAccount: false, reloading: false });
     this.state = { account: null, buckets: [], selectedId: 'codex', updatedAt: null, error: null, status: 'connecting', refreshing: false, interval: 30 };
     this.failures = 0;
     this.timer = null;
@@ -34,9 +34,12 @@ class Monitor extends EventEmitter {
         // notification only describes the loaded store; account/read below is
         // authoritative for identity changes. Keep the last sample until then.
         if (this.loadingExternalAccount && this.state.account && params.authMode === this.state.account.type) return;
-        // Clear old-account data immediately, including when an external logout is observed.
+        // Linux also retains its sample for unclassified startup announcements,
+        // invalidating and retrying account/read before publishing new quotas.
+        // Logout and notifications outside this handshake still clear immediately.
+        const retainSample = this.preserveStartupSample && this.identifyingAccount && params.authMode !== null;
         this.accountRevision++;
-        this.publish({ account: null, buckets: [], updatedAt: null });
+        if (!retainSample) this.publish({ account: null, buckets: [], updatedAt: null });
         this.rerunRequested = Boolean(this.inflight);
         void this.refresh();
       }
@@ -113,6 +116,7 @@ class Monitor extends EventEmitter {
         try { this.client.stop(); } finally { this.reloading = false; }
       }
       this.loadingExternalAccount = this.reloadOnPoll;
+      this.identifyingAccount = true;
       let account, generation;
       try {
         await this.client.start();
@@ -121,7 +125,7 @@ class Monitor extends EventEmitter {
         // Our own app-server refreshes stored credentials on every connection.
         // Routine polls leave automatic token maintenance to that same process.
         ({ account } = await this.client.request('account/read', { refreshToken: this.refreshCredentials && this.credentialsGeneration !== generation }));
-      } finally { this.loadingExternalAccount = false; }
+      } finally { this.loadingExternalAccount = false; this.identifyingAccount = false; }
       this.credentialsGeneration = generation;
       if (revision !== this.accountRevision || this.stopped) return this.state;
       if (!account) {
