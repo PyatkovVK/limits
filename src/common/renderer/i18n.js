@@ -89,6 +89,8 @@
   const api = {
     languages: Object.keys(strings),
     t(language, key, platform) {
+      if (platform === 'linux' && key === 'widgetMode') return language === 'en' ? 'Desktop widget' : 'Виджет на рабочем столе';
+      if (platform === 'linux' && key === 'footnote') return language === 'en' ? 'Drag the account label to move the widget. Click the bars for details.' : 'Перетащите название аккаунта для перемещения. Нажмите на полоски для подробностей.';
       return (connectionStrings[language] || connectionStrings.ru)[key] || (strings[language] || strings.ru)[key] || key;
     },
     apply(language, doc, translate = api.t) {

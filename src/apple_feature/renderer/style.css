@@ -40,6 +40,41 @@ body[data-platform="darwin"] .brand { color: var(--ink); font-size: 14px; font-w
 body[data-platform="darwin"] main { flex: 1; min-height: 0; padding: 18px 20px; max-height: none; }
 /* Intrinsic wrappers stay measurable when the viewport shrinks or scrolls. */
 .mac-panel-content, .mac-settings-content { display: flow-root; }
+body[data-platform="darwin"] #settings-dialog { --settings-inset: 14px; box-sizing: border-box; }
+body[data-platform="darwin"] #settings-dialog[open] { display: flex; flex-direction: column; }
+body[data-platform="darwin"] #settings-dialog .settings-header { flex: none; min-height: 56px; padding: 12px 16px; }
+body[data-platform="darwin"] #settings-dialog .settings-header h2 { min-width: 0; line-height: 20px; }
+body[data-platform="darwin"] #settings-dialog .settings-close {
+  display: grid; place-items: center; flex: 0 0 32px;
+  width: 32px; min-width: 32px; max-width: 32px;
+  height: 32px; min-height: 32px; max-height: 32px;
+  padding: 0; border-radius: 50%; line-height: 1; box-shadow: none;
+}
+body[data-platform="darwin"] #settings-dialog select {
+  appearance: none; -webkit-appearance: none;
+  height: 34px; padding: 7px 32px 7px 12px; line-height: 18px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23aab3c3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 11px center; background-size: 12px 8px;
+}
+body[data-platform="darwin"] #settings-dialog .language { width: 68px; }
+body[data-platform="darwin"] #settings-dialog button { appearance: none; -webkit-appearance: none; }
+body[data-platform="darwin"] #settings-dialog .refresh-button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 7px 12px; font-size: 11px; line-height: 18px; box-shadow: none; }
+body[data-platform="darwin"] #settings-dialog .display-settings { justify-content: space-between; gap: 16px; margin: 12px 0; font-size: 12px; }
+body[data-platform="darwin"] #settings-dialog .display-settings select { flex: 0 1 260px; font-size: 12px; }
+body[data-platform="darwin"] #settings-dialog .accounts-heading,
+body[data-platform="darwin"] #settings-dialog .subscription-controls {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 168px); align-items: center; gap: 8px;
+}
+body[data-platform="darwin"] #settings-dialog .accounts-heading .refresh-button,
+body[data-platform="darwin"] #settings-dialog .subscription-controls > button { width: 100%; min-height: 34px; padding: 7px 10px; font-size: 11px; line-height: 18px; box-shadow: none; }
+body[data-platform="darwin"] #settings-dialog .subscription-controls > .footnote { grid-column: 1 / -1; margin: 0; }
+body[data-platform="darwin"] #settings-dialog .subscription-controls:has(> button[hidden]) select { grid-column: 1 / -1; }
+body[data-platform="darwin"] #settings-dialog .settings-content { flex: 1 1 auto; min-height: 0; max-height: none; overscroll-behavior: contain; }
+body[data-platform="darwin"].apple-notch #settings-dialog[open] {
+  --settings-inset: 12px;
+  top: calc(var(--cap-height) + var(--settings-inset));
+  max-height: calc(var(--full-height) - var(--cap-height) - 2 * var(--settings-inset));
+}
 body[data-platform="darwin"] .account-row { margin-bottom: 16px; gap: 10px; }
 body[data-platform="darwin"] #account { font-size: 13px; }
 body[data-platform="darwin"] .plan { border-color: var(--edge); color: var(--muted); background: var(--surface); border-radius: 8px; padding: 4px 7px; }
@@ -160,3 +195,6 @@ body.apple-notch.reduced-motion .apple-mini { transition-duration: 1ms; transiti
 @media (prefers-reduced-motion: reduce) {
   .apple-shell, .apple-content, .apple-preview, .apple-mini { transition-duration: 1ms !important; transition-delay: 0ms !important; }
 }
+body[data-platform="darwin"] .apple-subscription-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+body[data-platform="darwin"] .apple-subscription-controls select { max-width: 100%; min-width: 0; }
+body[data-platform="darwin"] .profile-card[hidden] { display: none; }

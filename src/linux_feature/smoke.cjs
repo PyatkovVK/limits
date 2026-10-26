@@ -2,6 +2,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
+// Native X11 window sizes may round a CSS/zoom conversion by one DIP.
+const near = (left, right) => Math.abs(left - right) <= 1;
 
 async function verifyPanel({ window, trayPresentation, artifactRoot }) {
   const { screen } = require('electron');
@@ -24,7 +26,7 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
       const expectedY = edge === 'top'
         ? Math.max(area.y + 8, Math.min(area.y + area.height - bounds.height - 8, Math.max(area.y, anchor.y + anchor.height) + 8))
         : Math.max(area.y + 8, Math.min(area.y + area.height, anchor.y) - 8 - bounds.height);
-      if (bounds.y !== expectedY) throw new Error(`Linux panel did not open at the ${edge} tray`);
+      if (!near(bounds.y, expectedY)) throw new Error(`Linux panel did not open at the ${edge} tray`);
       // Grow intrinsic content beyond the height cap, then remove it to check shrinking.
       await window.webContents.executeJavaScript(`(() => {
         const spacer = document.createElement('div'); spacer.id = 'linux-smoke-spacer'; spacer.style.height = '900px';
@@ -32,17 +34,28 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
       })()`);
       await delay(150);
       const expanded = window.getBounds();
-      if (expanded.height !== Math.min(720, area.height - 16)) throw new Error('Linux panel did not grow to its height cap');
-      if (edge === 'top' ? expanded.y !== bounds.y : expanded.y + expanded.height !== bounds.y + bounds.height) throw new Error('Linux resizing moved the attached edge');
+      if (!near(expanded.height, Math.min(720, area.height - 16))) throw new Error('Linux panel did not grow to its height cap');
+      if (edge === 'top' ? !near(expanded.y, bounds.y) : !near(expanded.y + expanded.height, bounds.y + bounds.height)) throw new Error('Linux resizing moved the attached edge');
       await window.webContents.executeJavaScript("document.getElementById('linux-smoke-spacer').remove()");
       await delay(150);
       const collapsed = window.getBounds();
-      if (collapsed.height !== bounds.height || collapsed.y !== bounds.y) throw new Error('Linux panel did not shrink back to its content');
+      if (!near(collapsed.height, bounds.height) || !near(collapsed.y, bounds.y)) throw new Error('Linux panel did not shrink back to its content');
       const filename = `linux-panel-${edge}.png`;
       fs.writeFileSync(path.join(artifactRoot, filename), (await window.webContents.capturePage()).toPNG());
       placements.push({ edge, bounds: collapsed, screenshot: filename });
     }
-    return { zoom: 1.2, simulatedTrayPlacements: placements, growsAndShrinks: true };
+    const compact = await window.webContents.executeJavaScript(`(() => {
+      const content = document.querySelector('.linux-panel-content');
+      window.linuxSmokeChildren = [...content.childNodes];
+      content.replaceChildren();
+      return window.limitsLinuxPanel.report();
+    })()`);
+    await delay(150);
+    const compactHeight = window.getBounds().height;
+    if (compactHeight >= 480) throw new Error('Short Linux content retained the old height floor');
+    await window.webContents.executeJavaScript(`document.querySelector('.linux-panel-content').append(...window.linuxSmokeChildren); delete window.linuxSmokeChildren`);
+    await delay(150);
+    return { zoom: 1.2, simulatedTrayPlacements: placements, growsAndShrinks: true, compactHeight };
   } finally {
     if (original) Object.defineProperty(tray, 'getBounds', original);
     else delete tray.getBounds;
@@ -59,10 +72,10 @@ async function verifyTrayStyles({ window, trayPresentation, artifactRoot, settin
     for (const style of ['bar', 'classic']) {
       const selected = await window.webContents.executeJavaScript(`(async () => {
         window.limitsSettings.open();
-        const select = document.getElementById('settings-tray-style');
-        if (!select || select.options.length !== 2) throw new Error('Linux tray style control is missing');
+        const select = document.getElementById('display-mode');
+        if (!select || select.options.length !== 3) throw new Error('Linux tray style control is missing');
         select.value = ${JSON.stringify(style)};
-        await select.onchange();
+        await window.limits.displayMode(select.value);
         const state = await window.limits.get();
         return { selected: select.value, saved: state.preferences.linuxTrayStyle, error: state.preferenceError };
       })()`);

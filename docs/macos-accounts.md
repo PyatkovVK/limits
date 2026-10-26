@@ -1,0 +1,13 @@
+# macOS subscriptions — 1.5
+
+Settings → Subscriptions has **All**, **Connected in Limits** and **In Codex / VS Code** views. All is the default and shows each source's plan, remaining quotas and connection status. Any subscription can be selected for the menu bar or notch regardless of the view filter. The filter and selection survive restarts.
+
+Connected subscriptions retain the existing isolated `accounts/<id>` homes and file credential store. Existing profile IDs and local names are preserved. On macOS, connecting while the external source is selected creates a new isolated profile; it never switches the account in another application.
+
+The default external source uses inherited `CODEX_HOME`, otherwise `~/.codex`. Codex CLI and the IDE extension normally share this login cache ([official authentication documentation](https://learn.chatgpt.com/docs/auth)). Use **Add Codex profile** to select another local home when clients have separate stores. Each home remains visible independently, including when two subscriptions share an email address. A repeated reference to the same directory does not add a duplicate. For shared storage one source represents the shared sign-in, not a separate subscription per app window.
+
+Limits obtains the selected account and quotas through its bundled app-server, not by parsing tokens. Each external poll starts a fresh server to pick up changes to the managed file/keychain store and reads the account with `refreshToken: false` ([account protocol](https://learn.chatgpt.com/docs/app-server)). It does not force a refresh-token rotation on each poll. Codex may still refresh credentials itself when needed for a request. Browser login/logout is disabled for external sources. Forgetting a source stops the monitor and removes its directory reference without calling logout or deleting that directory.
+
+“Current” means the locally saved sign-in in the selected home. It is not billing/expiry information and cannot identify the account of every individual running thread. A remote VS Code host or a session held only in another process's memory has no discoverable local login store. Sign-in revocation may require signing in again in the owning client. No Codex window needs to remain open for Limits' own monitoring.
+
+Manual check: connect one account in Limits and another in local Codex; verify both, select each, switch the Codex sign-in and wait for the next poll, restart Limits, and verify selection/filter restoration. With separate local homes, add both and forget one; the owning client's login must remain intact. Never use real credentials in test fixtures or screenshots.

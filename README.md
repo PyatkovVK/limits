@@ -19,7 +19,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
   <a href="README.ru.md">Русский</a>
 </p>
 
-**Limits** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
+**Limits 1.5** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
 
 <p align="center">
   <img src="docs/screenshots/windows-accounts.png" width="440" alt="Windows account panel with demo accounts and remaining usage">
@@ -32,10 +32,12 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 ## Features
 
 - **Two usage windows:** remaining five-hour and weekly allowances, with reset information.
-- **Multiple accounts:** separate usage data, local names, and a selected account for your compact indicators.
+- **Multiple accounts:** subscriptions connected in Limits and current local Codex / VS Code profiles, with separate usage data, local names, filters, and a selected account for your compact indicators.
 - **Automatic refresh:** polling about 30 seconds after each completed request, refresh after waking from sleep, and a manual refresh button.
 - **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
-- **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons.
+- **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons or a compact desktop widget.
+- **Application updates:** automatic package downloads, verification, and installation with restart in supported installed builds on Windows, macOS, and Linux.
+- **Launch at login:** enable autostart in Settings for supported installed builds on each platform.
 - **English and Russian UI:** language and display preferences persist across launches.
 
 ## Download and install
@@ -82,7 +84,7 @@ macOS remembers this exception for the app, so subsequent launches can use a nor
 
 ![Limits in the macOS menu bar with a light details panel](docs/screenshots/apple-menu-bar-light.png)
 
-Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. Packaged apps support autostart.
+Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. After installing the app, enable **Settings → Launch at macOS login** to start in the background at login. This also works with local ad hoc signed builds; disabling the option removes the startup entry.
 
 <details>
 <summary>Dark theme and MacBook notch</summary>
@@ -103,13 +105,15 @@ The notch mode uses the compatible MacBook screen, including when an external di
 
 The turquoise **5h** and purple **7d** indicators show remaining usage with numbers and short bars. Tooltips expose account details and reset information where supported by the desktop environment. The details panel adapts to its contents and scrolls for long account lists.
 
-In **Settings → Tray icons**, choose quota-period labels with remaining-usage bars or the classic percentage badges. The classic style remains the default, and your selection is saved.
+Enable **Settings → Launch at login** to start an installed DEB or AppImage automatically, using your saved tray/widget mode without opening details.
+
+In **Settings → Display**, Linux offers three choices in order: classic percentage tray icons, quota-period labels with remaining-usage bars, and the desktop widget. Classic remains the default, and your selection is saved. Clicking either quota icon or the widget’s bars again closes details. In widget mode, the Limits tray icon hides or restores the widget.
 
 ### Windows — taskbar or tray
 
 If the details panel is open, it follows the widget as you drag it along the taskbar and stays within the screen. Moving the widget keeps a dismissed panel closed.
 
-The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in **Settings**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Windows widget**. The details panel fits its content and resizes when Settings opens or closes. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
+The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in **Settings**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Windows widget**. Drag the details title bar to keep a preferred position across openings and restarts. The details panel fits its content and resizes when Settings opens or closes. Reset labels show the local clock time and include the date for other days; hover for the full date. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
 
 When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. The preferred width returns when more space becomes available.
 
@@ -121,12 +125,19 @@ When the area beside the tray is crowded, the widget automatically shrinks to fi
 - Add an account from **Accounts**, complete browser sign-in, give it a local name, and select it for the compact display.
 - Open **Settings** to change the language, display mode, account settings, widget size, or supported autostart options. The tray menu also opens Settings.
 - Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
+- Drag the details title bar to keep a custom position across openings and restarts. The panel stays inside the available screen after monitor changes.
+
+On Linux, select **Widget** in Settings for a compact floating window with two quota bars. Drag its account label to move it and click the bars to toggle details. Width, visibility, and position persist; placement is controlled by the compositor on Wayland. Tray mode remains available.
 
 ## Application updates
 
 Limits checks stable releases on GitHub in the background at startup and every six hours. After waking, it checks if the scheduled time has passed. Open **Settings → Updates → Check for updates** for a manual check, the installed version and the last check result.
 
-When a newer version is found, choose **Update** to open that release on GitHub, or **Later** to dismiss the offer. Dismissal is remembered for that version; the release remains available in Settings. Download the appropriate file and install it manually. Update checking does not download or install packages. A failed check does not interrupt usage monitoring.
+**macOS (1.5):** installed copies in `/Applications` or `~/Applications` automatically download the matching Apple Silicon or Intel ZIP from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
+
+**Windows:** installed and portable x64 builds download their matching update automatically from Actions-published stable GitHub Releases. Packages are checked against SHA256SUMS.txt and product/version metadata; signed installations also require a valid matching publisher. Choose **Install and restart** when ready. Portable updates replace the original executable and keep a backup until relaunch. Accounts and settings are retained. The app reports download, verification and installation errors and allows retries.
+
+**Linux:** Linux also downloads stable update packages automatically and verifies SHA-256 before offering Install and restart. Writable AppImages update in place; installed DEBs use dpkg/pkexec and ask for system authorization only when installing. Accounts and settings remain in place. See [platform installation details](docs/in-app-updates.md). Source/unpacked builds retain manual installation.
 
 Demo mode simulates update checks without contacting GitHub or opening a browser; **Demo result** in Updates lets you preview current, available and failed states.
 
@@ -134,7 +145,9 @@ Demo mode simulates update checks without contacting GitHub or opening a browser
 
 Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required; API-key authentication does not expose these subscription limits. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
 
-The default account shares Codex's `CODEX_HOME`. Signing in to a different default account also changes the account used by Codex CLI with that same storage. Accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
+**macOS (1.5):** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Use **Add Codex profile** to select another local `CODEX_HOME` if your clients use different stores. Forgetting it stops tracking without logging it out. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
+
+On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically; add another CODEX_HOME folder to track a separate local profile. External profiles reload sign-in changes on polling; sign in or out in Codex / VS Code. Removing a source only stops tracking it. Accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
 
 Limits has no app-level analytics or telemetry integration in its source. Codex connects to OpenAI services for sign-in and usage data; its behavior is managed by Codex. See [data storage and privacy](docs/privacy.md).
 
@@ -159,7 +172,6 @@ These are ideas for future work, not current features:
 - Claude Code integration, subject to availability of a suitable usage data source.
 - DeepSeek integration, subject to availability of a suitable usage data source.
 - Configurable low-usage and approaching-reset notifications.
-- Broader Linux desktop support and Linux autostart.
-- Try to connect send notify about Codex reset.
+- Broader Linux desktop support.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).

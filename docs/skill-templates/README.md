@@ -1,13 +1,15 @@
 # Skills / Навыки
 
-One catalog for local repository skills, in English and Russian.
-Единый каталог локальных навыков проекта на английском и русском.
+Reference catalog for repository skill templates, in English and Russian. This file stays in `docs/skill-templates/` and is not copied into local `skills/`.
+Справочный каталог шаблонов навыков проекта на английском и русском. Этот файл остаётся в `docs/skill-templates/` и не копируется в локальную папку `skills/`.
 
 ## Catalog / Каталог
 
 | Skill ID | English name | Название на русском | Instructions / Инструкция |
 | --- | --- | --- | --- |
 | `platform-routing` | Platform routing | Выбор платформы для изменений | [SKILL.md](platform-routing/SKILL.md) |
+| `changelog` | Changelog updates | Обновление списка изменений | [SKILL.md](changelog/SKILL.md) |
+| `focused-pull-requests` | One task per pull request | Отдельный MR на каждую задачу | [SKILL.md](focused-pull-requests/SKILL.md) |
 
 **Platform routing:** selects the Linux, macOS or Windows implementation for platform-specific work. An explicit user target takes priority over the host OS; shared behavior stays in `src/common/`.
 
@@ -17,14 +19,17 @@ One catalog for local repository skills, in English and Russian.
 
 ```text
 skills/
-├── README.md                    # Bilingual catalog / Двуязычный каталог
-└── platform-routing/
-    └── SKILL.md                  # Instructions / Инструкция навыка
+├── platform-routing/
+│   └── SKILL.md                  # Instructions / Инструкция навыка
+├── changelog/
+│   └── SKILL.md                  # Record release-worthy changes / Запись изменений
+└── focused-pull-requests/
+    └── SKILL.md                  # Separate task branches / Отдельные ветки задач
 ```
 
-`README.md` is the index; each skill's `SKILL.md` contains its full instructions. Read the linked skill before applying it. Start with the repository guide at `docs/ai-skills.md` and follow local `AGENTS.md` instructions when present.
+Each skill's `SKILL.md` contains its full instructions. Discover those files directly in local `skills/`; no root README is generated there. Start with the repository guide at `docs/ai-skills.md` and follow local `AGENTS.md` instructions when present.
 
-`README.md` — оглавление; полные правила каждого навыка находятся в его `SKILL.md`. Перед применением прочитайте навык по ссылке. Начните с руководства `docs/ai-skills.md` и следуйте локальным инструкциям `AGENTS.md`, если файл существует.
+Полные правила каждого навыка находятся в его `SKILL.md`. Находите эти файлы напрямую в локальной папке `skills/`: корневой README там не создаётся. Начните с руководства `docs/ai-skills.md` и следуйте локальным инструкциям `AGENTS.md`, если файл существует.
 
 ## Adding a skill / Добавление навыка
 
@@ -38,9 +43,9 @@ skills/
 
 ## Local storage / Локальное хранение
 
-The entire `skills/` folder, including this README, is ignored by Git. Restore missing default files with:
+The entire local `skills/` folder is ignored by Git. This catalog remains tracked in `docs/skill-templates/`. Restore missing default files with:
 
-Вся папка `skills/`, включая этот README, игнорируется Git. Для восстановления отсутствующих стандартных файлов выполните:
+Вся локальная папка `skills/` игнорируется Git. Этот каталог остаётся версионируемым в `docs/skill-templates/`. Для восстановления отсутствующих стандартных файлов выполните:
 
 ```sh
 npm run setup:skills

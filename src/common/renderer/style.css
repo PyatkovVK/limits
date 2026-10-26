@@ -39,7 +39,7 @@ footer { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-si
 .notice { padding: 7px 10px; border: 1px solid #333; border-radius: 6px; font-size: 10px; margin-bottom: 10px; color: #aaa; }
 .warning { color: #e6b36b; }
 #bucket-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-select { flex: 1; min-width: 0; background: #111; border: 1px solid #333; border-radius: 4px; padding: 4px; }
+select { flex: 1; min-width: 0; background-color: #111; color: inherit; border: 1px solid #333; border-radius: 6px; padding: 6px 28px 6px 8px; appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size: 4px 4px; background-repeat: no-repeat; }
 .other { margin-top: 8px; color: #999; font-size: 10px; }
 .display-settings { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 10px; }
 .display-settings select { font-size: 10px; }
@@ -54,10 +54,11 @@ select { flex: 1; min-width: 0; background: #111; border: 1px solid #333; border
 .profile-remove svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .profile-remove:not(:disabled):hover { color: #ff9baf; background: #df44651a; border-color: #df446580; }
 .profile-status { font-size: 9px; color: #999; margin-top: 4px; }
-.profile-quotas { margin: 8px 0; }
-.profile-quota { display: grid; grid-template-columns: 60px 1fr 32px; align-items: center; gap: 8px; margin-top: 6px; font-size: 10px; }
+.profile-quotas { display: grid; grid-template-columns: max-content minmax(24px, 1fr) 34px; column-gap: 8px; row-gap: 6px; margin: 8px 0; }
+.profile-quota { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; font-size: 10px; }
+.profile-quota > span:first-child { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .profile-quota span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-.profile-quota time { margin-left: 4px; color: #aaa; font-size: 9px; }
+.profile-quota time { color: #aaa; font-size: 9px; font-variant-numeric: tabular-nums; }
 .profile-card.stale progress::-webkit-progress-value { background: #888; }
 .profile-card.fresh progress::-webkit-progress-value { background: #eee; }
 .profile-edit { margin-top: 8px; color: #999; font-size: 10px; }
@@ -65,3 +66,10 @@ select { flex: 1; min-width: 0; background: #111; border: 1px solid #333; border
 .profile-editor { display: flex; gap: 6px; margin-top: 6px; }
 .profile-editor input { min-width: 0; width: 100%; background: #111; color: #eee; border: 1px solid #333; border-radius: 4px; padding: 4px 6px; }
 .profile-buttons { display: flex; gap: 6px; margin-top: 6px; }
+
+.subscription-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.subscription-controls select { grid-column: 1 / -1; width: 100%; min-width: 0; }
+.subscription-controls :is(select, button) { min-height: 32px; }
+.subscription-controls button { min-width: 0; padding: 7px 8px; }
+.subscription-controls .footnote { grid-column: 1 / -1; margin: 0; }
+.subscription-controls .footnote:empty { display: none; }

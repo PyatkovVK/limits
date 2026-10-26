@@ -2,7 +2,7 @@
 
 Keep local skills in `skills/<name>/SKILL.md`. The root `/skills/` directory is ignored by Git, including supporting scripts/assets, so personal skills and edits are not committed or pushed.
 
-`skills/README.md` is the single English/Russian catalog with skill names, links to their instructions, the folder tree and instructions for adding skills. Its tracked source is [the catalog template](skill-templates/README.md). Agents read the catalog and also discover `SKILL.md` files so new personal skills are not missed.
+The English/Russian [template catalog](skill-templates/README.md) stays in `docs/skill-templates/`. The local `skills/` directory contains skill folders only; the generator does not create a root README. Agents discover `SKILL.md` files directly so personal skills are not missed.
 
 Run this once after cloning, or whenever a default skill is missing:
 
@@ -16,7 +16,11 @@ The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, mac
 
 ## How agents find the skills
 
-Start with this guide and [CONTRIBUTING.md](../CONTRIBUTING.md), restore missing defaults, then read `skills/README.md` and the relevant skill before choosing implementation files. Discover every skill explicitly, including personal skills absent from the catalog. A normal Git-aware search will not list `skills/`; use, for example:
+The bundled `focused-pull-requests` skill keeps independent bugs, features and other tasks in separate `limits/<description>` branches and MR/PRs. The existing `npm run setup:skills` script in `package.json` generates `skills/focused-pull-requests/SKILL.md` together with the other defaults.
+
+The bundled `changelog` skill records user-visible fixes and features in `CHANGELOG.md` as part of their own focused PR. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
+
+Start with this guide and [CONTRIBUTING.md](../CONTRIBUTING.md), restore missing defaults, then discover and read the relevant `SKILL.md` before choosing implementation files. Include personal skills absent from the tracked template catalog. A normal Git-aware search will not list `skills/`; use, for example:
 
 ```sh
 rg --files --hidden --no-ignore skills -g SKILL.md

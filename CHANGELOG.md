@@ -2,13 +2,42 @@
 
 User-visible changes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
+## 1.5.0
+
+### Added
+
+- Add Linux login startup for installed DEB and AppImage builds through Settings. Create or remove a per-user XDG autostart entry and launch the saved presentation without opening details.
+- Combine Linux display choices into one Settings selector: classic percentage tray icons, period/bar tray icons, then the desktop widget. Preserve existing selections.
+- Extend connected/current subscription tracking to Linux and Windows through the shared registry and interface; retain independent local Codex homes, persisted filters and selection, and removal without logout.
+- Add a separate compact Linux desktop widget with two quota bars, reset countdowns, account switching, width/visibility controls and persisted draggable placement; retain tray mode. Wayland placement follows compositor policy.
+- macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails.
+- On Linux, automatically download the matching AppImage/DEB update from Actions-published stable Releases, verify SHA-256 and package identity/architecture, and install from the app with restart. AppImage replacement restores the previous executable on launch failure; DEB uses system authorization through pkexec.
+- Windows downloads the matching NSIS or portable update from Actions-published stable GitHub Releases, verifies SHA-256, product/version and publisher when signed, then installs and restarts on request. Portable replacement keeps a backup until relaunch.
+- Windows distinguishes accounts connected in Limits from current Codex / VS Code subscriptions, supports all/connected/current views and multiple local Codex homes, and reloads external account switches without signing those profiles in or out.
+- Windows reset labels show the local clock time, with a date for other days and a full localized date in the tooltip.
+- On macOS, distinguish subscriptions connected in Limits from current local Codex / VS Code profiles. Show both together or filter either source, retain selection and mode, reload external sign-in changes, and track additional CODEX_HOME directories without logging them out when removed.
+
+### Fixed
+
+- On macOS, center the Settings close icon, make its full button clickable, contain select arrows, align subscription actions, and remove the subscription footnote.
+- Use a per-user macOS LaunchAgent for packaged-app startup, including local ad hoc signed builds; launch in the background and remove the entry when disabled.
+- Align Windows widget reset times and quota bars, keep subscription reset labels on one line, and give subscription filters and add buttons consistent spacing and inset select arrows.
+- Keep Windows and other external Codex profile quota values visible while routine polling reloads the same signed-in account; still clear values on logout or a confirmed account change.
+- Dismiss the Windows hidden tray icons flyout when clicking a Limits icon to open details.
+- On Linux, toggle details by clicking a quota icon or the desktop widget again; use the application tray icon to hide or restore the desktop widget, and keep menus and visible widgets stable during usage polling.
+- On Linux, fit short panels to their content below the previous 480px minimum and include Settings in height measurements; grow and shrink without moving the attached edge.
+- On Linux tray hosts without icon geometry, retain a stable activation position across repeated clicks and reuse it when opening Settings from the menu.
+- On Linux and macOS, remember the details panel position after title-bar dragging across reopening and restart; keep it within the available screen when displays change and preserve it during content resizing.
+- Windows remembers a manually moved details panel across tray/widget clicks and restarts, clamps it to available displays, and preserves its position while content resizes.
+- On macOS, reconnect usage monitoring after waking or unlocking, cancel requests left pending across sleep and bypass retry backoff. Preserve active browser sign-in and coalesce overlapping wake/unlock events.
+- On macOS, place Settings below the physical notch with balanced margins, keep long content scrollable inside the panel and give the close button a fixed circular shape.
+
 ## 1.4.0
 
 - Recover quota polling after failed account or usage reads by reconnecting with managed credentials; on Linux, reconnect immediately after waking or unlocking the desktop, including requests left pending across sleep, while preserving browser sign-in.
 - Enlarge the Linux details panel and interface, open above or below the activated tray indicator on its display, and preserve the attached edge as content grows and shrinks.
 - Move the additional-account disconnect action to a trash icon in each account heading, with localized accessible labels and protection against repeated clicks while disconnecting.
 - Celebrate a displayed 67% allowance with a brief SIX SEVEN animation and a pastel progress bar, including account cards and the Windows widget; respect reduced-motion preferences.
-- Add ignored local `skills/`, a single English/Russian README catalog with links and folder structure, a non-overwriting `setup:skills` command with tracked default templates, and a shared guide for choosing the correct platform implementation. Keep personal `AGENTS.md`, `CLAUDE.md` and Cursor configuration local; the tracked Copilot instructions use the shared guide.
 - Add [opt-in Codex Resets notifications](docs/reset-notifications.md) in Settings, disabled by default. Check codex-resets.com on enable/startup and every six hours for an announced upcoming reset or active forecast; ignore completed resets and suppress duplicate alerts across restarts. Include a right-hand help control with source attribution and thanks to @wong2__.
 - Show the Windows taskbar widget above the taskbar on first launch and when restoring it, without requiring a taskbar click or taking focus (#15).
 - Require all new feature/task branches to use the `limits/` prefix, reserve `main` and numeric release/demo branches for integration and releases, and document GitHub ruleset configuration and fork limitations.

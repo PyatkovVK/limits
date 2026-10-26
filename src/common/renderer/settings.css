@@ -3,12 +3,18 @@
 #settings-dialog::backdrop { background: #0007; }
 .settings-header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #454545; }
 .settings-header h2 { margin: 0; font-size: 15px; flex: 1; }
-.settings-close { border: 0; background: transparent; color: inherit; font-size: 24px; padding: 0 4px; cursor: pointer; }
+.settings-close { position: relative; display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; appearance: none; border: 1px solid var(--edge); border-radius: 50%; background: var(--control); color: inherit; cursor: pointer; -webkit-app-region: no-drag; }
+.settings-close::before, .settings-close::after { content: ''; position: absolute; width: 14px; height: 2px; border-radius: 1px; background: currentColor; pointer-events: none; }
+.settings-close::before { transform: rotate(45deg); }
+.settings-close::after { transform: rotate(-45deg); }
+#settings-dialog, #settings-dialog * { -webkit-app-region: no-drag; }
+/* Native drag regions underneath a top-layer dialog can intercept its buttons. */
+body:has(dialog[open]) .titlebar { -webkit-app-region: no-drag; }
 .settings-content { padding: 12px 18px 18px; max-height: calc(100vh - 100px); overflow-y: auto; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0; font-size: 12px; }
 .settings-row select { flex: none; width: 120px; }
 .settings-row .language { width: 120px; }
-.settings-row input[type="checkbox"] { flex: none; width: 16px; height: 16px; accent-color: #7ecfba; }
+.settings-row input[type="checkbox"] { flex: none; width: 16px; height: 16px; margin: 0; accent-color: #7ecfba; }
 .settings-widget { padding: 8px 0 16px; border-bottom: 1px solid #454545; }
 .settings-widget h3 { font-size: 12px; margin: 4px 0; }
 body[data-platform="darwin"][data-theme="light"]:not(.apple-notch) #settings-dialog { --ink: #202431; --muted: #606575; --edge: #c4c8d2; --surface: #ffffff55; --control: #dce0e8; --appearance-ink: #202431; --appearance-muted: #606575; background: #eef1f7; color: #202431; border-color: #c4c8d2; }

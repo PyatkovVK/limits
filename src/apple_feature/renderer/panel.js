@@ -24,7 +24,8 @@ window.limitsMacPanelReady = window.renderReady.then(async () => {
     // scrollHeight of the flex viewport cannot shrink below its previous height.
     // offsetHeight of the intrinsic wrapper also ignores notch opening transforms.
     const height = titlebar.offsetHeight + content.offsetHeight + verticalEdges(main) + verticalEdges(document.body);
-    const modalHeight = dialog.open ? dialog.querySelector('.settings-header').offsetHeight + settingsContent.offsetHeight + verticalEdges(settings) + verticalEdges(dialog) + 28 : 0;
+    const inset = parseFloat(getComputedStyle(dialog).getPropertyValue('--settings-inset')) || 14;
+    const modalHeight = dialog.open ? dialog.querySelector('.settings-header').offsetHeight + settingsContent.offsetHeight + verticalEdges(settings) + verticalEdges(dialog) + 2 * inset : 0;
     return Math.ceil(Math.max(height, modalHeight));
   }
   let lastHeight, frame = null;

@@ -5,25 +5,35 @@ window.limitsLinuxPanelReady = window.renderReady.then(async () => {
   await document.fonts.ready;
   const main = document.querySelector('main');
   const titlebar = document.querySelector('.titlebar');
-  const content = document.createElement('div');
-  content.className = 'linux-panel-content';
-  content.append(...main.childNodes);
-  main.append(content);
-  let lastHeight, frame = null;
-  function measure() {
-    const style = getComputedStyle(document.body);
-    const mainStyle = getComputedStyle(main);
-    const border = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
-    const padding = parseFloat(mainStyle.paddingTop) + parseFloat(mainStyle.paddingBottom);
-    // Measure intrinsic content so the minimum window height cannot prevent shrinking.
-    return Math.ceil(titlebar.getBoundingClientRect().height + content.getBoundingClientRect().height + padding + border);
+  const dialog = document.getElementById('settings-dialog');
+  const settings = dialog.querySelector('.settings-content');
+  function wrap(parent, className) {
+    const content = document.createElement('div');
+    content.className = className;
+    content.append(...parent.childNodes);
+    parent.append(content);
+    return content;
   }
-  function report() {
+  const content = wrap(main, 'linux-panel-content');
+  const settingsContent = wrap(settings, 'linux-settings-content');
+  const verticalEdges = node => {
+    const style = getComputedStyle(node);
+    return ['paddingTop', 'paddingBottom', 'borderTopWidth', 'borderBottomWidth'].reduce((sum, key) => sum + (parseFloat(style[key]) || 0), 0);
+  };
+  function measure() {
+    // Intrinsic wrappers let both the panel and Settings shrink after content closes.
+    const height = titlebar.offsetHeight + content.offsetHeight + verticalEdges(main) + verticalEdges(document.body);
+    const inset = parseFloat(getComputedStyle(dialog).getPropertyValue('--settings-inset')) || 14;
+    const modalHeight = dialog.open ? dialog.querySelector('.settings-header').offsetHeight + settingsContent.offsetHeight + verticalEdges(settings) + verticalEdges(dialog) + 2 * inset : 0;
+    return Math.ceil(Math.max(height, modalHeight));
+  }
+  let lastHeight, frame = null;
+  async function report() {
     frame = null;
     const height = measure();
-    if (height === lastHeight) return Promise.resolve();
+    if (height === lastHeight) return;
     lastHeight = height;
-    return window.limits.panelSize(height);
+    await window.limits.panelSize(height);
   }
   function schedule() {
     if (frame === null) frame = requestAnimationFrame(() => void report());
@@ -31,13 +41,14 @@ window.limitsLinuxPanelReady = window.renderReady.then(async () => {
   const mutations = new MutationObserver(schedule);
   mutations.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
   const sizes = new ResizeObserver(schedule);
-  sizes.observe(content); sizes.observe(titlebar);
-  // A details toggle can grow scrollHeight without changing the viewport size.
+  for (const node of [content, titlebar, settingsContent]) sizes.observe(node);
   document.addEventListener('toggle', schedule, true);
+  dialog.addEventListener('close', schedule);
   window.addEventListener('resize', schedule);
   window.addEventListener('pagehide', () => {
     mutations.disconnect(); sizes.disconnect();
     if (frame !== null) cancelAnimationFrame(frame);
   }, { once: true });
+  window.limitsLinuxPanel = { measure, report };
   await report();
 });

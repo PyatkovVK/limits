@@ -1,41 +1,24 @@
 'use strict';
 (() => {
   const texts = {
-    ru: { title: 'Значки в трее', bar: 'Полоска · 5ч / 7д', classic: 'Прежний вид · проценты', error: 'Не удалось изменить вид значков.' },
-    en: { title: 'Tray icons', bar: 'Bar · 5h / 7d', classic: 'Classic · percentages', error: 'Could not change the tray icons.' },
+    ru: { classic: 'Прежние значки · проценты', bar: 'Полоски · 5ч / 7д', widget: 'Виджет на рабочем столе' },
+    en: { classic: 'Classic icons · percentages', bar: 'Bars · 5h / 7d', widget: 'Desktop widget' },
   };
-  let controls, language = 'ru';
   function render(next) {
-    if (next.platform !== 'linux') return;
-    language = next.language || 'ru';
-    if (!controls) {
-      const section = document.createElement('section'); section.dataset.settingSection = 'linux-tray';
-      const row = document.createElement('label'); row.className = 'settings-row linux-tray-style';
-      const title = document.createElement('span');
-      const select = document.createElement('select'); select.id = 'settings-tray-style';
-      for (const value of ['bar', 'classic']) { const option = document.createElement('option'); option.value = value; select.append(option); }
-      const error = document.createElement('p'); error.className = 'notice warning'; error.setAttribute('role', 'status'); error.hidden = true;
-      row.append(title, select); section.append(row, error);
-      window.limitsSettings.extensions.prepend(section);
-      controls = { title, select, error };
-      select.onchange = async () => {
-        error.hidden = true;
-        try {
-          const updated = await window.limits.preference('linuxTrayStyle', select.value);
-          render(updated);
-          if (updated.preferenceError) throw new Error();
-        } catch {
-          error.textContent = (texts[language] || texts.en).error;
-          error.hidden = false;
-        }
-      };
+    if (next.platform !== 'linux') return false;
+    const select = document.getElementById('display-mode');
+    if (!select.dataset.linuxDisplay) {
+      const options = ['classic', 'bar', 'widget'].map(value => {
+        const option = document.createElement('option'); option.value = value; return option;
+      });
+      select.replaceChildren(...options);
+      select.dataset.linuxDisplay = 'true';
     }
-    const t = texts[language] || texts.en;
-    controls.title.textContent = t.title;
-    controls.select.options[0].textContent = t.bar;
-    controls.select.options[1].textContent = t.classic;
-    controls.select.value = next.preferences?.linuxTrayStyle || 'classic';
+    const t = texts[next.language] || texts.en;
+    for (const option of select.options) if (option.textContent !== t[option.value]) option.textContent = t[option.value];
+    select.value = next.displayMode === 'widget' ? 'widget' : next.preferences?.linuxTrayStyle || 'classic';
+    select.closest('.display-settings').hidden = false;
+    return true;
   }
-  window.limits.subscribe(render);
-  window.limits.get().then(render);
+  window.limitsLinuxDisplay = { render };
 })();

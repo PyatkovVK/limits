@@ -11,7 +11,7 @@
   const dialog = make('dialog', document.body); dialog.id = 'settings-dialog'; dialog.setAttribute('aria-labelledby', 'settings-title');
   const header = make('div', dialog, 'settings-header');
   const title = make('h2', header); title.id = 'settings-title';
-  const close = make('button', header, 'settings-close'); close.type = 'button'; close.textContent = '×';
+  const close = make('button', header, 'settings-close'); close.type = 'button';
   const content = make('div', dialog, 'settings-content');
   const languageRow = make('label', content, 'settings-row'); const languageText = make('span', languageRow);
   languageRow.append(document.getElementById('language'));
@@ -37,9 +37,9 @@
     const t = texts[next.language] || texts.en;
     button.textContent = t.settings; button.title = t.settings;
     title.textContent = t.settings; close.setAttribute('aria-label', t.close);
-    languageText.textContent = t.language; widgetTitle.textContent = t.widget;
+    languageText.textContent = t.language; widgetTitle.textContent = next.platform === 'linux' ? next.language === 'ru' ? 'Виджет Linux' : 'Linux widget' : t.widget;
     widthText.textContent = t.width; visibleText.textContent = t.visible; reset.textContent = t.reset;
-    startupText.textContent = t.startup; startupHint.textContent = t.installed;
+    startupText.textContent = next.platform === 'darwin' ? window.limitsAppleI18n.t(next.language, 'startup') : t.startup; startupHint.textContent = t.installed;
     const prefs = next.preferences;
     widgetSection.hidden = !prefs?.widgetSupported;
     width.value = String(prefs?.width || 280); visible.checked = prefs?.visible !== false;

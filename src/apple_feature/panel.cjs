@@ -1,4 +1,5 @@
 'use strict';
+const { createPanelPosition } = require('../common/panel-position.cjs');
 
 // Native backdrop blur sits behind the transparent, platform-scoped renderer.
 function panelOptions() {
@@ -31,8 +32,15 @@ function panelBounds({ anchor, display, size }) {
   };
 }
 
-function createPanelController({ window, screen, getTrayBounds, reducedMotion = () => false, wait = () => new Promise(resolve => setTimeout(resolve, 20)), attempts = 25 }) {
+function createPanelController({ window, screen, getTrayBounds, root, reducedMotion = () => false, wait = () => new Promise(resolve => setTimeout(resolve, 20)), attempts = 25 }) {
   const size = window.getSize();
+  const remembered = createPanelPosition({ window, root, name: 'mac' });
+  function placement(anchor) {
+    const display = remembered.point ? screen.getDisplayMatching({ ...remembered.point, width: size[0], height: size[1] }) : anchor ? screen.getDisplayMatching(anchor) : screen.getPrimaryDisplay();
+    const bounds = remembered.bounds(display.workArea, size) || panelBounds({ anchor, display, size });
+    remembered.expect(bounds);
+    return { display, bounds };
+  }
   let generation = 0, lastPlacement = null;
   const cancel = () => { generation++; };
   window.on('hide', cancel);
@@ -42,8 +50,7 @@ function createPanelController({ window, screen, getTrayBounds, reducedMotion = 
     if (!Number.isFinite(height) || height <= 0 || window.isDestroyed()) return false;
     size[1] = Math.max(80, Math.ceil(height));
     const anchor = lastPlacement?.anchor || readAnchor();
-    const display = anchor ? screen.getDisplayMatching(anchor) : screen.getPrimaryDisplay();
-    const bounds = panelBounds({ anchor, display, size });
+    const { display, bounds } = placement(anchor);
     const current = window.getBounds();
     if (['x', 'y', 'width', 'height'].some(key => current[key] !== bounds[key])) {
       window.setBounds(bounds, window.isVisible() && !reducedMotion());
@@ -66,20 +73,22 @@ function createPanelController({ window, screen, getTrayBounds, reducedMotion = 
     let anchor = null, tries = 0;
     // macOS lays out new status items after their creation. Keep the panel hidden
     // until its anchor is available instead of flashing at a fallback position.
-    for (; tries < attempts; tries++) {
+    for (; !remembered.point && tries < attempts; tries++) {
       if (request !== generation || window.isDestroyed()) return false;
       anchor = readAnchor(clickedTray);
       if (anchor) break;
       await wait();
     }
     if (request !== generation || window.isDestroyed()) return false;
-    const display = anchor ? screen.getDisplayMatching(anchor) : screen.getPrimaryDisplay();
-    const bounds = panelBounds({ anchor, display, size });
+    const { display, bounds } = placement(anchor);
     window.setBounds(bounds, false);
     lastPlacement = { bounds, anchor, display: { bounds: display.bounds, workArea: display.workArea }, attempts: Math.min(tries + 1, attempts), fallback: !anchor };
     window.show(); window.focus();
     return true;
   }
+  const onDisplayChange = () => { if (window.isVisible() && !window.isDestroyed()) resize(size[1]); };
+  for (const event of ['display-metrics-changed', 'display-added', 'display-removed']) screen.on?.(event, onDisplayChange);
+  window.once('closed', () => { for (const event of ['display-metrics-changed', 'display-added', 'display-removed']) screen.removeListener?.(event, onDisplayChange); });
   return { show, resize, cancel, snapshot: () => lastPlacement };
 }
 

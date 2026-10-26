@@ -24,6 +24,8 @@ const { startupState, changePreference } = require('./preferences.cjs');
 
 const demo = process.argv.includes('--demo');
 const smoke = process.argv.includes('--smoke-test');
+const linuxWidgetSupported = process.platform === 'linux' && !process.argv.includes('--smoke-tray-only');
+let linuxWidget;
 const taskbarSupported = process.platform === 'win32' && !process.argv.includes('--smoke-tray-only');
 const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '../..'), 'artifacts');
 if (smoke && !process.argv.includes('--smoke-gpu')) app.disableHardwareAcceleration();
@@ -58,11 +60,11 @@ function showPanel(anchor) {
   window.show(); window.focus();
 }
 
-const displayModes = () => taskbarSupported ? ['widget', 'tray'] : process.platform === 'darwin' && appleNotch?.available ? ['tray', 'notch'] : ['tray'];
+const displayModes = () => taskbarSupported ? ['widget', 'tray'] : process.platform === 'darwin' && appleNotch?.available ? ['tray', 'notch'] : linuxWidgetSupported ? ['tray', 'widget'] : ['tray'];
 function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, reducedMotion: nativeTheme.prefersReducedMotion, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: displayModes(), appleNotch: appleNotch?.snapshot() || null, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null,
   updates: updates?.snapshot(),
   resetNotifications: resetNotifications?.snapshot(),
-  preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle,
+  preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported || linuxWidgetSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle,
     startup: startupState({ app, platform: process.platform, demo, smoke }) } }; }
 function persistWidgetSettings() {
   const target = path.join(app.getPath('userData'), 'widget-settings.json');
@@ -74,13 +76,14 @@ function saveWidgetSettings() {
   saveTimer = setTimeout(persistWidgetSettings, 200);
 }
 function placeWidget() {
+  if (linuxWidget) { linuxWidget.apply(widgetSettings); return; }
   const before = widget && !widget.isDestroyed() ? widget.getBounds() : null;
   placement?.apply(taskbarMetrics, { ...widgetSettings, visible: widgetSettings.visible && widgetSettings.displayMode === 'widget' });
   if (!before || !windowsPanel || widgetSettings.displayMode !== 'widget' || !widget || widget.isDestroyed()) return;
   const after = widget.getBounds();
   if (['x', 'y', 'width', 'height'].some(key => before[key] !== after[key])) windowsPanel.follow(widget);
 }
-function resetWidget() { widgetSettings.xRatio = null; widgetSettings.visible = true; saveWidgetSettings(); placeWidget(); update(); }
+function resetWidget() { linuxWidget?.reset(); widgetSettings.xRatio = null; widgetSettings.visible = true; saveWidgetSettings(); placeWidget(); update(); }
 function setLanguage(language) {
   if (!['ru', 'en'].includes(language)) return publicState();
   widgetSettings.language = language;
@@ -88,8 +91,12 @@ function setLanguage(language) {
   return publicState();
 }
 function setDisplayMode(mode) {
+  if (process.platform === 'linux' && ['classic', 'bar'].includes(mode)) {
+    widgetSettings.linuxTrayStyle = mode;
+    mode = 'tray';
+  }
   if (!['widget', 'tray', 'notch'].includes(mode)) return publicState();
-  if (mode === 'widget' && !taskbarSupported) mode = 'tray';
+  if (mode === 'widget' && !taskbarSupported && !linuxWidgetSupported) mode = 'tray';
   if (!displayModes().includes(mode)) return publicState();
   const previous = widgetSettings.displayMode;
   widgetSettings.displayMode = mode;
@@ -114,7 +121,7 @@ function presentationMenu() {
   return [
       { label: t('details'), click: showPanel },
       { label: t('settings'), click: showSettings },
-      { label: t('refresh'), enabled: !demo && !state.refreshing, click: () => void monitor?.refresh() },
+      { label: t('refresh'), enabled: !demo && (process.platform === 'linux' || !state.refreshing), click: () => void monitor?.refresh() },
       { type: 'separator' },
       { label: t('quit'), click: () => app.quit() }
     ];
@@ -218,21 +225,29 @@ async function setup() {
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
-  updates = new Updates({ currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
+  const UpdateService = process.platform === 'darwin' ? require('../apple_feature/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('../windows_feature/updates.cjs').WindowsUpdates : process.platform === 'linux' ? require('../linux_feature/updates.cjs').LinuxUpdates : Updates;
+  updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
   resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'),
     notify: showResetNotification, openExternal: url => shell.openExternal(url) });
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
-    window, screen, ipcMain, getWidgetHost: () => widgetHost,
+    window, screen, ipcMain, getWidgetHost: () => widgetHost, root: app.getPath('userData'),
+    resourcesPath: app.isPackaged ? process.resourcesPath : null,
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
-  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '../..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => showPanel(tray) });
-  if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds: () => trayPresentation.entries.map(entry => {
+  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, appIcon: nativeImage.createFromPath(path.join(__dirname, '../..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => {
+    if (!linuxPanel) return showPanel(tray);
+    if (widgetSettings.displayMode !== 'widget') return linuxPanel.toggle(tray);
+    widgetSettings.visible = widgetSettings.visible === false;
+    if (!widgetSettings.visible) linuxPanel.hide();
+    saveWidgetSettings(); placeWidget(); update();
+  } });
+  if (process.platform === 'darwin') macPanel = require('../apple_feature/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData'), reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds: () => trayPresentation.entries.map(entry => {
     try { return entry.tray.getBounds(); } catch { return null; }
   }) });
-  if (process.platform === 'linux') linuxPanel = require('../linux_feature/panel.cjs').createPanelController({ window, screen });
+  if (process.platform === 'linux') linuxPanel = require('../linux_feature/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData') });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
   handle('limits:updates-check', () => updates.check());
@@ -262,12 +277,13 @@ async function setup() {
   });
   handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
   handle('limits:open', showPanel);
+  handle('limits:toggle-details', () => linuxPanel ? linuxPanel.toggle(widget) : showPanel());
   handle('limits:select', id => { if (typeof id === 'string') monitor?.select(id); });
   handle('limits:language', setLanguage);
   handle('limits:display-mode', setDisplayMode);
   handle('limits:preference', (key, value) => {
     const changed = changePreference(key, value, { app, settings: widgetSettings, platform: process.platform,
-      taskbarSupported, demo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget });
+      taskbarSupported: taskbarSupported || linuxWidgetSupported, demo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget });
     return { ...publicState(), preferenceError: changed ? null : 'unavailable' };
   });
   ipcMain.handle('limits:panel-size', (event, height) => {
@@ -280,9 +296,13 @@ async function setup() {
   handle('limits:quit', () => app.quit());
   async function openLogin(id) {
     if (!monitor || demo) return { error: 'loginUnavailable' };
-    const profileId = id === undefined ? monitor.selectedProfileId : id;
+    let profileId = id === undefined ? monitor.selectedProfileId : id;
     let attempt;
     try {
+      if (monitor.isExternal?.(profileId)) {
+        if (monitor.loginActive) return { error: 'loginBusy' };
+        profileId = monitor.add(); monitor.selectProfile(profileId);
+      }
       const authUrl = await monitor.login(profileId);
       if (!authUrl) return {}; // Cancelled or completed while the start request was pending.
       attempt = monitor.loginAttempt;
@@ -315,6 +335,20 @@ async function setup() {
       return {};
     } catch { return { error: 'accountActionFailed' }; }
   });
+  handle('limits:subscriptions-mode', mode => {
+    if (!monitor?.setMode) return { error: 'accountActionFailed' };
+    try { monitor.setMode(mode); return {}; } catch { return { error: 'accountActionFailed' }; }
+  });
+  handle('limits:subscriptions-add-source', async () => {
+    if (!monitor?.addSource || demo) return { error: 'accountActionFailed' };
+    try {
+      const parent = widgetSettings.displayMode === 'notch' ? appleNotch?.window : window;
+      const choose = () => dialog.showOpenDialog(parent, { properties: ['openDirectory', 'showHiddenFiles'] });
+      const result = widgetSettings.displayMode === 'notch' ? await appleNotch.withModal(choose) : windowsPanel ? await windowsPanel.withModal(choose) : await choose();
+      if (!result.canceled && result.filePaths.length === 1) monitor.addSource(result.filePaths[0]);
+      return {};
+    } catch { return { error: 'accountActionFailed' }; }
+  });
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   if (linuxPanel) await window.webContents.executeJavaScript('window.limitsLinuxPanelReady');
   if (macPanel) await window.webContents.executeJavaScript('window.limitsMacPanelReady');
@@ -330,14 +364,21 @@ async function setup() {
     }
   }
   if (taskbarSupported) await createWidget();
+  if (linuxWidgetSupported) {
+    const { LinuxWidget } = require('../linux_feature/widget.cjs');
+    linuxWidget = new LinuxWidget({ BrowserWindow, screen, Menu, root: app.getPath('userData'), webPreferences, restrictWindow, getMenu: presentationMenu, getSettings: () => widgetSettings });
+    widget = linuxWidget.window; await linuxWidget.start();
+  }
   try {
       const root = app.getPath('userData');
+      const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : require('./subscriptions.cjs').Subscriptions;
       if (demo) {
         const { DemoMonitor } = require('./demo-monitor.cjs');
-        monitor = new Accounts({ root, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
+        monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
       } else {
         const binary = findCodex({ resourcesPath: app.isPackaged ? process.resourcesPath : null });
-        monitor = new Accounts({ root, createMonitor: (_profile, options) => new Monitor(new CodexClient(binary, options)) });
+        monitor = new AccountService({ root, createMonitor: (_profile, options) => new Monitor(new CodexClient(binary, options),
+          { refreshCredentials: !options.readOnly, reloadOnPoll: Boolean(options.readOnly), preserveStartupSample: process.platform === 'linux' }) });
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
       monitor.on('state', next => { state = { ...next, demo }; update(); });
@@ -351,8 +392,13 @@ async function setup() {
     stopSessionWatch = require('../linux_feature/session.cjs').watchSession({ powerMonitor,
       refresh: () => { void monitor?.refresh({ reconnect: true }); void updates.resume(); void resetNotifications.resume(); }
     });
+  } else if (process.platform === 'darwin') {
+    stopSessionWatch = require('../apple_feature/session.cjs').watchSession({ powerMonitor,
+      refresh: () => { void monitor?.refresh({ reconnect: true }); void updates.resume(); void resetNotifications.resume(); }
+    });
   } else powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); void resetNotifications.resume(); });
-  if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden'))) await showPanel();
+  const openedAtLogin = process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin;
+  if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden') && !openedAtLogin)) await showPanel();
   updates.on('state', update);
   updates.on('offer', () => {
     if (!quitting) void Promise.resolve(showPanel()).catch(() => {});
@@ -366,14 +412,14 @@ async function setup() {
       await window.webContents.executeJavaScript('window.renderReady');
       await window.webContents.executeJavaScript('window.limits.get().then(render)');
       const report = await window.webContents.executeJavaScript(`({ values: [...document.querySelectorAll('.remaining-value')].map(el => el.textContent), isolated: typeof require === 'undefined', mode: document.getElementById('display-mode').value })`);
-      if (!report.isolated || report.mode !== 'tray' || trayPresentation.entries.length !== 2 || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready')) throw new Error('Tray-only startup failed');
+      if (!report.isolated || report.mode !== (process.platform === 'linux' ? widgetSettings.linuxTrayStyle : 'tray') || trayPresentation.entries.length !== 2 || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready')) throw new Error('Tray-only startup failed');
       const firstPlacement = macPanel?.snapshot();
       if (firstPlacement && (firstPlacement.fallback || !require('../apple_feature/panel.cjs').isMenuBarAnchor(firstPlacement.anchor, firstPlacement.display) || !window.isVisible() || window.getBounds().y !== firstPlacement.bounds.y)) throw new Error('Mac first launch did not open below a menu-bar indicator');
       for (const entry of trayPresentation.entries) {
         window.hide(); entry.tray.emit('click');
         if (!window.isVisible()) throw new Error('Tray click did not open the panel');
       }
-      if (setDisplayMode('widget').displayMode !== 'tray' || widget) throw new Error('Windows widget was enabled in tray-only mode');
+      if (!linuxWidgetSupported && (setDisplayMode('widget').displayMode !== 'tray' || widget)) throw new Error('Windows widget was enabled in tray-only mode');
       if (demo) {
         monitor.selectProfile(state.profiles[1].id);
         await window.webContents.executeJavaScript('window.limits.get().then(render)');
@@ -417,9 +463,11 @@ async function setup() {
         const labels = await window.webContents.executeJavaScript(`({ language: document.documentElement.lang, short: document.querySelector('.short [data-i18n="short"]').textContent, reset: document.getElementById('short-reset').textContent, refresh: document.getElementById('refresh').textContent, clean: !/До сброса|Осталось|каждые 30|Resets in|Remaining|every 30/.test(document.body.textContent) })`);
         if (labels.language !== language || labels.short !== translate(language, 'short') || labels.refresh !== translate(language, 'refresh') || !labels.clean) throw new Error(JSON.stringify(labels));
         const reset = await widget.webContents.executeJavaScript(`document.getElementById('short-reset').textContent`);
-        if (reset !== labels.reset || (demo && reset !== '2:19')) throw new Error('Short reset countdown is missing or inconsistent.');
+        const expectedClock = await widget.webContents.executeJavaScript(`window.limits.get().then(s => window.limitsWindowsResetClock.format(s.buckets.find(b => b.id === s.selectedId).short.resetsAt, s.language))`);
+        if (reset !== labels.reset || reset !== expectedClock) throw new Error('Short reset clock is missing or inconsistent.');
         const weekly = await widget.webContents.executeJavaScript(`({ label: document.querySelector('[data-i18n="weeklyCompact"]').textContent, reset: document.getElementById('weekly-reset').textContent })`);
-        if (weekly.label !== (language === 'ru' ? '7д' : '7d') || (demo && !/^\d+[дd]\d+[чh]$/.test(weekly.reset))) throw new Error('Weekly reset countdown is missing or inconsistent.');
+        const expectedWeekly = await widget.webContents.executeJavaScript(`window.limits.get().then(s => window.limitsWindowsResetClock.format(s.buckets.find(b => b.id === s.selectedId).weekly.resetsAt, s.language))`);
+        if (weekly.label !== (language === 'ru' ? '7д' : '7d') || weekly.reset !== expectedWeekly) throw new Error('Weekly reset clock is missing or inconsistent.');
         // Exercise the automatic compact sizes independently of live taskbar space.
         for (const width of [200, 210, 220, 240, 280, 320, 400]) {
           widgetSettings.width = width; placeWidget();
@@ -555,4 +603,4 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop(); for (const notification of resetToasts) notification.close(); resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
+app.on('before-quit', () => { quitting = true; stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop(); for (const notification of resetToasts) notification.close(); resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); linuxWidget?.destroy(); monitor?.stop(); trayPresentation?.destroy(); });

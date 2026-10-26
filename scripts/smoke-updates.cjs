@@ -52,6 +52,9 @@ app.whenReady().then(async () => {
       assert.equal(await run('document.getElementById("updates-open").hidden'), false);
       await run('window.limitsSettings.dialog.close()');
       await waitFor(() => run('document.getElementById("updates-dialog").open'), 'deferred offer');
+      await waitFor(() => run('window.limits.get().then(next => next.updates.installation?.status === "ready")'), 'verified package ready');
+      assert.equal(await run('document.getElementById("updates-install").textContent'), language === 'ru' ? 'Установить и перезапустить' : 'Install and restart');
+      await pause(); await pause();
       fs.writeFileSync(path.join(root, `offer-${language}.png`), (await panel.webContents.capturePage()).toPNG());
       // Background checks must retain the same open modal in a hidden host.
       await run('(() => { const dialog = document.getElementById("updates-dialog"); const show = dialog.showModal.bind(dialog); window.updateModalChecks = {shows:0,closes:0}; dialog.showModal = () => { window.updateModalChecks.shows++; show(); }; dialog.addEventListener("close", () => window.updateModalChecks.closes++); })()');
@@ -112,7 +115,9 @@ app.whenReady().then(async () => {
     assert.ok(layout.bounds.x >= 0 && layout.bounds.x + layout.bounds.width <= layout.width + 1);
     assert.ok(layout.bounds.y >= 0 && layout.bounds.y + layout.bounds.height <= layout.height + 1);
     assert.ok(layout.width <= 360 && layout.height <= 340);
-    assert.equal(await run('(() => { const button = document.getElementById("updates-check").getBoundingClientRect(); const viewport = document.querySelector(".settings-content").getBoundingClientRect(); return button.top >= viewport.top && button.bottom <= viewport.bottom; })()'), true, 'The check button remains reachable by scrolling');
+    // Native content sizing can finish after the first two paint frames.
+    // Scroll again after each size change, as a user can, until the viewport settles.
+    await waitFor(() => run('(async () => { const control = document.getElementById("updates-check"); control.scrollIntoView({block:"center",behavior:"instant"}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); const button = control.getBoundingClientRect(); const viewport = document.querySelector(".settings-content").getBoundingClientRect(); return button.top >= viewport.top - 1 && button.bottom <= viewport.bottom + 1; })()'), 'check button reachable after native sizing');
     fs.writeFileSync(path.join(root, 'small-window.png'), (await panel.webContents.capturePage()).toPNG());
     await run('window.limits.demoUpdate("available")');
     await run('window.limitsSettings.dialog.close()');

@@ -27,7 +27,7 @@ function controller() {
 }
 
 test('Linux panel enlarges content and keeps its bottom above the taskbar', () => {
-  assert.deepEqual(panelBounds({ area, contentHeight: 410 }), { x: 736, y: 279, width: 528, height: 480 });
+  assert.deepEqual(panelBounds({ area, contentHeight: 410 }), { x: 736, y: 349, width: 528, height: 410 });
   const { window, panel } = controller();
   panel.resize(410); panel.show();
   assert.equal(window.visible, true);
@@ -152,4 +152,65 @@ test('display changes re-read tray placement and move the open panel to the new 
   screen.emit('display-metrics-changed');
   assert.equal(window.bounds.x, 448);
   assert.equal(window.bounds.y + window.bounds.height, 759);
+});
+
+
+test('short Linux content shrinks below the old 480px floor and grows again', () => {
+  const { window, panel } = controller();
+  panel.resize(150); panel.show();
+  assert.equal(window.bounds.height, 180);
+  const bottom = window.bounds.y + window.bounds.height;
+  panel.resize(600);
+  assert.equal(window.bounds.height, 720);
+  panel.resize(150);
+  assert.equal(window.bounds.height, 180);
+  assert.equal(window.bounds.y + window.bounds.height, bottom);
+  assert.equal(panelBounds({ area, contentHeight: 1 }).height, 80);
+});
+
+test('unknown tray geometry keeps a stable activation point across repeated clicks and Settings', () => {
+  const { window, screen, panel } = controller();
+  let cursor = { x: 600, y: 790 };
+  screen.getCursorScreenPoint = () => cursor;
+  const tray = { getBounds: () => ({ x: 0, y: 0, width: 0, height: 0 }) };
+  panel.resize(410); panel.show(tray);
+  const expected = window.getBounds();
+  for (const x of [594, 607, 591, 610]) {
+    cursor = { x, y: 785 };
+    window.visible = false; panel.show(tray);
+    assert.deepEqual(window.bounds, expected);
+  }
+  cursor = { x: 300, y: 300 };
+  panel.show();
+  assert.deepEqual(window.bounds, expected, 'opening Settings reuses the last tray anchor');
+});
+
+test('a different display edge gets its own stable fallback and valid icon bounds take priority', () => {
+  const { window, screen, panel } = controller();
+  screen.getCursorScreenPoint = () => ({ x: 600, y: 790 });
+  const tray = {};
+  panel.show(tray);
+  const bottom = window.getBounds();
+  screen.getCursorScreenPoint = () => ({ x: 400, y: 10 });
+  panel.show(tray);
+  assert.notEqual(window.bounds.x, bottom.x);
+  tray.getBounds = () => ({ x: 700, y: 0, width: 24, height: 24 });
+  panel.show(tray);
+  assert.equal(window.bounds.x, 448);
+});
+
+test('saved manual placement is restored by the platform controller and kept during resize', async t => {
+  const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-panel-restore-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'linux-panel-position.json'), JSON.stringify({ x: 200, y: 70 }));
+  const window = new FakeWindow();
+  const display = { bounds: { x: 0, y: 0, width: 1440, height: 1000 }, workArea: { x: 0, y: 24, width: 1440, height: 976 } };
+  const screen = new EventEmitter(); screen.getPrimaryDisplay = screen.getDisplayMatching = () => display;
+  const panel = createPanelController({ window, screen, root, getTrayBounds: () => [], wait: async () => {}, attempts: 1 });
+  await panel.show();
+  assert.equal(window.bounds.x, 200); assert.equal(window.bounds.y, 70);
+  panel.resize(420);
+  assert.equal(window.bounds.x, 200); assert.equal(window.bounds.y, 70);
+  window.emit('closed');
 });

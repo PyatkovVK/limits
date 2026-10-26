@@ -50,7 +50,7 @@
   const later = make('button', dialogActions, 'refresh-button'); later.id = 'updates-later'; later.type = 'button';
   const update = make('button', dialogActions, 'refresh-button'); update.id = 'updates-install'; update.type = 'button';
   let current, messageKey = null, opening = false, dismissing = false;
-  const text = () => words[current?.language] || words.en;
+  const text = () => ({ ...(words[current?.language] || words.en), ...window.limitsInstallation?.words(current) });
   function activeHost() {
     const notch = document.body.classList.contains('apple-notch');
     return current?.displayMode === 'notch' ? notch && current.appleNotch?.phase === 'expanded' : !notch;
@@ -72,16 +72,18 @@
     const value = next.updates;
     if (!value) return;
     const t = text();
+    const installation = window.limitsInstallation?.presentation(next);
     title.textContent = t.title; version.textContent = `${t.version} ${value.currentVersion}`;
     result.textContent = value.status === 'available' ? `${t.available} ${value.release.version}` : value.status === 'error' ? t[value.error] || t.checkFailed : t[value.status] || t.idle;
-    result.classList.toggle('warning', value.status === 'error');
+    if (installation?.result) result.textContent = installation.result;
+    result.classList.toggle('warning', value.status === 'error' || installation?.error);
     checked.hidden = value.checkedAt === null;
     checked.textContent = value.checkedAt === null ? '' : `${t.lastCheck}: ${new Date(value.checkedAt).toLocaleString(next.language === 'ru' ? 'ru-RU' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })}`;
     check.textContent = value.status === 'checking' ? t.checking : t.check;
     check.disabled = demoSelect.disabled = value.status === 'checking';
-    open.textContent = update.textContent = t.update; open.hidden = !value.release;
-    open.disabled = update.disabled = opening; later.disabled = dismissing;
-    hint.textContent = dialogHint.textContent = t.hint;
+    open.textContent = update.textContent = installation?.button || t.update; open.hidden = !value.release;
+    open.disabled = update.disabled = opening || Boolean(installation?.disabled); later.disabled = dismissing;
+    hint.textContent = dialogHint.textContent = installation?.hint || t.hint;
     demoRow.hidden = !value.demo; demoLabel.textContent = t.demo; demoSelect.value = value.demoScenario;
     for (const option of demoSelect.options) option.textContent = t[{ current: 'demoCurrent', available: 'demoAvailable', error: 'demoError' }[option.value]];
     dialogTitle.textContent = t.offer; later.textContent = t.later;

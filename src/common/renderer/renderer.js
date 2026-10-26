@@ -110,11 +110,12 @@ function renderAccounts(next, t) {
 }
 function renderCountdown() {
   if (!state) return;
+  const timer = state.platform === 'win32' ? window.limitsWindowsResetClock : window.limitsCountdown;
   const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets.find(item => item.id === 'codex') || state.buckets[0];
-  window.limitsCountdown.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
+  timer.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
   for (const profile of state.profiles || []) {
     const card = profileCards.get(profile.id);
-    if (card) window.limitsCountdown.render(card.reset, bucketFor(profile)?.short?.resetsAt, state.language || 'ru');
+    if (card) timer.render(card.reset, bucketFor(profile)?.short?.resetsAt, state.language || 'ru');
   }
 }
 
@@ -129,10 +130,12 @@ function render(next) {
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);
   $('language').value = language;
-  $('display-mode').value = next.displayMode || 'widget';
-  const modes = next.displayModes || ['widget', 'tray'];
-  for (const option of $('display-mode').options) option.hidden = option.disabled = !modes.includes(option.value);
-  $('display-mode').closest('.display-settings').hidden = modes.length < 2;
+  if (!window.limitsLinuxDisplay?.render(next)) {
+    $('display-mode').value = next.displayMode || 'widget';
+    const modes = next.displayModes || ['widget', 'tray'];
+    for (const option of $('display-mode').options) option.hidden = option.disabled = !modes.includes(option.value);
+    $('display-mode').closest('.display-settings').hidden = modes.length < 2;
+  }
   $('display-hint').textContent = t(next.displayMode === 'notch' ? 'notchFootnote' : next.displayMode === 'tray' ? 'trayFootnote' : 'footnote');
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > 90000;
   const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets.find(item => item.id === 'codex') || next.buckets[0];
