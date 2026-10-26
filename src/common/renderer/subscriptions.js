@@ -23,6 +23,7 @@
       const mode = make('select', controls); mode.id = next.platform === 'darwin' ? 'apple-subscription-mode' : 'subscription-mode';
       for (const value of ['all', 'connected', 'active']) { const option = make('option', mode); option.value = value; }
       mode.onchange = async () => { await window.limits.subscriptionMode(mode.value); render(await window.limits.get()); };
+      controls.append(document.getElementById('add-account'));
       const source = make('button', controls, 'refresh-button'); source.id = next.platform === 'darwin' ? 'apple-subscription-add-source' : 'subscription-add-source'; source.type = 'button';
       source.onclick = async () => {
         source.disabled = true;
