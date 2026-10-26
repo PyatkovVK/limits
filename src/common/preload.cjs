@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('limits', {
   panelSize: height => ipcRenderer.invoke('limits:panel-size', height),
   hide: () => ipcRenderer.invoke('limits:hide'),
   open: () => ipcRenderer.invoke('limits:open'),
+  toggleDetails: () => ipcRenderer.invoke('limits:toggle-details'),
   quit: () => ipcRenderer.invoke('limits:quit'),
   subscribe: callback => {
     const listener = (_event, state) => callback(state);

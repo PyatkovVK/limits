@@ -3,10 +3,10 @@ const { EventEmitter } = require('node:events');
 const { normalizeLimits } = require('./limits.cjs');
 
 class Monitor extends EventEmitter {
-  constructor(client, { refreshCredentials = true, reloadOnPoll = false } = {}) {
+  constructor(client, { refreshCredentials = true, reloadOnPoll = false, preserveStartupSample = false } = {}) {
     super();
     this.client = client;
-    Object.assign(this, { refreshCredentials, reloadOnPoll, reloading: false });
+    Object.assign(this, { refreshCredentials, reloadOnPoll, preserveStartupSample, identifyingAccount: false, reloading: false });
     this.state = { account: null, buckets: [], selectedId: 'codex', updatedAt: null, error: null, status: 'connecting', refreshing: false, interval: 30 };
     this.failures = 0;
     this.timer = null;
@@ -30,9 +30,13 @@ class Monitor extends EventEmitter {
         }
       }
       if (method === 'account/updated') {
-        // Clear old-account data immediately, including when an external logout is observed.
+        // Startup announcements can arrive during initialize or account/read.
+        // Invalidate that read and verify again before publishing new quotas;
+        // Linux keeps its last sample until identity is confirmed. Logout and
+        // notifications outside this handshake still clear old data immediately.
+        const retainSample = this.preserveStartupSample && this.identifyingAccount && params.authMode !== null;
         this.accountRevision++;
-        this.publish({ account: null, buckets: [], updatedAt: null });
+        if (!retainSample) this.publish({ account: null, buckets: [], updatedAt: null });
         this.rerunRequested = Boolean(this.inflight);
         void this.refresh();
       }
@@ -108,12 +112,14 @@ class Monitor extends EventEmitter {
         this.reloading = true;
         try { this.client.stop(); } finally { this.reloading = false; }
       }
+      this.identifyingAccount = true;
       await this.client.start();
       stage = 'account/read';
       const generation = this.client.generation ?? 0;
       // Our own app-server refreshes stored credentials on every connection.
       // Routine polls leave automatic token maintenance to that same process.
       const { account } = await this.client.request('account/read', { refreshToken: this.refreshCredentials && this.credentialsGeneration !== generation });
+      this.identifyingAccount = false;
       this.credentialsGeneration = generation;
       if (revision !== this.accountRevision || this.stopped) return this.state;
       if (!account) {
@@ -141,7 +147,7 @@ class Monitor extends EventEmitter {
       if (!this.loginAttempt && !this.loginTask) this.client.stop();
       this.failures = Math.min(this.failures + 1, 4);
       this.publish({ status: 'error', error: 'refreshFailed' });
-    } finally { this.publish({ refreshing: false }); }
+    } finally { this.identifyingAccount = false; this.publish({ refreshing: false }); }
     return this.state;
   }
 

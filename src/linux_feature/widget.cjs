@@ -36,7 +36,9 @@ class LinuxWidget {
     this.expected = bounds;
     const current = this.window.getBounds();
     if (Object.keys(bounds).some(key => current[key] !== bounds[key])) this.window.setBounds(bounds, false);
-    if (settings.displayMode === 'widget' && settings.visible !== false) this.window.showInactive(); else this.window.hide();
+    const visible = settings.displayMode === 'widget' && settings.visible !== false;
+    if (visible && !this.window.isVisible()) this.window.showInactive();
+    else if (!visible && this.window.isVisible()) this.window.hide();
   }
   reset() { this.position = null; try { fs.rmSync(this.file, { force: true }); } catch {} this.apply(this.getSettings()); }
   destroy() {

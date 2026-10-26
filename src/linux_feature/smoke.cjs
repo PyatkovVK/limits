@@ -72,10 +72,10 @@ async function verifyTrayStyles({ window, trayPresentation, artifactRoot, settin
     for (const style of ['bar', 'classic']) {
       const selected = await window.webContents.executeJavaScript(`(async () => {
         window.limitsSettings.open();
-        const select = document.getElementById('settings-tray-style');
-        if (!select || select.options.length !== 2) throw new Error('Linux tray style control is missing');
+        const select = document.getElementById('display-mode');
+        if (!select || select.options.length !== 3) throw new Error('Linux tray style control is missing');
         select.value = ${JSON.stringify(style)};
-        await select.onchange();
+        await window.limits.displayMode(select.value);
         const state = await window.limits.get();
         return { selected: select.value, saved: state.preferences.linuxTrayStyle, error: state.preferenceError };
       })()`);

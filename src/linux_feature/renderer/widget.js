@@ -30,7 +30,7 @@ function render(next) {
   weeklyResetAt = bucket?.weekly?.resetsAt;
   renderCountdown();
 }
-document.getElementById('details').addEventListener('click', () => void window.limits.open());
+document.getElementById('details').addEventListener('click', () => void window.limits.toggleDetails());
 window.limits.subscribe(render);
 window.renderReady = window.limits.get().then(render);
 setInterval(renderCountdown, 1000);

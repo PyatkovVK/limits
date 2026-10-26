@@ -103,7 +103,9 @@ The notch mode uses the compatible MacBook screen, including when an external di
 
 The turquoise **5h** and purple **7d** indicators show remaining usage with numbers and short bars. Tooltips expose account details and reset information where supported by the desktop environment. The details panel adapts to its contents and scrolls for long account lists.
 
-In **Settings → Tray icons**, choose quota-period labels with remaining-usage bars or the classic percentage badges. The classic style remains the default, and your selection is saved.
+Enable **Settings → Launch at login** to start an installed DEB or AppImage automatically, using your saved tray/widget mode without opening details.
+
+In **Settings → Display**, Linux offers three choices in order: classic percentage tray icons, quota-period labels with remaining-usage bars, and the desktop widget. Classic remains the default, and your selection is saved. Clicking either quota icon or the widget’s bars again closes details. In widget mode, the Limits tray icon hides or restores the widget.
 
 ### Windows — taskbar or tray
 

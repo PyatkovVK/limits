@@ -6,6 +6,10 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Added
 
+- Add Linux login startup for installed DEB and AppImage builds through Settings. Create or remove a per-user XDG autostart entry and launch the saved presentation without opening details.
+
+- Combine Linux display choices into one Settings selector: classic percentage tray icons, period/bar tray icons, then the desktop widget. Preserve existing selections.
+
 - Extend connected/current subscription tracking to Linux and Windows through the shared registry and interface; retain independent local Codex homes, persisted filters and selection, and removal without logout.
 - Add a separate compact Linux desktop widget with two quota bars, reset countdowns, account switching, width/visibility controls and persisted draggable placement; retain tray mode. Wayland placement follows compositor policy.
 - macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails.
@@ -16,6 +20,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - On macOS, distinguish subscriptions connected in Limits from current local Codex / VS Code profiles. Show both together or filter either source, retain selection and mode, reload external sign-in changes, and track additional CODEX_HOME directories without logging them out when removed.
 
 ### Fixed
+
+- On Linux, toggle details by clicking a quota icon or the desktop widget again; use the application tray icon to hide or restore the desktop widget, and keep menus and visible widgets stable during usage polling.
 
 - On Linux, fit short panels to their content below the previous 480px minimum and include Settings in height measurements; grow and shrink without moving the attached edge.
 - On Linux tray hosts without icon geometry, retain a stable activation position across repeated clicks and reuse it when opening Settings from the menu.

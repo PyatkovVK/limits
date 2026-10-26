@@ -16,6 +16,7 @@ test('widget mode, visibility, persistence, reset and event cleanup work without
     constructor(options) { super(); this.options = options; this.bounds = { x: 0, y: 0, width: 280, height: 56 }; this.webContents = new EventEmitter(); }
     isDestroyed() { return false; } getBounds() { return this.bounds; }
     setBounds(bounds) { this.bounds = bounds; this.emit('move'); }
+    isVisible() { return Boolean(this.visible); }
     showInactive() { this.visible = true; } hide() { this.visible = false; }
     destroy() { this.closed = true; } async loadFile(file) { this.file = file; }
   }
