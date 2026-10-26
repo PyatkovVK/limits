@@ -19,7 +19,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
   <a href="README.ru.md">Русский</a>
 </p>
 
-**Limits** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
+**Limits 1.5** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
 
 <p align="center">
   <img src="docs/screenshots/windows-accounts.png" width="440" alt="Windows account panel with demo accounts and remaining usage">
@@ -32,10 +32,12 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 ## Features
 
 - **Two usage windows:** remaining five-hour and weekly allowances, with reset information.
-- **Multiple accounts:** separate usage data, local names, and a selected account for your compact indicators.
+- **Multiple accounts:** subscriptions connected in Limits and current local Codex / VS Code profiles, with separate usage data, local names, filters, and a selected account for your compact indicators.
 - **Automatic refresh:** polling about 30 seconds after each completed request, refresh after waking from sleep, and a manual refresh button.
 - **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
-- **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons.
+- **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons or a compact desktop widget.
+- **Application updates:** automatic package downloads, verification, and installation with restart in supported installed builds on Windows, macOS, and Linux.
+- **Launch at login:** enable autostart in Settings for supported installed builds on each platform.
 - **English and Russian UI:** language and display preferences persist across launches.
 
 ## Download and install
@@ -123,6 +125,9 @@ When the area beside the tray is crowded, the widget automatically shrinks to fi
 - Add an account from **Accounts**, complete browser sign-in, give it a local name, and select it for the compact display.
 - Open **Settings** to change the language, display mode, account settings, widget size, or supported autostart options. The tray menu also opens Settings.
 - Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
+- Drag the details title bar to keep a custom position across openings and restarts. The panel stays inside the available screen after monitor changes.
+
+On Linux, select **Widget** in Settings for a compact floating window with two quota bars. Drag its account label to move it and click the bars to toggle details. Width, visibility, and position persist; placement is controlled by the compositor on Wayland. Tray mode remains available.
 
 ## Application updates
 
@@ -167,11 +172,6 @@ These are ideas for future work, not current features:
 - Claude Code integration, subject to availability of a suitable usage data source.
 - DeepSeek integration, subject to availability of a suitable usage data source.
 - Configurable low-usage and approaching-reset notifications.
-- Broader Linux desktop support and Linux autostart.
-- Try to connect send notify about Codex reset.
+- Broader Linux desktop support.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
-
-On Linux, Settings → Subscriptions also distinguishes accounts connected in Limits from current local Codex / VS Code profiles. Choose All, Connected in Limits, or In Codex / VS Code; add other CODEX_HOME folders to monitor multiple local sign-ins. Removing an external source never signs it out.
-On Linux and macOS, drag the details title bar to keep a custom position across openings and restarts. The panel is kept inside the available screen after monitor changes.
-Linux also supports a separate compact widget with two quota bars. Select Widget in Settings, drag its account label to move it, and click the bars to open details. Width, visibility and position persist. It is a floating desktop window; placement is controlled by the compositor on Wayland. Tray mode remains available.

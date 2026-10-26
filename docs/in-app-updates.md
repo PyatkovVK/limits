@@ -1,4 +1,4 @@
-# In-app updates
+# In-app updates — 1.5
 
 Limits checks stable public GitHub Releases at startup, every six hours and after overdue wake-up. The existing Actions publication job uploads the platform packages and SHA256SUMS.txt; main/demo artifacts remain inspection builds rather than an update channel. No GitHub token is required. Private/temporary Actions downloads are deliberately not an update source.
 

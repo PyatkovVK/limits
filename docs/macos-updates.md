@@ -6,4 +6,4 @@ Download without credentials, constrain URLs and redirects to GitHub release hos
 
 Expose download progress, verification, retry and **Install and restart** in RU/EN. Quit only after an explicit install action and successful installer launch. Replace only the installed Limits bundle after the running process exits; retain and restore the old bundle on replacement or launch-command failure. Preserve account/preferences storage. Update failure must not interrupt quota monitoring. Applications launched from a DMG must be moved to Applications first.
 
-Native installer checks use temporary fixture bundles, never the user's installed app. Validate Apple Silicon and Intel packages in CI; verify a real installed-to-newer-release upgrade before publishing 1.5.
+Native installer checks use temporary fixture bundles, never the user's installed app. Validate Apple Silicon and Intel packages in CI and verify a real installed-to-newer-release upgrade when preparing each update.
