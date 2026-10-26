@@ -13,7 +13,11 @@ test('widget mode, visibility, persistence, reset and event cleanup work without
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-widget-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   class Window extends EventEmitter {
-    constructor(options) { super(); this.options = options; this.bounds = { x: 0, y: 0, width: 280, height: 56 }; this.webContents = new EventEmitter(); }
+    constructor(options) {
+      super(); this.options = options;
+      this.visible = options.show !== false;
+      this.bounds = { x: 0, y: 0, width: 280, height: 56 }; this.webContents = new EventEmitter();
+    }
     isDestroyed() { return false; } getBounds() { return this.bounds; }
     setBounds(bounds) { this.bounds = bounds; this.emit('move'); }
     isVisible() { return Boolean(this.visible); }
