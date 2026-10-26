@@ -18,6 +18,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 ### Fixed
 
 - Align Windows widget reset times and quota bars, keep subscription reset labels on one line, and give subscription filters and add buttons consistent spacing and inset select arrows.
+- Keep Windows and other external Codex profile quota values visible while routine polling reloads the same signed-in account; still clear values on logout or a confirmed account change.
 - On Linux, fit short panels to their content below the previous 480px minimum and include Settings in height measurements; grow and shrink without moving the attached edge.
 - On Linux tray hosts without icon geometry, retain a stable activation position across repeated clicks and reuse it when opening Settings from the menu.
 - On Linux and macOS, remember the details panel position after title-bar dragging across reopening and restart; keep it within the available screen when displays change and preserve it during content resizing.
