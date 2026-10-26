@@ -3,11 +3,9 @@
   const words = {
     ru: { title: 'Подписки', all: 'Все', connected: 'Подключены в Limits', active: 'В Codex / VS Code',
       addSource: 'Добавить профиль Codex', sourceHint: 'Выберите папку CODEX_HOME другого локального профиля Codex или VS Code.',
-      hint: 'Подключённые аккаунты хранятся в Limits. Текущие аккаунты читаются из локальных профилей Codex / VS Code; вход и выход выполняйте там. Для другого CODEX_HOME добавьте профиль. При общем хранилище показывается одна подписка.',
       empty: 'В этом режиме пока нет подписок.', forget: 'Убрать из отслеживания', connect: 'Подключить аккаунт в Limits' },
     en: { title: 'Subscriptions', all: 'All', connected: 'Connected in Limits', active: 'In Codex / VS Code',
       addSource: 'Add Codex profile', sourceHint: 'Choose the CODEX_HOME folder for another local Codex or VS Code profile.',
-      hint: 'Connected accounts are stored in Limits. Current accounts are read from local Codex / VS Code profiles; sign in and out there. Add a profile for another CODEX_HOME. Shared storage appears as one subscription.',
       empty: 'No subscriptions in this view yet.', forget: 'Stop tracking', connect: 'Connect an account in Limits' },
   };
   let controls, current;
@@ -28,13 +26,13 @@
         source.disabled = true;
         const result = await window.limits.addSubscriptionSource();
         error.textContent = result.error ? (current.language === 'ru' ? 'Не удалось добавить профиль.' : 'Could not add the profile.') : '';
+        error.hidden = !result.error;
         render(await window.limits.get());
       };
-      const error = make('p', controls, 'footnote warning'); error.setAttribute('role', 'status');
+      const error = make('p', controls, 'footnote warning'); error.setAttribute('role', 'status'); error.hidden = true;
       const empty = make('p', section, 'footnote'); empty.id = next.platform === 'darwin' ? 'apple-subscription-empty' : 'subscription-empty';
     }
     section.querySelector('.accounts-heading > span').textContent = t.title;
-    section.querySelector('.footnote:not(.warning)').textContent = t.hint;
     const mode = controls.querySelector('select'); mode.value = next.subscriptions.mode;
     mode.setAttribute('aria-label', t.title);
     for (const option of mode.options) option.textContent = t[option.value];

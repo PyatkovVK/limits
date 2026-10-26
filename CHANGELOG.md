@@ -17,6 +17,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Fixed
 
+- On macOS, center the Settings close icon, make its full button clickable, contain select arrows, align subscription actions, and remove the subscription footnote.
+- Use a per-user macOS LaunchAgent for packaged-app startup, including local ad hoc signed builds; launch in the background and remove the entry when disabled.
 - On Linux, fit short panels to their content below the previous 480px minimum and include Settings in height measurements; grow and shrink without moving the attached edge.
 - On Linux tray hosts without icon geometry, retain a stable activation position across repeated clicks and reuse it when opening Settings from the menu.
 - On Linux and macOS, remember the details panel position after title-bar dragging across reopening and restart; keep it within the available screen when displays change and preserve it during content resizing.

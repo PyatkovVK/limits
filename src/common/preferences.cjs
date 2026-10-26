@@ -2,8 +2,9 @@
 const WIDTHS = [240, 280, 320, 400];
 function startupState({ app, platform, env = process.env, demo = false, smoke = false }) {
   const supported = ['win32', 'darwin'].includes(platform);
-  return { supported, available: supported && app.isPackaged && !env.PORTABLE_EXECUTABLE_FILE && !demo && !smoke,
-    enabled: supported ? Boolean(app.getLoginItemSettings().openAtLogin) : false };
+  const available = supported && app.isPackaged && !env.PORTABLE_EXECUTABLE_FILE && !demo && !smoke;
+  const enabled = platform === 'darwin' && available ? require('../apple_feature/startup.cjs').enabled(app) : supported && Boolean(app.getLoginItemSettings().openAtLogin);
+  return { supported, available, enabled };
 }
 function changePreference(key, value, { app, settings, platform, taskbarSupported, env, demo, smoke, resetPosition, save, update, place }) {
   if (key === 'linuxTrayStyle' && platform === 'linux') return require('../linux_feature/preferences.cjs').changeTrayStyle(value, { settings, save, update });
@@ -11,7 +12,9 @@ function changePreference(key, value, { app, settings, platform, taskbarSupporte
   else if (key === 'visible' && taskbarSupported && typeof value === 'boolean') settings.visible = value;
   else if (key === 'resetPosition' && taskbarSupported) { resetPosition(); return true; }
   else if (key === 'startup' && typeof value === 'boolean' && startupState({ app, platform, env, demo, smoke }).available) {
-    app.setLoginItemSettings({ openAtLogin: value, args: ['--hidden'] }); update(); return true;
+    if (platform === 'darwin') require('../apple_feature/startup.cjs').setEnabled(app, value);
+    else app.setLoginItemSettings({ openAtLogin: value, args: ['--hidden'] });
+    update(); return true;
   } else return false;
   save(); place(); update(); return true;
 }

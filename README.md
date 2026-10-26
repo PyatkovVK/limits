@@ -82,7 +82,7 @@ macOS remembers this exception for the app, so subsequent launches can use a nor
 
 ![Limits in the macOS menu bar with a light details panel](docs/screenshots/apple-menu-bar-light.png)
 
-Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. Packaged apps support autostart.
+Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. After installing the app, enable **Settings → Launch at macOS login** to start in the background at login. This also works with local ad hoc signed builds; disabling the option removes the startup entry.
 
 <details>
 <summary>Dark theme and MacBook notch</summary>
