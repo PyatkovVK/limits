@@ -30,6 +30,10 @@ class Monitor extends EventEmitter {
         }
       }
       if (method === 'account/updated') {
+        // External profiles restart app-server on each poll. Its initial auth
+        // notification only describes the loaded store; account/read below is
+        // authoritative for identity changes. Keep the last sample until then.
+        if (this.loadingExternalAccount && this.state.account && params.authMode === this.state.account.type) return;
         // Clear old-account data immediately, including when an external logout is observed.
         this.accountRevision++;
         this.publish({ account: null, buckets: [], updatedAt: null });
@@ -108,12 +112,16 @@ class Monitor extends EventEmitter {
         this.reloading = true;
         try { this.client.stop(); } finally { this.reloading = false; }
       }
-      await this.client.start();
-      stage = 'account/read';
-      const generation = this.client.generation ?? 0;
-      // Our own app-server refreshes stored credentials on every connection.
-      // Routine polls leave automatic token maintenance to that same process.
-      const { account } = await this.client.request('account/read', { refreshToken: this.refreshCredentials && this.credentialsGeneration !== generation });
+      this.loadingExternalAccount = this.reloadOnPoll;
+      let account, generation;
+      try {
+        await this.client.start();
+        stage = 'account/read';
+        generation = this.client.generation ?? 0;
+        // Our own app-server refreshes stored credentials on every connection.
+        // Routine polls leave automatic token maintenance to that same process.
+        ({ account } = await this.client.request('account/read', { refreshToken: this.refreshCredentials && this.credentialsGeneration !== generation }));
+      } finally { this.loadingExternalAccount = false; }
       this.credentialsGeneration = generation;
       if (revision !== this.accountRevision || this.stopped) return this.state;
       if (!account) {

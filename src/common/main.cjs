@@ -229,6 +229,7 @@ async function setup() {
   restrictWindow(window);
   if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
     window, screen, ipcMain, getWidgetHost: () => widgetHost, root: app.getPath('userData'),
+    resourcesPath: app.isPackaged ? process.resourcesPath : null,
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });

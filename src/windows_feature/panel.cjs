@@ -13,7 +13,7 @@ function panelPosition({ anchor, area, size }) {
   };
 }
 
-function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWidgetHost, root }) {
+function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWidgetHost, root, resourcesPath }) {
   let contentHeight = window.getSize()[1], lastAnchor = null;
   const file = root && path.join(root, 'windows-panel-position.json');
   let savedPosition = null, expectedPosition = null;
@@ -78,6 +78,10 @@ function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWi
   }
   function show(clickedAnchor) {
     if (!place(clickedAnchor?.getBounds?.() || getAnchorBounds?.() || null)) return false;
+    if (clickedAnchor?.getBounds) {
+      const helper = require('./widget.cjs').taskbarHelperPath(resourcesPath);
+      require('node:child_process').spawnSync(helper, ['--dismiss-tray-overflow'], { windowsHide: true, timeout: 1000, stdio: 'ignore' });
+    }
     window.show(); window.focus();
     return true;
   }

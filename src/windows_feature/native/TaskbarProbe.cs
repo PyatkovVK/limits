@@ -7,7 +7,7 @@ using System.Windows.Automation;
 
 // Reads taskbar geometry. The widget is an owned top-level window of the taskbar:
 // Windows maintains their order atomically, without post-click z-order repairs.
-// Only our widget is changed; Explorer is neither modified nor reparented.
+// Explorer is never reparented. Tray activation may dismiss its overflow popup.
 class TaskbarProbe {
   [StructLayout(LayoutKind.Sequential)] struct Rect { public int Left, Top, Right, Bottom; }
   [StructLayout(LayoutKind.Sequential)] struct MonitorInfo { public int Size; public Rect Monitor, Work; public uint Flags; }
@@ -17,6 +17,7 @@ class TaskbarProbe {
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string cls, string name);
   [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
   [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+  [DllImport("user32.dll")] static extern bool ShowWindowAsync(IntPtr hwnd, int command);
   [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr hwnd);
   [DllImport("user32.dll")] static extern IntPtr GetTopWindow(IntPtr hwnd);
   [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hwnd, uint command);
@@ -132,6 +133,22 @@ class TaskbarProbe {
   }
   static void Main(string[] args) {
     try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch { SetProcessDPIAware(); }
+    if (args.Length == 1 && args[0] == "--dismiss-tray-overflow") {
+      // A tray icon click can leave Explorer's overflow flyout open when a
+      // frameless Electron panel takes focus. Dismiss only the known shell
+      // popup classes, never an unrelated application or the taskbar itself.
+      foreach (string cls in new string[] { "NotifyIconOverflowWindow", "TopLevelWindowForOverflowXamlIsland" }) {
+        IntPtr popup = FindWindow(cls, null);
+        if (popup == IntPtr.Zero || !IsWindowVisible(popup)) continue;
+        uint pid; GetWindowThreadProcessId(popup, out pid);
+        try {
+          using (Process process = Process.GetProcessById((int)pid)) {
+            if (process.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase)) ShowWindowAsync(popup, 0);
+          }
+        } catch { /* Explorer may replace the popup during activation. */ }
+      }
+      return;
+    }
     if (args.Length == 3 && args[0] == "--test-widget-order") {
       Owner = UInt32.Parse(args[1]); Widget = new IntPtr(Int64.Parse(args[2]));
       uint pid; GetWindowThreadProcessId(Widget, out pid);
