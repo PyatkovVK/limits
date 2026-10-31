@@ -33,7 +33,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 
 - **Two usage windows:** remaining five-hour and weekly allowances, with reset information.
 - **Multiple accounts:** subscriptions connected in Limits and current local Codex / VS Code profiles, with separate usage data, local names, filters, and a selected account for your compact indicators.
-- **Automatic refresh:** polling about 30 seconds after each completed request, refresh after waking from sleep, and a manual refresh button.
+- **Automatic refresh:** polling about one minute after each completed request, refresh after waking from sleep, and a manual refresh button.
 - **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
 - **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons or a compact desktop widget.
 - **Application updates:** automatic package downloads, verification, and installation with restart in supported installed builds on Windows, macOS, and Linux.

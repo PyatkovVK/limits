@@ -49,16 +49,16 @@ test('a stale live session is replaced on the automatic retry and normal polls d
   await monitor.refresh(); await monitor.refresh();
   const updatedAt = monitor.state.updatedAt;
   client.stale = true;
-  t.mock.timers.tick(30000); await turn();
+  t.mock.timers.tick(60000); await turn();
   assert.equal(monitor.state.status, 'error');
   assert.equal(monitor.state.updatedAt, updatedAt);
   assert.equal(monitor.state.buckets[0].short.remaining, 60);
-  assert.equal(monitor.state.interval, 60);
+  assert.equal(monitor.state.interval, 120);
   assert.equal(client.connected, false);
-  t.mock.timers.tick(60000); await turn();
+  t.mock.timers.tick(120000); await turn();
   assert.equal(monitor.state.status, 'ready');
   assert.equal(monitor.state.error, null);
-  assert.equal(monitor.state.interval, 30);
+  assert.equal(monitor.state.interval, 60);
   assert.equal(client.generation, 2);
   await monitor.refresh();
   assert.deepEqual(client.reads, [true, false, false, true, false]);
@@ -68,7 +68,7 @@ test('offline retries stay bounded and recover after the network returns', async
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const { client, monitor } = setup(t);
   await monitor.refresh(); client.offline = true;
-  for (const delay of [60, 120, 240, 300, 300]) {
+  for (const delay of [120, 240, 300, 300, 300]) {
     await monitor.refresh();
     assert.equal(monitor.state.interval, delay);
     const generation = client.generation;
@@ -107,7 +107,7 @@ test('wake skips a five-minute backoff without clearing the last sample', async 
   monitor.on('state', state => samples.push(state.buckets.length));
   client.offline = false; await monitor.reconnect();
   assert.equal(monitor.state.status, 'ready');
-  assert.equal(monitor.state.interval, 30);
+  assert.equal(monitor.state.interval, 60);
   assert.ok(samples.every(count => count === 1));
 });
 

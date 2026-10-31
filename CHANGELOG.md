@@ -2,6 +2,12 @@
 
 User-visible changes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
+## 1.6.0
+
+### Changed
+
+- Poll Codex usage once per minute and check enabled Codex Resets notifications every hour, with both defaults defined in minutes in a shared file.
+
 ## 1.5.0
 
 ### Added
