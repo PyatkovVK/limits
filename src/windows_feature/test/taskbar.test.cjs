@@ -161,15 +161,24 @@ test('geometry helper restarts after exiting and continues reporting', { timeout
   assert.notEqual(value.child.pid, oldChild.pid);
 });
 test('unresponsive geometry helper is replaced and stop prevents restart', { timeout: 5000 }, async t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
   const value = probe(t, { args: [path.join(__dirname, 'fixtures/taskbar.cjs'), '--hang-after-first'], timeout: 150 });
-  await value.start();
+  assert.equal((await value.start()).available, true);
   const oldChild = value.child;
-  await nextAvailable(value);
+  const unavailable = once(value, 'metrics');
+  t.mock.timers.tick(value.interval);
+  t.mock.timers.tick(value.timeout);
+  assert.equal((await unavailable)[0].available, false);
+  assert.equal(value.child, null);
+  const restored = nextAvailable(value);
+  t.mock.timers.tick(value.retryDelay);
+  await restored;
   assert.notEqual(value.child.pid, oldChild.pid);
   const stopped = value.child;
   const exited = once(stopped, 'exit');
   value.stop();
   await exited;
+  t.mock.timers.tick(value.retryDelay + value.interval + value.timeout);
   assert.equal(value.child, null);
   assert.equal(value.stopped, true);
 });
