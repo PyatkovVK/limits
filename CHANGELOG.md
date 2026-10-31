@@ -2,7 +2,7 @@
 
 User-visible changes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
-## Unreleased
+## 1.6.0
 
 ### Changed
 

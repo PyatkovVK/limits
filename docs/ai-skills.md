@@ -18,7 +18,7 @@ The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, mac
 
 The bundled `focused-pull-requests` skill keeps independent bugs, features and other tasks in separate `limits/<description>` branches and MR/PRs. The existing `npm run setup:skills` script in `package.json` generates `skills/focused-pull-requests/SKILL.md` together with the other defaults.
 
-The bundled `changelog` skill records user-visible fixes and features in `CHANGELOG.md` as part of their own focused PR. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
+The bundled `changelog` skill records user-visible fixes and features directly under their target release version in `CHANGELOG.md`, as part of the same focused change. For example, changes targeting `1.6-demo` go under `1.6.0`, without an `Unreleased` placeholder. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
 
 The bundled [test-failure-analysis](skill-templates/test-failure-analysis/SKILL.md) skill traces a failing test or CI check to its introducing commit, explains the affected platform behavior, proposes a systemic repair, and audits which tests and builds actually ran before applying a minimal authorized fix.
 

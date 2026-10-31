@@ -1,14 +1,16 @@
 ---
 name: changelog
-description: Update the Limits changelog when implementing a user-visible bug fix, feature or other release-worthy change. Apply before finalizing its commit or pull request.
+description: Record release-worthy Limits changes immediately under the target version, never in Unreleased. Apply while implementing a user-visible feature or fix and before finalizing its commit or pull request.
 ---
 
-# Keep the changelog current
+# Write changelog entries directly under the target version
 
-Find the repository root and read `CONTRIBUTING.md` and the top of `CHANGELOG.md`. Use the actual final diff to describe the change, including its operating-system scope.
+Read `CONTRIBUTING.md`, the top of `CHANGELOG.md` and the final diff. Determine the target release from the user's explicit version first, then the task's release/demo branch or PR base and the documented release plan. Normalize `1.6` or `1.6-demo` to the repository's `1.6.0` heading format. Do not select an older release solely because `package.json` still contains its version. If the target cannot be established, ask for it instead of inventing a version or using an `Unreleased` placeholder.
 
-Add a concise English entry under `Unreleased`, creating that section above the latest version if needed. Use `Added`, `Changed` or `Fixed` when they improve readability. Explain the resulting user behavior; include a material limitation or migration step when needed. Keep the entry in the same focused commit/PR as the feature or fix. A README translation or internal cleanup needs an entry only when it changes something release-worthy.
+Write a concise English entry directly under `## <target-version>` as part of implementing the feature or fix, in the same focused commit/PR. Create that version section above older versions when needed. Never create an `Unreleased` section or defer assigning entries to a release. If the current task's entries are already under `Unreleased`, move them into the confirmed target version and remove the empty placeholder section.
 
-Avoid duplicating an existing entry for the same task. When revising a feature, revise its unreleased entry to match the final implementation. Preserve historical release entries. Do not claim a version was published, add a release date, move unreleased entries into a version, or change package versions unless release preparation is part of the user's request.
+Use `Added`, `Changed` or `Fixed` when helpful. Describe the resulting user behavior and operating-system scope, including material limitations or migration steps. Revise an existing entry when the implementation changes; avoid duplicate entries. Internal agent instructions, repository-only AI tooling, test maintenance and translations need no product entry unless they change release-worthy application behavior.
 
-Check links and consistency with both README languages when they describe the affected behavior. Report the checks actually run; do not write testing claims into the changelog as a substitute for validation.
+Before finalizing, check that every release-worthy change in the diff is reflected in the correct version section, that the target heading is not duplicated, and that no current-task entries remain under an unassigned heading. Check related documentation and agent guidance for conflicting release-section instructions or stale behavior descriptions. Keep affected English and Russian README content aligned. Preserve historical release entries and entries belonging to other target releases.
+
+A version heading records the intended release; it does not prove publication. Do not invent a release date, claim a release was published, create tags or change package versions unless that release work is separately authorized. Report checks actually performed; testing claims do not replace changelog content or validation.

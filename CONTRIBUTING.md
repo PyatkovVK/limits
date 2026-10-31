@@ -41,7 +41,7 @@ Create a separate `limits/<description>` branch and MR/PR for each independent b
 
 Push your branch to your fork and choose **Compare & pull request** on GitHub. Choose the appropriate base branch as described above. Fill in the PR template with the problem, resulting behavior, validation, and related issue.
 
-Keep English and Russian README content aligned when changing user-facing documentation. Add release-worthy application behavior to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md). Keep internal agent instructions and repository-only AI tooling out of product feature lists and every version section of the changelog. Avoid including generated packages, `node_modules`, local credentials, or unrelated formatting changes.
+Keep English and Russian README content aligned when changing user-facing documentation. Record release-worthy application behavior directly in its target version section of [CHANGELOG.md](CHANGELOG.md) in the same change, for example `1.6.0` for `1.6-demo`; do not use an `Unreleased` placeholder. Keep internal agent instructions and repository-only AI tooling out of product feature lists and every version section of the changelog. Avoid including generated packages, `node_modules`, local credentials, or unrelated formatting changes.
 
 ## First contributions
 
