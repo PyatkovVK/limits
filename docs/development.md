@@ -71,7 +71,7 @@ On Linux, Codex must be visible in the graphical app's `PATH` or configured expl
 
 The app starts `codex app-server --listen stdio://`, performs the initialization handshake, and reads `account/read` and `account/rateLimits/read`. Remaining usage is `100 - usedPercent`; multiple `rateLimitsByLimitId` entries are supported.
 
-Polling occurs 30 seconds after the previous request completes. Received `account/rateLimits/updated` notifications apply immediately, but updates from other processes may only be discovered by polling. Error backoff can reach five minutes; waking from sleep triggers a refresh.
+Polling occurs one minute after the previous request completes. Received `account/rateLimits/updated` notifications apply immediately, but updates from other processes may only be discovered by polling. Error backoff can reach five minutes; waking from sleep triggers a refresh.
 
 The five-hour countdown uses the server's `resetsAt`, rounding up to the next minute. Reaching zero does not restore the remaining percentage until the server confirms a reset. Missing values are shown as unknown.
 

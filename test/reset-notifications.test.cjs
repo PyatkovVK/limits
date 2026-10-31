@@ -113,7 +113,8 @@ test('completed reset changes never notify, including the first check, subsequen
   assert.equal(f.service.snapshot().status, 'ready');
 });
 
-test('six-hour scheduling and overdue resume share one request and stop when disabled', async t => {
+test('hourly scheduling and overdue resume share one request and stop when disabled', async t => {
+  assert.equal(CHECK_INTERVAL, 60 * 60 * 1000);
   const f = fixture(t); await f.enable();
   assert.equal(f.calls.length, 1);
   await f.fire(NOW + CHECK_INTERVAL - 1); assert.equal(f.calls.length, 1);
@@ -247,7 +248,7 @@ test('notification language distinguishes a forecast from a confirmed announceme
     assert.ok(eventText(future.scheduled, language).includes(t.scheduled));
     assert.ok(eventText(future.watch, language).includes(t.forecastHint));
     assert.ok(eventText(future.watch, language).includes('80%'));
-    assert.ok(t.description.includes('codex-resets.com')); assert.ok(t.description.includes('6'));
+    assert.ok(t.description.includes('codex-resets.com')); assert.ok(t.description.includes(language === 'ru' ? 'каждый час' : 'every hour'));
     assert.equal(eventText({ ...future.watch, chance: null }, language).includes('null'), false);
   }
 });
