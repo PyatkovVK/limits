@@ -20,6 +20,8 @@ The bundled `focused-pull-requests` skill keeps independent bugs, features and o
 
 The bundled `changelog` skill records user-visible fixes and features in `CHANGELOG.md` as part of their own focused PR. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
 
+The bundled [test-failure-analysis](skill-templates/test-failure-analysis/SKILL.md) skill traces a failing test or CI check to its introducing commit, explains the affected platform behavior, proposes a systemic repair, and audits which tests and builds actually ran before applying a minimal authorized fix.
+
 Start with this guide and [CONTRIBUTING.md](../CONTRIBUTING.md), restore missing defaults, then discover and read the relevant `SKILL.md` before choosing implementation files. Include personal skills absent from the tracked template catalog. A normal Git-aware search will not list `skills/`; use, for example:
 
 ```sh

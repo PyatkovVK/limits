@@ -10,6 +10,7 @@ Reference catalog for repository skill templates, in English and Russian. This f
 | `platform-routing` | Platform routing | Выбор платформы для изменений | [SKILL.md](platform-routing/SKILL.md) |
 | `changelog` | Changelog updates | Обновление списка изменений | [SKILL.md](changelog/SKILL.md) |
 | `focused-pull-requests` | One task per pull request | Отдельный MR на каждую задачу | [SKILL.md](focused-pull-requests/SKILL.md) |
+| `test-failure-analysis` | Test and CI failure analysis | Разбор падений тестов и CI | [SKILL.md](test-failure-analysis/SKILL.md) |
 
 **Platform routing:** selects the Linux, macOS or Windows implementation for platform-specific work. An explicit user target takes priority over the host OS; shared behavior stays in `src/common/`.
 
@@ -23,8 +24,10 @@ skills/
 │   └── SKILL.md                  # Instructions / Инструкция навыка
 ├── changelog/
 │   └── SKILL.md                  # Record release-worthy changes / Запись изменений
-└── focused-pull-requests/
-    └── SKILL.md                  # Separate task branches / Отдельные ветки задач
+├── focused-pull-requests/
+│   └── SKILL.md                  # Separate task branches / Отдельные ветки задач
+└── test-failure-analysis/
+    └── SKILL.md                  # Trace failures before fixes / Разбор сбоев до правок
 ```
 
 Each skill's `SKILL.md` contains its full instructions. Discover those files directly in local `skills/`; no root README is generated there. Start with the repository guide at `docs/ai-skills.md` and follow local `AGENTS.md` instructions when present.
