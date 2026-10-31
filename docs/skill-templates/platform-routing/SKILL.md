@@ -24,6 +24,10 @@ Keep OS-specific UI, tray/notch/taskbar behavior, helpers and settings adapters 
 
 Use `src/common/` for behavior intended to work on all supported systems and for existing shared services. A necessary shared interface change can accompany a platform fix; keep it small and check the other callers. Do not duplicate shared logic or move an existing shared feature into a platform directory just because that is the current host. Shared package/workflow/documentation files may be changed when the task requires them.
 
+## Keep changes minimal
+
+Make the smallest focused change that satisfies the request. Preserve existing behavior, defaults and public contracts unless the user asks to change them. Avoid unrelated refactoring or formatting; check affected callers and run relevant existing tests to catch regressions.
+
 ## Validate on the available host
 
 Run the shared tests for behavior changes. Exercise the affected UI on the native target when available. For packaging changes, choose the platform/architecture script in `package.json`: Windows `build:win:x64`, macOS `build:mac:arm64` or `build:mac:x64`, Linux `build:linux:x64` or `build:linux:arm64`.

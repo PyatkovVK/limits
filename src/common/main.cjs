@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const { findCodex } = require('./codex-path.cjs');
 const { CodexClient } = require('./codex-client.cjs');
 const { Monitor } = require('./monitor.cjs');
+const { CODEX_POLL_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
 const { Accounts } = require('./accounts.cjs');
 const { AppearanceStore } = require('./appearance.cjs');
 const { Updates } = require('./updates.cjs');
@@ -41,7 +42,7 @@ if (!singleInstance) app.quit();
 let window, windowsPanel, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
 let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray', linuxTrayStyle: 'classic' };
 const t = key => (process.platform === 'darwin' ? require('../apple_feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key, process.platform);
-let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: 30, demo };
+let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60, demo };
 let notified = new Set();
 
 function showPanel(anchor) {

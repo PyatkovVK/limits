@@ -2,8 +2,9 @@
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
 const path = require('node:path');
+const { RESET_CHECK_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
 
-const CHECK_INTERVAL = 6 * 60 * 60 * 1000;
+const CHECK_INTERVAL = RESET_CHECK_INTERVAL_MINUTES * 60 * 1000;
 const REQUEST_TIMEOUT = 15000;
 const STATUS_API = 'https://codex-resets.com/api/v1/status';
 const LINKS = { site: 'https://codex-resets.com/', author: 'https://x.com/wong2__' };

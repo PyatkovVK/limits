@@ -1,13 +1,14 @@
 'use strict';
 const { EventEmitter } = require('node:events');
 const { normalizeLimits } = require('./limits.cjs');
+const { CODEX_POLL_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
 
 class Monitor extends EventEmitter {
   constructor(client, { refreshCredentials = true, reloadOnPoll = false, preserveStartupSample = false } = {}) {
     super();
     this.client = client;
     Object.assign(this, { refreshCredentials, reloadOnPoll, preserveStartupSample, identifyingAccount: false, reloading: false });
-    this.state = { account: null, buckets: [], selectedId: 'codex', updatedAt: null, error: null, status: 'connecting', refreshing: false, interval: 30 };
+    this.state = { account: null, buckets: [], selectedId: 'codex', updatedAt: null, error: null, status: 'connecting', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60 };
     this.failures = 0;
     this.timer = null;
     this.inflight = null;
@@ -76,7 +77,7 @@ class Monitor extends EventEmitter {
     // Publish the lock before read() can receive a synchronous account event.
     this.inflight = Promise.resolve().then(() => this.stopped ? this.state : this.read(reload)).finally(() => {
       this.inflight = null;
-      const delay = Math.min(300000, 30000 * 2 ** this.failures);
+      const delay = Math.min(300000, CODEX_POLL_INTERVAL_MINUTES * 60 * 1000 * 2 ** this.failures);
       this.publish({ interval: delay / 1000 });
       if (!this.stopped) {
         if (this.rerunRequested) { this.rerunRequested = false; void this.refresh({ reload: false }); }
