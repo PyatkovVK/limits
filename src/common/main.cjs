@@ -213,6 +213,7 @@ async function createWidget() {
       ...metrics,
       bar: screen.screenToDipRect(null, metrics.bar),
       tray: metrics.tray ? screen.screenToDipRect(null, metrics.tray) : null,
+      monitor: metrics.monitor ? screen.screenToDipRect(null, metrics.monitor) : null,
       occupied: Array.isArray(metrics.occupied) ? metrics.occupied.map(rect => screen.screenToDipRect(null, rect)) : null,
     };
     placeWidget();

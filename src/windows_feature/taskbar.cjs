@@ -6,6 +6,8 @@ const { EventEmitter } = require('node:events');
 function widgetBounds(metrics, { width = 280, xRatio = null } = {}) {
   if (!metrics?.available || !metrics.visible || metrics.fullscreen) return null;
   const bar = metrics.bar;
+  const monitor = metrics.monitor;
+  if (!bar) return null;
   if (bar.height > bar.width || bar.height < 30) return null;
   const left = bar.x + 56; // Leave the Start button accessible.
   const trayLeft = metrics.tray?.x > left ? metrics.tray.x : bar.x + bar.width - 300;
@@ -26,9 +28,17 @@ function widgetBounds(metrics, { width = 280, xRatio = null } = {}) {
   }
   if (right > cursor) gaps.push({ left: cursor, right });
   const candidates = gaps.filter(gap => gap.right - gap.left >= 200);
-  if (!candidates.length) return null;
   const preferredWidth = Math.max(200, Number.isFinite(width) ? width : 280);
   const desiredX = Number.isFinite(xRatio) ? Math.round(bar.x + xRatio * bar.width) : null;
+  const height = Math.min(34, bar.height - 2);
+  if (!candidates.length) {
+    // A busy taskbar must not make the bar disappear or cover shell buttons.
+    // Use a row immediately beside the taskbar until a readable gap returns.
+    const fittedWidth = Math.min(preferredWidth, bar.width - 16);
+    const x = Math.min(bar.x + bar.width - fittedWidth - 8, Math.max(bar.x + 8, desiredX ?? right - fittedWidth));
+    const top = monitor ? bar.y < monitor.y + monitor.height / 2 : bar.y <= 0;
+    return { x: Math.round(x), y: Math.round(top ? bar.y + bar.height + 8 : bar.y - height - 8), width: Math.round(fittedWidth), height: Math.round(height) };
+  }
   const boundsInGap = gap => {
     const fittedWidth = Math.min(preferredWidth, gap.right - gap.left);
     const x = desiredX === null ? gap.right - fittedWidth : Math.min(gap.right - fittedWidth, Math.max(gap.left, desiredX));
@@ -42,7 +52,6 @@ function widgetBounds(metrics, { width = 280, xRatio = null } = {}) {
       if (Math.abs(candidate.x - desiredX) < Math.abs(fitted.x - desiredX)) fitted = candidate;
     }
   }
-  const height = Math.min(34, bar.height - 2);
   return { x: Math.round(fitted.x), y: bar.y + Math.floor((bar.height - height) / 2), width: Math.round(fitted.width), height: Math.round(height) };
 }
 
@@ -128,7 +137,10 @@ class WidgetPlacement {
   apply(metrics, settings) {
     const target = this.window;
     if (target.isDestroyed()) return;
-    const bounds = settings.visible ? widgetBounds(metrics, settings) : null;
+    // The helper may restart or time out while Explorer rebuilds accessibility
+    // controls. Keep the last usable placement throughout that interruption.
+    if (metrics?.available) this.metrics = metrics;
+    const bounds = settings.visible ? widgetBounds(metrics?.available ? metrics : this.metrics, settings) : null;
     if (!bounds) {
       if (target.isVisible()) { target.hide(); this.changes.hides++; }
       return;
@@ -140,13 +152,21 @@ class WidgetPlacement {
       this.actual = target.getBounds();
       this.changes.bounds++;
     }
-    if (!target.isVisible()) {
+    const newObservation = metrics?.available && metrics !== this.orderMetrics;
+    const showing = !target.isVisible() || (newObservation && metrics.widgetVisible === false);
+    if (showing) {
       target.showInactive();
       // Ownership is assigned while hidden. Complete the first show in front of
       // the taskbar without waiting for Explorer to be activated by a click.
-      target.moveTop();
       this.changes.shows++;
     }
+    // Windows can demote an owned window when its owner changes topmost state.
+    // Repair only observed loss, never raise on every unchanged poll.
+    const lostOrder = newObservation &&
+      (metrics.topmost === false || metrics.aboveTaskbar === false);
+    if (!target.isAlwaysOnTop() || lostOrder) target.setAlwaysOnTop(true);
+    if (showing || lostOrder) target.moveTop();
+    this.orderMetrics = metrics;
   }
 }
 module.exports = { TaskbarProbe, widgetBounds, WidgetPlacement };
