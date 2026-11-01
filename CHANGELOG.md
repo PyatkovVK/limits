@@ -12,7 +12,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 ### Fixed
 
 - On macOS, keep notch panels clear of application menus and status icons. Recheck available menu-bar space, move quota indicators below the menu bar when space is occupied or unknown, and pass clicks through the protected areas in every panel state.
-- Keep the Windows bar visible above the taskbar by restoring lost native topmost ordering without taking focus. Move above a crowded taskbar instead of disappearing and retain placement during helper interruptions; continue hiding for fullscreen applications and taskbar auto-hide.
+- Keep the Windows bar on the taskbar surface while Quick Settings and other system flyouts open or close, without topmost polling repairs or position jumps. Preserve the measured tray geometry through transient failures and save position only during explicit dragging. Use a separate row above a crowded taskbar and continue hiding for fullscreen applications and taskbar auto-hide.
 - On Windows, macOS and Linux, offer new updates before downloading. Start the download only after choosing Download update, then offer Install and restart after verification; postponing or checking again does not download a package.
 
 ### Changed

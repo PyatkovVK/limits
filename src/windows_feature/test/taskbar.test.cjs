@@ -193,6 +193,52 @@ test('actual geometry changes still update widget position and width', () => {
   assert.deepEqual(placement.changes, { bounds: 3, shows: 1, hides: 0 });
   assert.equal(placement.window.bounds.y, 907);
 });
+test('shell flyout animations preserve layout and the chosen horizontal position', () => {
+  const placement = new WidgetPlacement(fakeWidget());
+  const settings = { visible: true, xRatio: .25 };
+  placement.apply(base, settings);
+  const original = placement.window.getBounds();
+  const animation = { ...base, shellFlyout: true, tray: { ...base.tray, x: 1550 }, occupied: [base.bar] };
+  for (let i = 0; i < 20; i++) placement.apply({ ...animation }, settings);
+  assert.deepEqual(placement.window.getBounds(), original, 'Transient shell rectangles must not move the bar');
+  placement.apply({ ...base, shellFlyout: false }, settings);
+  assert.deepEqual(placement.window.getBounds(), original);
+  placement.apply({ ...base, tray: null, occupied: null }, settings);
+  assert.deepEqual(placement.window.getBounds(), original, 'Closing animation must not substitute the 300px tray fallback');
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 1, hides: 0 });
+  placement.apply(animation, { ...settings, xRatio: .4 });
+  assert.equal(placement.window.getBounds().x, 768, 'Explicit dragging still changes position');
+  placement.apply({ ...animation, bar: { ...base.bar, y: 900 } }, settings);
+  assert.notEqual(placement.window.getBounds().y, original.y, 'Real display/taskbar geometry changes still apply');
+});
+test('child placement uses taskbar coordinates and waits for parent changes before moving outside it', () => {
+  const target = fakeWidget(), commands = [];
+  let parented = true, sent;
+  target.setBounds = bounds => {
+    sent = bounds;
+    target.bounds = { ...bounds, x: bounds.x + (parented ? base.bar.x : 0), y: bounds.y + (parented ? base.bar.y : 0) };
+  };
+  const placement = new WidgetPlacement(target, { setParented(value, bounds) { commands.push({ value, bounds }); } });
+  const metrics = { ...base, parented: true }, settings = { visible: true };
+  placement.apply(metrics, settings);
+  assert.equal(sent.y, 7);
+  assert.equal(target.bounds.y, 1039);
+  assert.equal(target.raises, 0, 'The child must not fight Explorer with top-level raises');
+  const crowded = { ...metrics, occupied: [base.bar] };
+  for (let i = 0; i < 10; i++) placement.apply(crowded, settings);
+  assert.equal(commands.length, 1);
+  assert.equal(commands[0].value, false);
+  assert.equal(target.bounds.y, 1039, 'Keep the old visible placement until native detachment completes');
+  parented = false;
+  placement.apply({ ...crowded, parented: false }, settings);
+  assert.equal(sent.y, 990);
+  placement.apply({ ...base, parented: false }, settings);
+  assert.equal(commands[1].value, true);
+  parented = true;
+  placement.apply(metrics, settings);
+  assert.equal(sent.y, 7);
+  assert.equal(target.bounds.y, 1039);
+});
 
 function probe(t, options = {}) {
   // Child startup uses real I/O; advance only probe deadlines and retries explicitly.

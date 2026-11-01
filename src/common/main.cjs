@@ -188,7 +188,7 @@ async function captureSmokePanel() {
   return (await window.webContents.capturePage()).toPNG();
 }
 async function createWidget() {
-  widgetHost = new TaskbarWidget({ BrowserWindow, Menu, webPreferences, restrictWindow, getSettings: () => widgetSettings, resourcesPath: app.isPackaged ? process.resourcesPath : null, onMove: bounds => {
+  widgetHost = new TaskbarWidget({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings: () => widgetSettings, resourcesPath: app.isPackaged ? process.resourcesPath : null, onMove: bounds => {
     if (!taskbarMetrics?.bar) return;
     widgetSettings.xRatio = (bounds.x - taskbarMetrics.bar.x) / taskbarMetrics.bar.width;
     saveWidgetSettings(); placeWidget();
