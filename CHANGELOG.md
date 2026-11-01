@@ -10,6 +10,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Fixed
 
+- Keep the Windows bar visible above the taskbar by restoring lost native topmost ordering without taking focus. Move above a crowded taskbar instead of disappearing and retain placement during helper interruptions; continue hiding for fullscreen applications and taskbar auto-hide.
 - On Windows, macOS and Linux, offer new updates before downloading. Start the download only after choosing Download update, then offer Install and restart after verification; postponing or checking again does not download a package.
 
 ### Changed

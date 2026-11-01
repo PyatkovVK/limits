@@ -63,8 +63,13 @@ test('fallback geometry works on negative monitor origins and 200 DIP is the com
   assert.equal(widgetBounds(metrics).x, -1308);
 });
 
-test('a taskbar without a readable free gap hides the widget rather than covering controls', () => {
-  assert.equal(widgetBounds({ ...base, occupied: [{ x: 56, y: 1032, width: 1586, height: 48 }] }), null);
+test('a crowded taskbar keeps the widget readable above shell controls and below a top taskbar', () => {
+  const occupied = [{ x: 56, y: 1032, width: 1586, height: 48 }];
+  assert.deepEqual(widgetBounds({ ...base, occupied }), { x: 1362, y: 990, width: 280, height: 34 });
+  assert.equal(widgetBounds({ ...base, bar: { ...base.bar, y: 0 }, occupied: occupied.map(r => ({ ...r, y: 0 })) }).y, 56);
+  const monitor = { x: -1920, y: -1080, width: 1920, height: 1080 };
+  const top = { ...base, monitor, bar: { ...base.bar, x: -1920, y: -1080 }, tray: { x: -270 }, occupied: [{ x: -1920, y: -1080, width: 1920, height: 48 }] };
+  assert.deepEqual(widgetBounds(top, { xRatio: 1, width: 400 }), { x: -408, y: -1024, width: 400, height: 34 });
 });
 
 test('off-taskbar and unavailable accessibility geometry preserve the usual tray placement', () => {
@@ -75,12 +80,14 @@ test('off-taskbar and unavailable accessibility geometry preserve the usual tray
 
 function fakeWidget() {
   return {
-    bounds: { x: 0, y: 0, width: 320, height: 39 }, visible: false, aboveTaskbar: false, raises: 0,
+    bounds: { x: 0, y: 0, width: 320, height: 39 }, visible: false, aboveTaskbar: false, raises: 0, topmost: true,
     isDestroyed: () => false,
     isVisible() { return this.visible; },
     getBounds() { return { ...this.bounds }; },
     setBounds(bounds) { this.bounds = { ...bounds, height: Math.max(39, bounds.height) }; },
     showInactive() { this.visible = true; this.aboveTaskbar = false; },
+    isAlwaysOnTop() { return this.topmost; },
+    setAlwaysOnTop(value) { this.topmost = value; },
     moveTop() { assert.ok(this.visible, 'Raise the widget after showing it'); this.aboveTaskbar = true; this.raises++; },
     hide() { this.visible = false; this.aboveTaskbar = false; }
   };
@@ -129,6 +136,53 @@ test('hidden settings and unavailable taskbars do not raise the widget; restorin
   placement.apply(base, settings);
   assert.equal(target.aboveTaskbar, true);
   assert.equal(target.raises, 2);
+});
+test('helper failures retain placement, including when explicitly hidden and then restored', () => {
+  const target = fakeWidget(), placement = new WidgetPlacement(target);
+  placement.apply(base, { visible: true });
+  for (let i = 0; i < 100; i++) placement.apply({ available: false }, { visible: true });
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 1, hides: 0 });
+  placement.apply({ available: false }, { visible: false });
+  assert.equal(target.isVisible(), false);
+  placement.apply({ available: false }, { visible: true });
+  assert.equal(target.isVisible(), true);
+  placement.apply(base, { visible: true });
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 2, hides: 1 });
+  placement.apply({ ...base, fullscreen: true }, { visible: true });
+  placement.apply({ available: false }, { visible: true });
+  assert.equal(target.isVisible(), false, 'An outage must not undo intentional fullscreen hiding');
+});
+test('native loss of topmost or taskbar order is repaired without resizing or taking focus', () => {
+  const target = fakeWidget(), placement = new WidgetPlacement(target);
+  placement.apply(base, { visible: true });
+  for (const loss of [{ topmost: false }, { aboveTaskbar: false }]) {
+    const metrics = { ...base, ...loss };
+    target.topmost = false;
+    target.aboveTaskbar = false;
+    placement.apply(metrics, { visible: true });
+    assert.equal(target.topmost, true);
+    assert.equal(target.aboveTaskbar, true);
+    const raises = target.raises;
+    for (let i = 0; i < 100; i++) placement.apply(metrics, { visible: true });
+    assert.equal(target.raises, raises, 'The same observation must not cause repeated repairs');
+  }
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 1, hides: 0 });
+  assert.equal(target.raises, 3);
+  target.visible = false;
+  placement.apply({ ...base, topmost: true, aboveTaskbar: true }, { visible: true });
+  assert.equal(target.isVisible(), true, 'An unexpectedly hidden window is restored');
+});
+test('native hiding is repaired even if Electron still reports the window visible', () => {
+  const target = fakeWidget(), placement = new WidgetPlacement(target);
+  placement.apply(base, { visible: true });
+  const observation = { ...base, widgetVisible: false };
+  placement.apply(observation, { visible: true });
+  for (let i = 0; i < 100; i++) placement.apply(observation, { visible: true });
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 2, hides: 0 });
+  placement.apply({ ...base, widgetVisible: false, fullscreen: true }, { visible: true });
+  assert.equal(target.isVisible(), false, 'Fullscreen hiding must not be repaired');
+  placement.apply({ ...base, widgetVisible: false }, { visible: false });
+  assert.equal(target.isVisible(), false, 'User hiding must not be repaired');
 });
 test('actual geometry changes still update widget position and width', () => {
   const placement = new WidgetPlacement(fakeWidget());

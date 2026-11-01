@@ -6,7 +6,8 @@ using System.Collections.Generic;
 using System.Windows.Automation;
 
 // Reads taskbar geometry. The widget is an owned top-level window of the taskbar:
-// Windows maintains their order atomically, without post-click z-order repairs.
+// Ownership keeps it above Explorer; report native ordering as well because
+// owner transitions can remove the widget's topmost style.
 // Explorer is never reparented. Tray activation may dismiss its overflow popup.
 class TaskbarProbe {
   [StructLayout(LayoutKind.Sequential)] struct Rect { public int Left, Top, Right, Bottom; }
@@ -129,6 +130,9 @@ class TaskbarProbe {
     bool visible = IsWindowVisible(taskbar) && bar.Top < monitor.Monitor.Bottom - 8 && bar.Bottom > monitor.Monitor.Top + 8;
     return "{\"available\":true,\"visible\":" + (visible ? "true" : "false") + ",\"fullscreen\":" + (fullscreen ? "true" : "false") +
       ",\"shellActive\":" + (shellActive ? "true" : "false") + ",\"attached\":" + (attached ? "true" : "false") +
+      ",\"widgetVisible\":" + (IsWindowVisible(Widget) ? "true" : "false") +
+      ",\"topmost\":" + ((GetWindowLong(Widget, -20) & 8) != 0 ? "true" : "false") +
+      ",\"aboveTaskbar\":" + (AboveTaskbar(taskbar) ? "true" : "false") +
       ",\"bar\":" + Bounds(bar) + ",\"tray\":" + trayJson + ",\"occupied\":" + OccupiedBounds(taskbar, bar, owner) + ",\"monitor\":" + Bounds(monitor.Monitor) + "}";
   }
   static void Main(string[] args) {
@@ -160,6 +164,7 @@ class TaskbarProbe {
       Console.WriteLine("{\"visible\":" + (IsWindowVisible(Widget) ? "true" : "false") +
         ",\"attached\":" + (attached ? "true" : "false") +
         ",\"aboveTaskbar\":" + (taskbar != IntPtr.Zero && AboveTaskbar(taskbar) ? "true" : "false") +
+        ",\"topmost\":" + ((GetWindowLong(Widget, -20) & 8) != 0 ? "true" : "false") +
         ",\"foreground\":\"" + GetForegroundWindow().ToInt64() + "\"}");
       return;
     }
@@ -178,7 +183,7 @@ class TaskbarProbe {
     }
     // Repeated owner raises are tested against a separate simulated taskbar in our app.
     // Do not raise, lower, click or change ownership of the real Windows taskbar.
-    if (args.Length == 4 && (args[0] == "--test-ownership" || args[0] == "--test-owner-destroy")) {
+    if (args.Length == 4 && (args[0] == "--test-ownership" || args[0] == "--test-owner-destroy" || args[0] == "--test-owner-demote")) {
       Owner = UInt32.Parse(args[1]); Widget = new IntPtr(Int64.Parse(args[2]));
       uint pid; GetWindowThreadProcessId(Widget, out pid);
       if (pid != Owner || !IsWindowVisible(Widget)) { Environment.ExitCode = 1; return; }
@@ -189,6 +194,16 @@ class TaskbarProbe {
       uint simulatedPid; GetWindowThreadProcessId(simulatedTaskbar, out simulatedPid);
       if (simulatedPid != Owner || originalOwner != FindWindow("Shell_TrayWnd", null)) { Environment.ExitCode = 1; return; }
       bool ordered = AttachToTaskbar(simulatedTaskbar);
+      if (args[0] == "--test-owner-demote") {
+        // Simulate lost native state only after replacing the real owner.
+        // Demoting an owned window can also demote its owner, so both must
+        // belong to the test process. Electron's topmost state stays cached.
+        bool demoted = ordered && SetWindowPos(Widget, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200);
+        Console.WriteLine("{\"demoted\":" + (demoted ? "true" : "false") +
+          ",\"topmost\":" + ((GetWindowLong(Widget, -20) & 8) != 0 ? "true" : "false") + "}");
+        Environment.ExitCode = demoted ? 0 : 1;
+        return;
+      }
       if (args[0] == "--test-owner-destroy") {
         Console.WriteLine("{\"attached\":" + (ordered ? "true" : "false") + "}");
         Environment.ExitCode = ordered ? 0 : 1;
