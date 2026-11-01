@@ -26,7 +26,7 @@ class TaskbarProbe {
   [DllImport("user32.dll")] static extern bool GetCursorPos(out Point point);
   [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
-  [DllImport("user32.dll")] static extern bool ShowWindowAsync(IntPtr hwnd, int command);
+  [DllImport("user32.dll", SetLastError = true)] static extern bool PostMessage(IntPtr hwnd, uint message, IntPtr wparam, IntPtr lparam);
   [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr hwnd);
   [DllImport("user32.dll")] static extern IntPtr GetTopWindow(IntPtr hwnd);
   [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hwnd, uint command);
@@ -216,15 +216,16 @@ class TaskbarProbe {
     }
     if (args.Length == 1 && args[0] == "--dismiss-tray-overflow") {
       // A tray icon click can leave Explorer's overflow flyout open when a
-      // frameless Electron panel takes focus. Dismiss only the known shell
-      // popup classes, never an unrelated application or the taskbar itself.
+      // frameless Electron panel takes focus. Ask Explorer to close its popup
+      // so the chevron state resets too; SW_HIDE only hides the surface.
+      // Restrict this to known Explorer popup classes, never the taskbar itself.
       foreach (string cls in new string[] { "NotifyIconOverflowWindow", "TopLevelWindowForOverflowXamlIsland" }) {
         IntPtr popup = FindWindow(cls, null);
         if (popup == IntPtr.Zero || !IsWindowVisible(popup)) continue;
         uint pid; GetWindowThreadProcessId(popup, out pid);
         try {
           using (Process process = Process.GetProcessById((int)pid)) {
-            if (process.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase)) ShowWindowAsync(popup, 0);
+            if (process.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase)) PostMessage(popup, 0x0010, IntPtr.Zero, IntPtr.Zero); // WM_CLOSE
           }
         } catch { /* Explorer may replace the popup during activation. */ }
       }

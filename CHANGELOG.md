@@ -17,6 +17,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 - On Windows, keep compact balance rows evenly spaced inside the taskbar widget, including short taskbars, with room below the bonus amount.
 - On Windows, restore native clicks and dragging on the taskbar widget, including DeepSeek balance text. Keep Electron's window at desktop level with the taskbar as its owner, preserve placement across shell changes, and verify real mouse input rather than only injected renderer events.
+- On Windows, close the hidden-icons flyout through Explorer when opening Limits from the tray so its chevron returns to the collapsed state instead of leaving the popup logically open.
 - On macOS, keep notch panels clear of application menus and status icons. Recheck available menu-bar space, move quota indicators below the menu bar when space is occupied or unknown, and pass clicks through the protected areas in every panel state.
 - Keep the Windows bar on the taskbar surface while Quick Settings and other system flyouts open or close, without topmost polling repairs or position jumps. Preserve the measured tray geometry through transient failures and save position only during explicit dragging. Use a separate row above a crowded taskbar and continue hiding for fullscreen applications and taskbar auto-hide.
 - On Windows, macOS and Linux, offer new updates before downloading. Start the download only after choosing Download update, then offer Install and restart after verification; postponing or checking again does not download a package.
