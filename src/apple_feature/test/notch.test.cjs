@@ -152,3 +152,77 @@ test('browser handoff does not delay tray mode or collapse a newly enabled notch
     assert.equal(notch.modalOperations, 0); assert.equal(notch.snapshot().browserOpening, false);
   } finally { notch.destroy(); }
 });
+
+test('side panel leaves space for both indicators around the physical notch on a secondary screen', () => {
+  const secondary = { ...display, bounds: { ...display.bounds, x: -1800, y: -1169 }, workArea: { ...display.workArea, x: -1800, y: -1131 } };
+  const layout = notchLayout(secondary, info, 'island');
+  const closed = hitBounds(layout, 'closed');
+  assert.equal(closed.x + closed.width / 2, -900);
+  assert.equal(closed.y, -1169);
+  assert.equal(layout.closedWidth - info.notchWidth, 192);
+  assert.ok(layout.fullWidth >= layout.closedWidth);
+  const notification = hitBounds(layout, 'notification');
+  assert.ok(notification.height > closed.height);
+  assert.ok(contains(notification, { x: -900, y: -1050 }));
+  assert.ok(!contains(closed, { x: -900, y: -1050 }));
+  assert.equal(notchLayout(display, {}, 'island'), null);
+});
+
+test('switching between notch presentations reuses the host, and island mode restores after display changes', async () => {
+  const notch = await controller();
+  try {
+    await notch.enable(); const host = notch.window;
+    await notch.enable('island'); clearInterval(notch.timer);
+    assert.equal(notch.window, host); assert.equal(notch.snapshot().mode, 'island');
+    assert.equal(notch.snapshot().closedWidth, info.notchWidth + 192);
+    await notch.discover();
+    assert.equal(notch.snapshot().closedWidth, info.notchWidth + 192);
+    await notch.enable('notch'); clearInterval(notch.timer);
+    assert.equal(notch.snapshot().closedWidth, info.notchWidth + 24);
+    assert.equal(notch.notify({ title: 'Limits', body: 'Tray notification' }), false);
+  } finally { notch.destroy(); }
+});
+
+test('island notifications queue without focus, expire in order, and ignore stale dismissal/actions', async () => {
+  const timers = new Set();
+  const notch = await controller({ setTimer(fn) { timers.add(fn); return fn; }, clearTimer(fn) { timers.delete(fn); } });
+  try {
+    assert.equal(notch.notify({ title: 'Limits', body: 'Disabled' }), false);
+    await notch.enable('island'); clearInterval(notch.timer);
+    const bounds = { ...notch.window.bounds };
+    assert.equal(notch.notify({ title: 'Low allowance', body: '5h: 8%.' }), true);
+    const first = notch.snapshot().notification;
+    assert.equal(notch.phase, 'notification'); assert.ok(!notch.window.focused);
+    assert.equal(notch.notify({ title: 'Codex Resets', body: 'Reset soon', action: 'resets' }), true);
+    assert.equal(notch.snapshot().notificationCount, 2);
+    assert.equal(notch.dismissNotification(first.id + 1), false);
+    assert.equal(notch.activateNotification(first.id + 1), null);
+    notch.trackPointer({ x: 900, y: 100 });
+    assert.equal(notch.window.ignoring, false);
+    [...timers][0](); // Hover keeps the current message readable.
+    assert.equal(notch.snapshot().notification.id, first.id);
+    notch.trackPointer({ x: 0, y: 1000 });
+    [...timers][0]();
+    assert.equal(notch.snapshot().notification.title, 'Codex Resets');
+    assert.equal(notch.snapshot().notificationCount, 1);
+    assert.equal(notch.activateNotification(notch.snapshot().notification.id), 'resets');
+    assert.equal(notch.phase, 'closed'); assert.equal(timers.size, 0);
+    assert.equal(notch.activateNotification(first.id), null);
+    assert.deepEqual(notch.window.bounds, bounds);
+  } finally { notch.destroy(); }
+});
+
+test('an incoming message preserves expanded Settings and all notification work stops on disable', async () => {
+  const timers = new Set();
+  const notch = await controller({ setTimer(fn) { timers.add(fn); return fn; }, clearTimer(fn) { timers.delete(fn); } });
+  try {
+    await notch.enable('island'); clearInterval(notch.timer); notch.expand();
+    notch.notify({ title: 'Limits', body: 'A message while Settings is open' });
+    assert.equal(notch.phase, 'expanded');
+    await notch.withModal(async () => { [...timers][0](); assert.equal(notch.snapshot().notificationCount, 1); });
+    notch.collapse(); assert.equal(notch.phase, 'notification');
+    notch.disable(); assert.equal(timers.size, 0); assert.equal(notch.notifications.length, 0);
+    await notch.enable('island'); clearInterval(notch.timer);
+    assert.equal(notch.phase, 'closed'); assert.equal(notch.snapshot().notification, null);
+  } finally { notch.destroy(); }
+});

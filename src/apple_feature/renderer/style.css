@@ -198,3 +198,75 @@ body.apple-notch.reduced-motion .apple-mini { transition-duration: 1ms; transiti
 body[data-platform="darwin"] .apple-subscription-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 body[data-platform="darwin"] .apple-subscription-controls select { max-width: 100%; min-width: 0; }
 body[data-platform="darwin"] .profile-card[hidden] { display: none; }
+
+/* A continuous black surface with concave joins into the physical notch. */
+.apple-island-meters { display: none; }
+body[data-platform="darwin"].apple-island .apple-shell {
+  overflow: visible; background: #000; border-radius: 0 0 18px 18px;
+  box-shadow: 0 5px 12px rgba(0,0,0,.12);
+}
+body.apple-island:not([data-notch-phase="expanded"]) .apple-shell { background: #000 !important; }
+body.apple-island:not([data-notch-phase="expanded"]) {
+  --ink: #f4f5f8 !important; --muted: #9b9ca9 !important;
+  --appearance-ink: #f4f5f8 !important; --appearance-muted: #9b9ca9 !important;
+}
+.apple-island .apple-cap { background: #000; border-radius: inherit; }
+.apple-island .apple-shell::before, .apple-island .apple-shell::after {
+  content: ''; position: absolute; top: 0; width: 12px; height: 12px; pointer-events: none;
+}
+.apple-island .apple-shell::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 12px, #000 12.5px); }
+.apple-island .apple-shell::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 12px, #000 12.5px); }
+.apple-island .apple-trigger { overflow: hidden; }
+.apple-island .apple-content { clip-path: inset(0 round 0 0 28px 28px); }
+.apple-island .apple-mini { display: none; }
+body[data-platform="darwin"].apple-island .apple-island-meters {
+  position: absolute; top: 0; left: 18px; right: 18px; height: var(--closed-height);
+  display: flex; align-items: center; justify-content: space-between;
+  width: auto; padding: 0; border: 0; border-radius: 0; background: transparent;
+  color: #f4f5f8; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 650;
+}
+.apple-island-wing { display: flex; align-items: center; gap: 8px; max-width: var(--island-wing-width); }
+body[data-platform="darwin"].apple-island .apple-island-meter,
+body[data-platform="darwin"].apple-island .apple-island-more {
+  display: flex; flex: 0 0 auto; align-items: center; gap: 6px;
+  padding: 0; border: 0; background: transparent; color: #f4f5f8;
+  font-size: 12px; font-weight: 650; border-radius: 4px;
+}
+body[data-platform="darwin"].apple-island .apple-island-more { min-width: 24px; justify-content: center; color: #a7aab6; font-size: 10px; }
+.apple-island-label { max-width: 40px; font-size: 10px; font-weight: 500; color: #9b9ca9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.apple-island-value { white-space: nowrap; }
+.apple-island-dot { flex: 0 0 4px; height: 4px; border-radius: 50%; background: #78e7ca; }
+.apple-island-meter.weekly .apple-island-dot { background: #b6a0ff; }
+.apple-island-meter.low .apple-island-dot { background: #ff6378; }
+.apple-island-meter.unknown .apple-island-dot { background: #747783; }
+body.apple-island[data-notch-phase="peek"] .apple-shell,
+body.apple-island[data-notch-phase="expanded"] .apple-shell { border-radius: 0 0 28px 28px; }
+body.apple-island[data-notch-phase="notification"] .apple-shell {
+  width: var(--notification-width); height: var(--notification-height); border-radius: 0 0 28px 28px;
+}
+body[data-platform="darwin"].apple-island .apple-notification {
+  color: #f4f5f8; background: #000; padding: 14px 22px 18px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 24px; gap: 8px 12px;
+  font-size: 13px; line-height: 1.5; text-align: left; border-radius: 0 0 28px 28px;
+}
+.apple-island .apple-shell > .apple-notification {
+  position: absolute; top: var(--closed-height); left: 0; right: 0;
+  max-height: calc(var(--notification-height) - var(--closed-height)); overflow-y: auto;
+  animation: apple-notification-in 280ms cubic-bezier(.16,1,.3,1);
+}
+.apple-notification strong { align-self: center; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.apple-notification p { grid-column: 1 / -1; margin: 0; white-space: pre-line; overflow-wrap: anywhere; color: #bfc2cc; }
+body[data-platform="darwin"].apple-island .apple-notification-dismiss {
+  display: grid; place-items: center; width: 24px; height: 24px; padding: 0;
+  border: 0; border-radius: 50%; color: #a7aab6; background: #1b1b1e; font-size: 18px; line-height: 1;
+}
+body[data-platform="darwin"].apple-island .apple-notification-action {
+  grid-column: 1 / -1; justify-self: start; padding: 4px 0; color: #78e7ca;
+  border: 0; background: transparent; font-size: 12px;
+}
+.apple-island .apple-content .apple-notification, .apple-island #settings-dialog .apple-notification {
+  padding: 12px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 14px;
+}
+@keyframes apple-notification-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+body.reduced-motion .apple-notification { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .apple-notification { animation: none !important; } }

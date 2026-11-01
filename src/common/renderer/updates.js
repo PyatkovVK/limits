@@ -52,8 +52,7 @@
   let current, messageKey = null, opening = false, dismissing = false;
   const text = () => ({ ...(words[current?.language] || words.en), ...window.limitsInstallation?.words(current) });
   function activeHost() {
-    const notch = document.body.classList.contains('apple-notch');
-    return current?.displayMode === 'notch' ? notch && current.appleNotch?.phase === 'expanded' : !notch;
+    return current?.platform === 'darwin' ? window.limitsApple.activeHost(current) : true;
   }
   function maybeOffer() {
     const offer = current?.updates?.offer;

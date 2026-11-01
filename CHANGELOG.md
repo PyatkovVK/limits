@@ -4,6 +4,10 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ## 1.7.0
 
+### Added
+
+- On macOS, add a third display mode with persistent quota values on both sides of the physical notch, curved black edges, and expanding in-panel notifications for low allowance, Codex Resets and update offers. Fit additional metrics with a +N control and scrollable details; queue messages without stealing focus and preserve the menu-bar and original notch modes.
+
 ### Fixed
 
 - On Windows, macOS and Linux, offer new updates before downloading. Start the download only after choosing Download update, then offer Install and restart after verification; postponing or checking again does not download a package.

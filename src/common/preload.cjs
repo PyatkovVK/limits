@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('limits', {
   select: id => ipcRenderer.invoke('limits:select', id),
   language: language => ipcRenderer.invoke('limits:language', language),
   displayMode: mode => ipcRenderer.invoke('limits:display-mode', mode),
+  dismissNotification: id => ipcRenderer.invoke('limits:notification-dismiss', id),
+  openNotification: id => ipcRenderer.invoke('limits:notification-open', id),
   preference: (key, value) => ipcRenderer.invoke('limits:preference', key, value),
   onSettingsOpen: callback => {
     const listener = () => callback();

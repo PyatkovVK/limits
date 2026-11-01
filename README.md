@@ -86,6 +86,10 @@ macOS remembers this exception for the app, so subsequent launches can use a nor
 
 Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. After installing the app, enable **Settings → Launch at macOS login** to start in the background at login. This also works with local ad hoc signed builds; disabling the option removes the startup entry.
 
+**Settings → Display → Notch side panel** adds a third mode: a black panel with curved joins into the notch and persistent **5h** / **7d** values on either side. Low-allowance warnings, enabled Codex Resets alerts, and update announcements expand inside this panel. Messages queue, dismiss automatically after ten seconds when the pointer is away, and can be closed with × or Esc. Both notch modes require a physical MacBook notch.
+
+The side panel adapts to additional metrics. Values that do not fit move into a **+N** control, which opens the complete list in the scrollable details panel.
+
 <details>
 <summary>Dark theme and MacBook notch</summary>
 
