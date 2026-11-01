@@ -2,6 +2,12 @@
 
 User-visible changes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
+## 1.7.0
+
+### Changed
+
+- Introduce shared pluggable AI controllers with Codex as the only initial integration. Preserve existing profiles, authentication, polling, and quota displays; support schema-driven percentage, monetary, and count metrics for future integrations.
+
 ## 1.6.0
 
 ### Changed

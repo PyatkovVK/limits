@@ -19,7 +19,7 @@ contextBridge.exposeInMainWorld('limits', {
   openResetLink: kind => ipcRenderer.invoke('limits:reset-notifications-open', kind),
   demoReset: scenario => ipcRenderer.invoke('limits:reset-notifications-demo', scenario),
   login: id => ipcRenderer.invoke('limits:login', id),
-  addAccount: () => ipcRenderer.invoke('limits:profile-add'),
+  addAccount: providerId => ipcRenderer.invoke('limits:profile-add', providerId),
   accountAction: (action, id, value) => ipcRenderer.invoke('limits:profile-action', action, id, value),
   subscriptionMode: mode => ipcRenderer.invoke('limits:subscriptions-mode', mode),
   addSubscriptionSource: () => ipcRenderer.invoke('limits:subscriptions-add-source'),

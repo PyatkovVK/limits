@@ -2,7 +2,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { Monitor } = require('../src/common/monitor.cjs');
+const { Monitor: SharedMonitor } = require('../src/common/monitor.cjs');
+const { CodexController } = require('../src/common/ai-connects/codex/controller.cjs');
+const Monitor = function (client, options) { return new SharedMonitor(new CodexController(client, options)); };
 
 const quota = { rateLimits: { primary: { usedPercent: 40, windowDurationMins: 300 } } };
 const turn = () => new Promise(resolve => setImmediate(resolve));

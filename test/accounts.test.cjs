@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { Accounts, clientOptions } = require('../src/common/accounts.cjs');
+const { Accounts } = require('../src/common/accounts.cjs');
+const { clientOptions } = require('../src/common/ai-connects/codex/options.cjs');
 
 function fixture(t) {
   const parent = path.resolve(__dirname, '../artifacts');
@@ -26,6 +27,7 @@ function fixture(t) {
     monitor.cancelLogin = async () => { monitor.cancelled = true; };
     monitor.stop = () => { monitor.stopped = true; };
     monitor.select = id => { monitor.state.selectedId = id; };
+    monitor.signOut = async () => { monitor.lastRequest = 'account/logout'; };
     monitor.options = options;
     clients.set(profile.id, monitor);
     return monitor;

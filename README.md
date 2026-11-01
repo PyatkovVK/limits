@@ -163,6 +163,8 @@ Use **Background** to choose the platform default, a solid color, or a local PNG
 
 Translations, documentation improvements, and platform testing are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and issues labeled [good first issue](https://github.com/PyatkovVK/limits/labels/good%20first%20issue). Please follow the [code of conduct](CODE_OF_CONDUCT.md).
 
+For additional AI integrations, see the [shared controller guide](docs/ai-controllers.md). Codex is the only production integration currently registered.
+
 See [CHANGELOG.md](CHANGELOG.md) for release features. Limits uses the [MIT license](LICENSE); bundled dependencies have their own [third-party notices](THIRD-PARTY-NOTICES.md).
 
 ## Roadmap
