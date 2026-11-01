@@ -3,6 +3,25 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { TaskbarWidget } = require('../widget.cjs');
 const { widgetBounds } = require('../taskbar.cjs');
+const { EventEmitter } = require('node:events');
+
+test('shell-driven native movement never overwrites the saved drag position', () => {
+  class Window extends EventEmitter {
+    constructor() { super(); this.webContents = new EventEmitter(); }
+    loadFile() { return new Promise(() => {}); }
+    isDestroyed() { return false; }
+    destroy() { this.emit('closed'); }
+  }
+  const saved = { width: 280, xRatio: .25 };
+  const host = new TaskbarWidget({ BrowserWindow: Window, getSettings: () => saved,
+    restrictWindow() {}, onMove(bounds) { saved.xRatio = bounds.x / 1920; } });
+  void host.start();
+  let prevented = 0;
+  host.window.emit('will-move', { preventDefault() { prevented++; } }, { x: 1400, y: 1032, width: 280, height: 39 });
+  assert.equal(prevented, 1);
+  assert.equal(saved.xRatio, .25, 'Only explicit pointer dragging may change the preference');
+  host.stop();
+});
 
 test('one continuous cursor drag crosses centered buttons into the left gap and back', () => {
   const metrics = { available: true, visible: true, bar: { x: 0, y: 1032, width: 1920, height: 48 },

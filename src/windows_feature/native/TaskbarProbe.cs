@@ -5,16 +5,18 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Windows.Automation;
 
-// Reads taskbar geometry. The widget is an owned top-level window of the taskbar:
-// Ownership keeps it above Explorer; report native ordering as well because
-// owner transitions can remove the widget's topmost style.
+// Reads taskbar geometry and embeds our widget into Explorer's taskbar surface.
+// Child placement keeps it in the taskbar's band during Quick Settings changes.
 // Explorer is never reparented. Tray activation may dismiss its overflow popup.
 class TaskbarProbe {
   [StructLayout(LayoutKind.Sequential)] struct Rect { public int Left, Top, Right, Bottom; }
+  [StructLayout(LayoutKind.Sequential)] struct Point { public int X, Y; }
   [StructLayout(LayoutKind.Sequential)] struct MonitorInfo { public int Size; public Rect Monitor, Work; public uint Flags; }
   delegate bool EnumProc(IntPtr hwnd, IntPtr parameter);
   static uint Owner;
   static IntPtr Widget;
+  static bool UseTaskbarParent = true;
+  static Rect? RequestedBounds;
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string cls, string name);
   [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
   [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
@@ -28,6 +30,9 @@ class TaskbarProbe {
   [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hwnd, EnumProc callback, IntPtr parameter);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder text, int length);
   [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
+  [DllImport("user32.dll", SetLastError = true)] static extern IntPtr SetParent(IntPtr hwnd, IntPtr parent);
+  [DllImport("user32.dll")] static extern bool ScreenToClient(IntPtr hwnd, ref Point point);
   [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
   [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
@@ -36,6 +41,11 @@ class TaskbarProbe {
 
   static string Bounds(Rect r) { return "{\"x\":" + r.Left + ",\"y\":" + r.Top + ",\"width\":" + (r.Right-r.Left) + ",\"height\":" + (r.Bottom-r.Top) + "}"; }
   static string ClassName(IntPtr hwnd) { StringBuilder text = new StringBuilder(256); GetClassName(hwnd, text, text.Capacity); return text.ToString(); }
+  static string ProcessName(IntPtr hwnd) {
+    uint pid; GetWindowThreadProcessId(hwnd, out pid);
+    try { using (Process process = Process.GetProcessById((int)pid)) return process.ProcessName.ToLowerInvariant(); }
+    catch { return ""; }
+  }
   static string OccupiedBounds(IntPtr taskbar, Rect bar, uint owner) {
     try {
       // Read actionable controls, not the full-width XAML/task-list container.
@@ -72,35 +82,67 @@ class TaskbarProbe {
       return "[" + String.Join(",", rectangles.ToArray()) + "]";
     } catch { return "null"; } // Preserve geometry reporting if accessibility is temporarily unavailable.
   }
-  static bool IsShellWindow(IntPtr hwnd, IntPtr taskbar) {
-    string cls = ClassName(hwnd);
-    if (hwnd == taskbar || cls == "Shell_SecondaryTrayWnd" || cls == "Progman" || cls == "WorkerW" || cls == "#32768") return true;
-    uint pid; GetWindowThreadProcessId(hwnd, out pid);
-    try {
-      using (Process process = Process.GetProcessById((int)pid)) {
-        switch (process.ProcessName.ToLowerInvariant()) {
-          case "explorer": case "startmenuexperiencehost": case "searchhost": case "searchapp":
-          case "shellexperiencehost": case "textinputhost": case "widgets": case "widgetservice": return true;
-        }
-      }
-    } catch { /* A foreground process can exit while being inspected. */ }
+  static bool IsShellIdentity(string cls, string process) {
+    if (cls == "Shell_TrayWnd" || cls == "Shell_SecondaryTrayWnd" || cls == "Progman" || cls == "WorkerW" ||
+        cls == "#32768" || cls == "ControlCenterWindow" || cls == "NotifyIconOverflowWindow" || cls == "TopLevelWindowForOverflowXamlIsland") return true;
+    switch (process.ToLowerInvariant()) {
+      case "explorer": case "startmenuexperiencehost": case "searchhost": case "searchapp":
+      case "shellhost": case "shellexperiencehost": case "textinputhost": case "widgets": case "widgetservice": return true;
+    }
     return false;
+  }
+  static bool IsShellWindow(IntPtr hwnd, IntPtr taskbar) {
+    return hwnd == taskbar || IsShellIdentity(ClassName(hwnd), ProcessName(hwnd));
+  }
+  static bool IsShellFlyout(string cls, string process) {
+    if (cls == "Shell_TrayWnd" || cls == "Shell_SecondaryTrayWnd" || cls == "Progman" || cls == "WorkerW" ||
+        cls == "CabinetWClass" || cls == "ExploreWClass") return false;
+    return IsShellIdentity(cls, process);
   }
   static bool AttachToTaskbar(IntPtr taskbar) {
     if (Widget == IntPtr.Zero || taskbar == IntPtr.Zero) return false;
     uint pid; GetWindowThreadProcessId(Widget, out pid);
     if (pid != Owner) return false; // Never change a foreign or recycled handle.
-    if (GetWindow(Widget, 4) == taskbar) return true;
-    SetWindowLongPtr(Widget, -8, taskbar); // GWLP_HWNDPARENT changes ownership, not parenting.
-    return GetWindow(Widget, 4) == taskbar;
+    if (GetAncestor(Widget, 1) == taskbar) return true;
+    Rect before, bar;
+    if (!GetWindowRect(Widget, out before) || !GetWindowRect(taskbar, out bar)) return false;
+    int style = GetWindowLong(Widget, -16);
+    // Join Explorer's taskbar surface before first show. A separately owned
+    // top-level window can lose its owner during Quick Settings transitions.
+    SetWindowLongPtr(Widget, -16, new IntPtr((style | 0x40000000) & ~unchecked((int)0x80000000)));
+    SetParent(Widget, taskbar);
+    if (GetAncestor(Widget, 1) != taskbar) {
+      SetWindowLongPtr(Widget, -16, new IntPtr(style));
+      return false;
+    }
+    Point position = new Point { X = before.Left, Y = before.Top };
+    ScreenToClient(taskbar, ref position);
+    SetWindowPos(Widget, IntPtr.Zero, position.X, position.Y,
+      before.Right - before.Left, before.Bottom - before.Top, 0x0010 | 0x0200 | 0x0020 | 0x4000);
+    return true;
   }
   static bool AboveTaskbar(IntPtr taskbar) {
+    if (GetAncestor(Widget, 1) == taskbar) return true;
     int count = 0;
     for (IntPtr hwnd = GetTopWindow(IntPtr.Zero); hwnd != IntPtr.Zero && count++ < 4096; hwnd = GetWindow(hwnd, 2)) {
       if (hwnd == Widget) return true;
       if (hwnd == taskbar) return false;
     }
     return false;
+  }
+  static bool DetachFromTaskbar() {
+    uint pid; GetWindowThreadProcessId(Widget, out pid);
+    if (pid != Owner) return false;
+    if ((GetWindowLong(Widget, -16) & 0x40000000) == 0) return true;
+    Rect before;
+    if (!GetWindowRect(Widget, out before)) return false;
+    SetParent(Widget, IntPtr.Zero);
+    if (GetAncestor(Widget, 1) == FindWindow("Shell_TrayWnd", null)) return false;
+    int style = GetWindowLong(Widget, -16);
+    SetWindowLongPtr(Widget, -16, new IntPtr((style & ~0x40000000) | unchecked((int)0x80000000)));
+    SetWindowPos(Widget, new IntPtr(-1), before.Left, before.Top, before.Right-before.Left, before.Bottom-before.Top,
+      0x0010 | 0x0200 | 0x0020 | 0x4000);
+    return true;
   }
   static bool IsFullscreen(IntPtr foreground, uint owner, IntPtr taskbar, Rect monitor) {
     Rect front;
@@ -115,7 +157,19 @@ class TaskbarProbe {
     IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
     Rect bar;
     if (taskbar == IntPtr.Zero || !GetWindowRect(taskbar, out bar)) return "{\"available\":false}";
-    bool attached = AttachToTaskbar(taskbar);
+    if (UseTaskbarParent) AttachToTaskbar(taskbar); else DetachFromTaskbar();
+    bool attached = GetAncestor(Widget, 1) == taskbar;
+    if (RequestedBounds.HasValue) {
+      Rect desired = RequestedBounds.Value;
+      uint widgetPid; GetWindowThreadProcessId(Widget, out widgetPid);
+      if (Widget != IntPtr.Zero && widgetPid == owner) {
+        Point position = new Point { X = desired.Left, Y = desired.Top };
+        if (attached) ScreenToClient(taskbar, ref position);
+        SetWindowPos(Widget, attached ? IntPtr.Zero : new IntPtr(-1), position.X, position.Y,
+          desired.Right-desired.Left, desired.Bottom-desired.Top, 0x0010 | 0x0200 | 0x4000);
+      }
+      RequestedBounds = null;
+    }
     MonitorInfo monitor = new MonitorInfo(); monitor.Size = Marshal.SizeOf(typeof(MonitorInfo));
     if (!GetMonitorInfo(MonitorFromWindow(taskbar, 2), ref monitor)) return "{\"available\":false}";
     IntPtr tray = IntPtr.Zero;
@@ -126,10 +180,13 @@ class TaskbarProbe {
     Rect trayRect;
     string trayJson = tray != IntPtr.Zero && GetWindowRect(tray, out trayRect) ? Bounds(trayRect) : "null";
     bool shellActive = IsShellWindow(foreground, taskbar);
+    bool shellFlyout = IsShellFlyout(ClassName(foreground), ProcessName(foreground));
     bool fullscreen = IsFullscreen(foreground, owner, taskbar, monitor.Monitor);
     bool visible = IsWindowVisible(taskbar) && bar.Top < monitor.Monitor.Bottom - 8 && bar.Bottom > monitor.Monitor.Top + 8;
     return "{\"available\":true,\"visible\":" + (visible ? "true" : "false") + ",\"fullscreen\":" + (fullscreen ? "true" : "false") +
       ",\"shellActive\":" + (shellActive ? "true" : "false") + ",\"attached\":" + (attached ? "true" : "false") +
+      ",\"shellFlyout\":" + (shellFlyout ? "true" : "false") +
+      ",\"parented\":" + (GetAncestor(Widget, 1) == taskbar ? "true" : "false") +
       ",\"widgetVisible\":" + (IsWindowVisible(Widget) ? "true" : "false") +
       ",\"topmost\":" + ((GetWindowLong(Widget, -20) & 8) != 0 ? "true" : "false") +
       ",\"aboveTaskbar\":" + (AboveTaskbar(taskbar) ? "true" : "false") +
@@ -137,6 +194,11 @@ class TaskbarProbe {
   }
   static void Main(string[] args) {
     try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch { SetProcessDPIAware(); }
+    if (args.Length == 3 && args[0] == "--test-shell-window") {
+      Console.WriteLine("{\"shell\":" + (IsShellIdentity(args[1], args[2]) ? "true" : "false") +
+        ",\"flyout\":" + (IsShellFlyout(args[1], args[2]) ? "true" : "false") + "}");
+      return;
+    }
     if (args.Length == 1 && args[0] == "--dismiss-tray-overflow") {
       // A tray icon click can leave Explorer's overflow flyout open when a
       // frameless Electron panel takes focus. Dismiss only the known shell
@@ -160,11 +222,11 @@ class TaskbarProbe {
       // Read the actual order before any test raises the owner. This also works
       // while the widget is hidden, so smoke checks can compare foreground focus.
       IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
-      bool attached = taskbar != IntPtr.Zero && GetWindow(Widget, 4) == taskbar;
+      bool attached = taskbar != IntPtr.Zero && GetAncestor(Widget, 1) == taskbar;
       Console.WriteLine("{\"visible\":" + (IsWindowVisible(Widget) ? "true" : "false") +
         ",\"attached\":" + (attached ? "true" : "false") +
         ",\"aboveTaskbar\":" + (taskbar != IntPtr.Zero && AboveTaskbar(taskbar) ? "true" : "false") +
-        ",\"topmost\":" + ((GetWindowLong(Widget, -20) & 8) != 0 ? "true" : "false") +
+        ",\"topmost\":" + (attached || (GetWindowLong(Widget, -20) & 8) != 0 ? "true" : "false") +
         ",\"foreground\":\"" + GetForegroundWindow().ToInt64() + "\"}");
       return;
     }
@@ -183,27 +245,17 @@ class TaskbarProbe {
     }
     // Repeated owner raises are tested against a separate simulated taskbar in our app.
     // Do not raise, lower, click or change ownership of the real Windows taskbar.
-    if (args.Length == 4 && (args[0] == "--test-ownership" || args[0] == "--test-owner-destroy" || args[0] == "--test-owner-demote")) {
+    if (args.Length == 4 && (args[0] == "--test-ownership" || args[0] == "--test-owner-destroy")) {
       Owner = UInt32.Parse(args[1]); Widget = new IntPtr(Int64.Parse(args[2]));
       uint pid; GetWindowThreadProcessId(Widget, out pid);
       if (pid != Owner || !IsWindowVisible(Widget)) { Environment.ExitCode = 1; return; }
       IntPtr foreground = GetForegroundWindow();
       Rect before, after; GetWindowRect(Widget, out before);
-      IntPtr originalOwner = GetWindow(Widget, 4);
+      IntPtr originalOwner = GetAncestor(Widget, 1);
       IntPtr simulatedTaskbar = new IntPtr(Int64.Parse(args[3]));
       uint simulatedPid; GetWindowThreadProcessId(simulatedTaskbar, out simulatedPid);
       if (simulatedPid != Owner || originalOwner != FindWindow("Shell_TrayWnd", null)) { Environment.ExitCode = 1; return; }
       bool ordered = AttachToTaskbar(simulatedTaskbar);
-      if (args[0] == "--test-owner-demote") {
-        // Simulate lost native state only after replacing the real owner.
-        // Demoting an owned window can also demote its owner, so both must
-        // belong to the test process. Electron's topmost state stays cached.
-        bool demoted = ordered && SetWindowPos(Widget, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200);
-        Console.WriteLine("{\"demoted\":" + (demoted ? "true" : "false") +
-          ",\"topmost\":" + ((GetWindowLong(Widget, -20) & 8) != 0 ? "true" : "false") + "}");
-        Environment.ExitCode = demoted ? 0 : 1;
-        return;
-      }
       if (args[0] == "--test-owner-destroy") {
         Console.WriteLine("{\"attached\":" + (ordered ? "true" : "false") + "}");
         Environment.ExitCode = ordered ? 0 : 1;
@@ -217,14 +269,26 @@ class TaskbarProbe {
       bool ok = ordered && IsWindowVisible(Widget) && GetForegroundWindow() == foreground &&
         before.Left == after.Left && before.Top == after.Top && before.Right == after.Right && before.Bottom == after.Bottom;
       AttachToTaskbar(originalOwner);
-      Console.WriteLine("{\"ownerRaises\":100,\"aboveOwner\":" + (ordered ? "true" : "false") + ",\"attached\":" + (GetWindow(Widget, 4) == originalOwner ? "true" : "false") + ",\"stable\":" + (ok ? "true" : "false") + "}");
+      Console.WriteLine("{\"ownerRaises\":100,\"aboveOwner\":" + (ordered ? "true" : "false") + ",\"attached\":" + (GetAncestor(Widget, 1) == originalOwner ? "true" : "false") +
+        ",\"before\":" + Bounds(before) + ",\"after\":" + Bounds(after) + ",\"focusStable\":" + (GetForegroundWindow() == foreground ? "true" : "false") +
+        ",\"stable\":" + (ok ? "true" : "false") + "}");
       Environment.ExitCode = ok ? 0 : 1;
       return;
     }
     Owner = args.Length > 0 ? UInt32.Parse(args[0]) : 0;
     Widget = args.Length > 1 ? new IntPtr(Int64.Parse(args[1])) : IntPtr.Zero;
+    UseTaskbarParent = args.Length < 3 || args[2] != "overlay";
     string line;
-    while ((line = Console.ReadLine()) != null && line == "query") {
+    while ((line = Console.ReadLine()) != null) {
+      string[] command = line.Split(' ');
+      if (command[0] == "parent-overlay" || command[0] == "parent-taskbar") {
+        UseTaskbarParent = command[0] == "parent-taskbar";
+        int x, y, width, height;
+        if (command.Length == 5 && Int32.TryParse(command[1], out x) && Int32.TryParse(command[2], out y) &&
+            Int32.TryParse(command[3], out width) && Int32.TryParse(command[4], out height) && width > 0 && height > 0)
+          RequestedBounds = new Rect { Left=x, Top=y, Right=x+width, Bottom=y+height };
+      }
+      else if (line != "query") break;
       try { Console.WriteLine(Query(Owner, GetForegroundWindow())); } catch { Console.WriteLine("{\"available\":false}"); }
       Console.Out.Flush();
     }

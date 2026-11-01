@@ -7,9 +7,9 @@ function taskbarHelperPath(resourcesPath) {
   return resourcesPath ? path.join(resourcesPath, 'taskbar-helper.exe') : path.join(__dirname, '..', '..', 'build', 'taskbar-helper.exe');
 }
 class TaskbarWidget extends EventEmitter {
-  constructor({ BrowserWindow, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove, resourcesPath }) {
+  constructor({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove, resourcesPath }) {
     super();
-    Object.assign(this, { BrowserWindow, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove });
+    Object.assign(this, { BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove });
     this.helperPath = taskbarHelperPath(resourcesPath);
     this.stopped = false;
   }
@@ -41,17 +41,20 @@ class TaskbarWidget extends EventEmitter {
     this.dragOffset = null;
     created.on('hide', () => { this.dragOffset = null; });
     this.restrictWindow(created);
-    this.placement = new WidgetPlacement(created);
+    this.placement = new WidgetPlacement(created, { setParented: (parented, bounds) =>
+      this.probe?.setParented(parented, this.screen.dipToScreenRect(created, bounds)) });
     this.emit('window', created, this.placement);
     created.on('closed', () => {
       if (this.stopped || this.window !== created) return;
       this.probe?.stop();
       this.window = null; this.placement = null;
       this.emit('window', null, null);
-      // Windows destroys owned windows when Explorer recreates the taskbar.
+      // Windows destroys child windows when Explorer recreates the taskbar.
       this.retry = setTimeout(() => { if (!this.stopped) void this.start().catch(error => this.emit('failure', error)); }, 250);
     });
-    created.on('will-move', (event, bounds) => { event.preventDefault(); this.onMove(bounds); });
+    // Placement and shell transitions are not user drags. Persist only the
+    // explicit pointer gesture handled by drag(), including its grab offset.
+    created.on('will-move', event => event.preventDefault());
     created.webContents.on('context-menu', () => this.Menu.buildFromTemplate(this.getMenu()).popup({ window: created }));
     await created.loadFile(path.join(__dirname, 'renderer', 'widget.html'));
     if (created.isDestroyed() || this.stopped) return;
