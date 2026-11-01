@@ -19,8 +19,6 @@
   <a href="README.md">English</a>
 </p>
 
-**Limits** — настольное приложение для мониторинга **лимитов Codex по подписке ChatGPT**. Оцените остаток пятичасового и недельного лимитов перед следующей задачей, не открывая Codex.
-
 <p align="center">
   <img src="docs/screenshots/windows-accounts.png" width="440" alt="Панель Windows с демонстрационными аккаунтами и остатком лимитов">
   <br><br>
@@ -166,6 +164,8 @@ Limits запускает локальный процесс **Codex App Server**
 [Сообщите об ошибке или предложите функцию](https://github.com/PyatkovVK/limits/issues/new/choose). Укажите ОС, версию приложения и шаги воспроизведения; скройте личные данные на скриншотах.
 
 Приветствуются переводы, улучшение документации и проверка разных ОС. Начните с [CONTRIBUTING.md](CONTRIBUTING.md), [инструкции разработки](docs/development.md) и задач с меткой [good first issue](https://github.com/PyatkovVK/limits/labels/good%20first%20issue). Соблюдайте [правила общения](CODE_OF_CONDUCT.md).
+
+Добавление других AI-интеграций описано в [руководстве по общим контроллерам](docs/ai-controllers.md). Сейчас в приложении зарегистрирована только интеграция Codex.
 
 Возможности релизов описаны в [CHANGELOG.md](CHANGELOG.md). Проект распространяется по [лицензии MIT](LICENSE); для включённых зависимостей есть [уведомления о сторонних компонентах](THIRD-PARTY-NOTICES.md).
 

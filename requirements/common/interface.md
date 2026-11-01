@@ -37,3 +37,13 @@ These requirements describe the shared details window and its account/settings c
 | COM-UI-026 | Keep modal operations consistent with their details container. | A native background-image picker does not collapse the macOS notch or dismiss the Windows details panel on temporary focus loss; the guard is released after success, cancellation, or error. Collapsing the notch closes Settings so reopening cannot expose a leftover dialog. |
 | COM-UI-027 | Offer sign-in from details when no account is authenticated. | Account controls explain that sign-in is needed. Windows opens the panel once at the first signed-out state; later polls do not reopen a window hidden by the user. |
 | COM-UI-028 | Keep details separate from an ordinary launcher window. | macOS does not add an ordinary application window to the Dock; compact indicators/notch and details remain the entry points, with Quit available from the menu. |
+
+## Planned controller-driven display
+
+The following requirements describe the planned [AI controller infrastructure](ai-connects.md). COM-UI-002 remains the Codex presentation; other controllers use their own metrics and schemas within the same shared interface.
+
+| ID | Requirement | Acceptance criterion |
+| --- | --- | --- |
+| COM-UI-029 | Render details and account summaries from the controller's display schema. | The shared renderer selects captions, metric order, units, formats, and available actions through the common contract. It supports percentage progress, money with currency, and counts with units. It does not require every provider to supply five-hour/weekly windows or add provider-specific rendering branches for supported primitives. |
+| COM-UI-030 | Use the selected profile's schema for compact presentation. | The controller identifies the primary metric for the widget/tray/menu bar/notch using the common display model. Codex retains its existing compact percentages and reset display. A monetary test metric displays its amount and currency without a percent suffix or percentage thresholds. Missing data has an explicit no-data display. |
+| COM-UI-031 | Preserve localization and accurate data states across metric types. | Details, account summaries, and compact indicators use consistent Russian/English captions and locale formatting. A missing value differs from zero, an absent reset has no countdown, stale cached data is marked, and a missing total does not create a fabricated progress bar. |

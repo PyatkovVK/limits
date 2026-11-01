@@ -5,7 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const { Accounts } = require('../src/common/accounts.cjs');
-const { Monitor } = require('../src/common/monitor.cjs');
+const { Monitor: SharedMonitor } = require('../src/common/monitor.cjs');
+const { CodexController } = require('../src/common/ai-connects/codex/controller.cjs');
+const Monitor = function (client, options) { return new SharedMonitor(new CodexController(client, options)); };
 const { CodexClient } = require('../src/common/codex-client.cjs');
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const turn = () => new Promise(resolve => setImmediate(resolve));
@@ -40,7 +42,7 @@ function setup(t, createClient = () => new Client()) {
     fs.rmSync(root, { recursive: true, force: true });
   });
   const monitor = accounts.monitors.get('default');
-  return { accounts, monitor, client: monitor.client };
+  return { accounts, monitor, client: monitor.controller.client };
 }
 test('cancel while account read is pending prevents login and keeps the lock until cleanup', async t => {
   const { accounts, monitor, client } = setup(t); client.readGate = deferred();
@@ -90,7 +92,7 @@ test('a delayed cancellation cannot release a replacement attempt', async t => {
   assert.equal(accounts.loginAttempt, replacement); assert.equal(monitor.loginId, 'attempt-2');
 });
 test('removing a profile cancels preparation and rejects a new login until logout finishes', async t => {
-  const { accounts } = setup(t); const id = accounts.add(); const monitor = accounts.monitors.get(id); const client = monitor.client;
+  const { accounts } = setup(t); const id = accounts.add(); const monitor = accounts.monitors.get(id); const client = monitor.controller.client;
   client.readGate = deferred(); client.logoutGate = deferred();
   const login = accounts.login(id); await turn(); const removal = accounts.remove(id);
   await assert.rejects(accounts.login(id), /Unknown profile/); client.readGate.resolve();
@@ -106,7 +108,7 @@ test('RPC timeout during browser login clears both locks and reconnects as signe
     process.stdout.write(JSON.stringify({id:m.id,result})+'\\n');
   });`;
   const { accounts, monitor } = setup(t, () => new CodexClient(process.execPath, { args: ['-e', server], timeout: 1000 }));
-  await accounts.login(); await assert.rejects(monitor.client.request('hang'), /вовремя/);
+  await accounts.login(); await assert.rejects(monitor.controller.client.request('hang'), /вовремя/);
   assert.equal(monitor.loginId, null); assert.equal(accounts.loginActive, null);
   await monitor.refresh(); assert.equal(monitor.state.status, 'signed-out');
   const other = accounts.add(); assert.equal(await accounts.login(other), 'https://auth.openai.com/test');

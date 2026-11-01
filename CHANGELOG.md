@@ -8,6 +8,10 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 - On Windows, macOS and Linux, offer new updates before downloading. Start the download only after choosing Download update, then offer Install and restart after verification; postponing or checking again does not download a package.
 
+### Changed
+
+- Introduce shared pluggable AI controllers with Codex as the only initial integration. Preserve existing profiles, authentication, polling, and quota displays; support schema-driven percentage, monetary, and count metrics for future integrations.
+
 ## 1.6.0
 
 ### Changed

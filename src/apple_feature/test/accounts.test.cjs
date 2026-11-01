@@ -6,7 +6,9 @@ const path = require('node:path');
 const os = require('node:os');
 const { EventEmitter } = require('node:events');
 const { AppleAccounts } = require('../accounts.cjs');
-const { Monitor } = require('../../common/monitor.cjs');
+const { Monitor: SharedMonitor } = require('../../common/monitor.cjs');
+const { CodexController } = require('../../common/ai-connects/codex/controller.cjs');
+const Monitor = function (client, options) { return new SharedMonitor(new CodexController(client, options)); };
 const { DemoMonitor } = require('../../common/demo-monitor.cjs');
 
 function setup(t) {

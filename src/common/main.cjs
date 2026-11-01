@@ -2,9 +2,6 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
-const { findCodex } = require('./codex-path.cjs');
-const { CodexClient } = require('./codex-client.cjs');
-const { Monitor } = require('./monitor.cjs');
 const { CODEX_POLL_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
 const { Accounts } = require('./accounts.cjs');
 const { AppearanceStore } = require('./appearance.cjs');
@@ -132,7 +129,7 @@ function update() {
   const bucket = selectedBucket(state);
   const stale = isStale(state);
   if (widgetSettings.displayMode === 'notch') trayPresentation?.destroy();
-  else trayPresentation?.update({ mode: widgetSettings.displayMode, linuxTrayStyle: widgetSettings.linuxTrayStyle, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: presentationMenu() });
+  else trayPresentation?.update({ mode: widgetSettings.displayMode, linuxTrayStyle: widgetSettings.linuxTrayStyle, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: presentationMenu(), metricsState: state });
   for (const kind of ['short', 'weekly']) {
     const value = bucket?.[kind]?.remaining ?? null;
     const label = t(kind === 'short' ? 'shortCompact' : 'weeklyCompact');
@@ -310,7 +307,7 @@ async function setup() {
       if (widgetSettings.displayMode === 'notch') await appleNotch?.beforeBrowserLogin();
       if (monitor.loginAttempt !== attempt || attempt?.cancelled) return {};
       const url = new URL(authUrl);
-      if (url.protocol !== 'https:' || !['auth.openai.com', 'auth.chatgpt.com', 'chatgpt.com'].includes(url.hostname)) throw new Error('Unexpected login URL');
+      if (!monitor.isSignInUrlAllowed(profileId, url.href)) throw new Error('Unexpected login URL');
       if (process.platform === 'linux') await require('../linux_feature/browser.cjs').openBrowser(url.href);
       else await shell.openExternal(url.href);
       return {};
@@ -320,10 +317,15 @@ async function setup() {
     }
   }
   handle('limits:login', openLogin);
-  handle('limits:profile-add', async () => {
+  handle('limits:profile-add', async providerId => {
     if (!monitor || demo) return { error: 'loginUnavailable' };
     if (monitor.loginActive) return { error: 'loginBusy' };
-    try { return await openLogin(monitor.add()); } catch { return { error: 'accountActionFailed' }; }
+    try {
+      const id = monitor.add(providerId);
+      const profile = monitor.snapshot().profiles.find(item => item.id === id);
+      if (profile?.capabilities?.signIn === false) { void monitor.refresh(); return {}; }
+      return await openLogin(id);
+    } catch { return { error: 'accountActionFailed' }; }
   });
   handle('limits:profile-action', async (action, id, value) => {
     if (!monitor || typeof id !== 'string') return { error: 'accountActionFailed' };
@@ -377,9 +379,8 @@ async function setup() {
         const { DemoMonitor } = require('./demo-monitor.cjs');
         monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
       } else {
-        const binary = findCodex({ resourcesPath: app.isPackaged ? process.resourcesPath : null });
-        monitor = new AccountService({ root, createMonitor: (_profile, options) => new Monitor(new CodexClient(binary, options),
-          { refreshCredentials: !options.readOnly, reloadOnPoll: Boolean(options.readOnly), preserveStartupSample: process.platform === 'linux' }) });
+        monitor = new AccountService({ root, controllerContext: () => ({ resourcesPath: app.isPackaged ? process.resourcesPath : null,
+          preserveStartupSample: process.platform === 'linux' }) });
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
       monitor.on('state', next => { state = { ...next, demo }; update(); });

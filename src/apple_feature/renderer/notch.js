@@ -64,6 +64,8 @@
       loginNotice.textContent = t('browserOpening');
       trigger.setAttribute('aria-label', t('notchOpen'));
       document.getElementById('apple-hint').textContent = t('notchHint');
+      window.limitsMetricElements?.compact(document.querySelector('.apple-preview'), next);
+      window.limitsMetricElements?.compact(document.querySelector('.apple-mini'), next);
       const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets.find(item => item.id === 'codex') || next.buckets[0];
       for (const kind of ['short', 'weekly']) {
         const value = bucket?.[kind]?.remaining ?? null;
@@ -76,6 +78,8 @@
     },
     renderCountdown() {
       const next = this.state;
+      window.limitsMetricElements?.countdowns(document.querySelector('.apple-preview'));
+      window.limitsMetricElements?.countdowns(document.querySelector('.apple-mini'));
       const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets.find(item => item.id === 'codex') || next.buckets[0];
       window.limitsCountdown.render(document.getElementById('apple-short-reset'), bucket?.short?.resetsAt, next.language);
     }

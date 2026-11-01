@@ -2,6 +2,9 @@
 (function (root) {
   const strings = {
     ru: {
+      providerUnavailable: 'Контроллер этого сервиса недоступен.',
+      provider: 'AI-сервис', genericLogin: 'Войти ↗',
+      genericUnsupported: 'Для этого аккаунта чтение лимитов недоступно.',
       settings: 'Настройки',
       accounts: 'Аккаунты', addAccount: '+ Добавить', inWidget: 'В виджете', useWidget: 'В виджет',
       nickname: 'Имя в Limits', editAccount: 'Имя и подключение', save: 'Сохранить', removeAccount: 'Отключить', cancelLogin: 'Отменить вход',
@@ -34,6 +37,9 @@
       refreshFailed: 'Не удалось получить лимиты. Проверьте интернет и вход в Codex. Повторяем автоматически.'
     },
     en: {
+      providerUnavailable: 'The controller for this service is unavailable.',
+      provider: 'AI service', genericLogin: 'Sign in ↗',
+      genericUnsupported: 'Usage limits are unavailable for this account.',
       settings: 'Settings',
       accounts: 'Accounts', addAccount: '+ Add', inWidget: 'In widget', useWidget: 'Use in widget',
       nickname: 'Name in Limits', editAccount: 'Name and connection', save: 'Save', removeAccount: 'Disconnect', cancelLogin: 'Cancel sign-in',
