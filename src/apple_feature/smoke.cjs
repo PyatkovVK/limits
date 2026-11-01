@@ -11,7 +11,7 @@ async function verifyContentSizing(window, notch = null) {
   }
   const compact = await height();
   const expected = await window.webContents.executeJavaScript('window.limitsMacPanel.measure()');
-  if (Math.abs(compact - expected - (notch?.snapshot().capHeight || 0)) > 2) throw new Error('Mac panel has empty space below content');
+  if (Math.abs(compact - expected - (notch?.snapshot().contentTop || 0)) > 2) throw new Error('Mac panel has empty space below content');
   await window.webContents.executeJavaScript(`(() => {
     const notice = document.createElement('div'); notice.id = 'sizing-smoke'; notice.className = 'notice';
     notice.textContent = 'A longer connection message that wraps onto several lines. '.repeat(8);
@@ -28,7 +28,7 @@ async function verifyContentSizing(window, notch = null) {
     const dialog = document.getElementById('settings-dialog');
     const bounds = dialog.getBoundingClientRect();
     const close = dialog.querySelector('.settings-close').getBoundingClientRect();
-    const cap = document.body.classList.contains('apple-notch') ? parseFloat(getComputedStyle(document.body).getPropertyValue('--cap-height')) : 0;
+    const cap = document.body.classList.contains('apple-notch') ? parseFloat(getComputedStyle(document.body).getPropertyValue('--content-top')) : 0;
     const bottom = document.body.classList.contains('apple-notch') ? parseFloat(getComputedStyle(document.body).getPropertyValue('--full-height')) : innerHeight;
     return { top: bounds.top, bottom: bounds.bottom, safeTop: cap, safeBottom: bottom,
       closeWidth: close.width, closeHeight: close.height, contained: close.top >= bounds.top && close.right <= bounds.right && close.bottom <= bounds.bottom };
@@ -154,9 +154,11 @@ async function verifyAppleIsland({ appleNotch, target, trayPresentation, artifac
   await run("window.limits.displayMode('island')");
   for (let i = 0; i < 100 && (appleNotch.mode !== 'island' || !appleNotch.enabled); i++) await delay(20);
   clearInterval(appleNotch.timer); appleNotch.timer = null;
+  clearInterval(appleNotch.menuBarTimer); appleNotch.menuBarTimer = null;
   await renderState(); await delay(550);
   if (appleNotch.mode !== 'island' || trayPresentation.entries.length) throw new Error('Side panel mode did not activate');
   const contentSizing = await verifyContentSizing(target, appleNotch);
+  const menuBarProtection = await verifyMenuBarProtection({ appleNotch, target });
   appleNotch.collapse(); await renderState(); await delay(500);
   const header = await run(`(() => {
     const shell = document.querySelector('.apple-shell').getBoundingClientRect();
@@ -222,6 +224,40 @@ async function verifyAppleIsland({ appleNotch, target, trayPresentation, artifac
   await run("document.getElementById('updates-later').click()");
   await run("window.limits.demoUpdate('current')");
   appleNotch.collapse(); await renderState();
-  return { header, notification, many, contentSizing, transparent, queue: true, resetRouting: true, updateRouting: true, settings: true, accountSwitch: demo };
+  return { header, notification, many, contentSizing, menuBarProtection, transparent, queue: true, resetRouting: true, updateRouting: true, settings: true, accountSwitch: demo };
+}
+
+async function verifyMenuBarProtection({ appleNotch, target }) {
+  const read = appleNotch.readNativeScreens, native = appleNotch.screenInfo;
+  const { hitBounds, contains } = require('./geometry.cjs');
+  const phases = ['closed', 'peek', 'expanded', 'notification'];
+  try {
+    for (const metadata of [native, { ...native, menuBarLeft: native.notchX - 8, menuBarRight: native.notchX + native.notchWidth + 8 }]) {
+      appleNotch.readNativeScreens = async () => [{ ...metadata, ...(metadata === native ? { menuBarLeft: undefined, menuBarRight: undefined } : {}) }];
+      await appleNotch.refreshMenuBar();
+      for (const phase of phases) {
+        appleNotch.setPhase(phase);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const layout = appleNotch.snapshot();
+        if (!layout.metersBelowMenuBar || layout.metersTop < layout.capHeight) throw new Error('Quota meters stayed over an occupied menu bar');
+        const x = layout.bounds.width / 2 - layout.notchWidth / 2 - 8, y = layout.capHeight / 2;
+        if (contains(hitBounds(layout, phase), { x: layout.bounds.x + x, y: layout.bounds.y + y }, 6)) throw new Error('Protected menu-bar controls intercept clicks: ' + phase);
+        const image = await target.webContents.capturePage();
+        const size = image.getSize(), bitmap = image.toBitmap();
+        const scale = Math.sqrt(bitmap.length / (size.width * size.height * 4));
+        const pixel = (Math.floor(y * scale) * Math.round(size.width * scale) + Math.floor(x * scale)) * 4;
+        if (bitmap[pixel + 3] !== 0) throw new Error('Notch surface covers a protected menu-bar control: ' + phase);
+        const row = await target.webContents.executeJavaScript("document.querySelector('.apple-island-meters').getBoundingClientRect().top");
+        if (row < layout.capHeight) throw new Error('Quota row was clipped by menu-bar protection');
+      }
+    }
+    appleNotch.readNativeScreens = async () => [{ ...native, menuBarLeft: 0, menuBarRight: appleNotch.display.bounds.width }];
+    await appleNotch.refreshMenuBar();
+    if (appleNotch.snapshot().metersBelowMenuBar) throw new Error('Verified free menu-bar space was not restored');
+    return { phases, occupied: true, unknown: true, transparent: true, clickThrough: true, restoresFreeSpace: true };
+  } finally {
+    appleNotch.readNativeScreens = read;
+    await appleNotch.refreshMenuBar();
+  }
 }
 module.exports = { verifyMacPanel, verifyAppleNotch };
