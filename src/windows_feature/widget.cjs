@@ -41,15 +41,14 @@ class TaskbarWidget extends EventEmitter {
     this.dragOffset = null;
     created.on('hide', () => { this.dragOffset = null; });
     this.restrictWindow(created);
-    this.placement = new WidgetPlacement(created, { setParented: (parented, bounds) =>
-      this.probe?.setParented(parented, this.screen.dipToScreenRect(created, bounds)) });
+    this.placement = new WidgetPlacement(created);
     this.emit('window', created, this.placement);
     created.on('closed', () => {
       if (this.stopped || this.window !== created) return;
       this.probe?.stop();
       this.window = null; this.placement = null;
       this.emit('window', null, null);
-      // Windows destroys child windows when Explorer recreates the taskbar.
+      // Windows destroys owned windows when Explorer recreates the taskbar.
       this.retry = setTimeout(() => { if (!this.stopped) void this.start().catch(error => this.emit('failure', error)); }, 250);
     });
     // Placement and shell transitions are not user drags. Persist only the

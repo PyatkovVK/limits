@@ -16,7 +16,10 @@ app.setPath = (name, value) => setPath(name, name === 'userData' ? profile : val
 app.disableHardwareAcceleration();
 
 const runHelper = args => new Promise((resolve, reject) => execFile(taskbarHelperPath(), args,
-  { encoding: 'utf8', windowsHide: true, timeout: 5000 }, (error, stdout) => error ? reject(error) : resolve(JSON.parse(stdout.trim()))));
+  { encoding: 'utf8', windowsHide: true, timeout: 5000 }, (error, stdout) => {
+    if (error) return reject(error);
+    try { resolve(JSON.parse(stdout.trim())); } catch (error) { reject(error); }
+  }));
 async function inspect(window) {
   const handle = window.getNativeWindowHandle();
   const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
@@ -25,6 +28,8 @@ async function inspect(window) {
 async function checkOrder(before, window) {
   const after = await inspect(window);
   assert.equal(after.visible, true, 'Widget must be visible without clicking the taskbar');
+  assert.equal(after.inputEnabled, true, 'Native widget must accept mouse input');
+  assert.equal(after.receivesInput, true, 'Real Windows hit testing must reach the widget: ' + JSON.stringify(after));
   assert.equal(after.attached, true, 'Widget must be owned by the real taskbar');
   assert.equal(after.aboveTaskbar, true, 'Widget must already be above the taskbar');
   assert.equal(after.topmost, true, 'Widget must retain its native topmost style');
@@ -62,15 +67,23 @@ async function until(check) {
   while (!check() && Date.now() < deadline) await pause();
   assert.ok(check(), 'Native parent/placement transition must complete');
 }
-async function click(target, selector) {
+async function click(target, selector, delta) {
   const point = await target.webContents.executeJavaScript(`(() => {
     const node = document.querySelector(${JSON.stringify(selector)});
     if (!node) throw new Error('Missing click target');
     const r = node.getBoundingClientRect();
     return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
   })()`);
-  target.webContents.sendInputEvent({ type: 'mouseDown', ...point, button: 'left', clickCount: 1 });
-  target.webContents.sendInputEvent({ type: 'mouseUp', ...point, button: 'left', clickCount: 1 });
+  if (target.webContents.getURL().endsWith('/widget.html')) {
+    const handle = target.getNativeWindowHandle();
+    const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
+    const bounds = target.getBounds();
+    const native = screen.dipToScreenPoint({ x: bounds.x + point.x, y: bounds.y + point.y });
+    await runHelper([delta ? '--test-widget-drag' : '--test-widget-click', String(process.pid), id, String(native.x), String(native.y), ...(delta ? [String(delta)] : [])]);
+  } else {
+    target.webContents.sendInputEvent({ type: 'mouseDown', ...point, button: 'left', clickCount: 1 });
+    target.webContents.sendInputEvent({ type: 'mouseUp', ...point, button: 'left', clickCount: 1 });
+  }
   await pause();
 }
 app.whenReady().then(async () => {
@@ -78,19 +91,25 @@ app.whenReady().then(async () => {
     const deadline = Date.now() + 10000;
     while (!host && Date.now() < deadline) await pause();
     assert.ok(host, 'Widget must start with a fresh profile');
-    assert.equal(raises, 0, 'A taskbar child needs no top-level z-order repair');
+    assert.equal(raises, host.placement.changes.shows, 'Raise only when showing the widget');
     host.probe.stop();
     const window = host.window;
     await window.webContents.executeJavaScript('window.renderReady');
-    const before = await inspect(window);
+    await click(window, '#short-value');
+    assert.equal(BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/index.html')).isVisible(), true, 'Freshly attached widget must accept a real click');
+    const dragBefore = window.getBounds();
+    await click(window, '.account', -40);
+    assert.ok(window.getBounds().x < dragBefore.x - 20, 'A real held-button gesture must move the widget');
+    BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/index.html')).hide();
+    await pause(); const before = await inspect(window);
     await window.webContents.executeJavaScript("window.limits.displayMode('tray')");
     assert.equal((await inspect(window)).visible, false);
     await window.webContents.executeJavaScript("window.limits.displayMode('widget')");
     const restoredMode = await checkOrder(before, window);
-    assert.equal(raises, 0);
+    assert.equal(raises, host.placement.changes.shows, 'Restoring the widget raises it once');
 
     const metrics = { ...lastMetrics,
-      // Geometry simulations below start from the repaired native order, not
+      // Geometry simulations below start from the current native order, not
       // the helper's observation taken before the first show.
       topmost: restoredMode.topmost, aboveTaskbar: restoredMode.aboveTaskbar, widgetVisible: true,
       bar: screen.screenToDipRect(null, lastMetrics.bar),
@@ -103,11 +122,12 @@ app.whenReady().then(async () => {
     assert.equal((await inspect(window)).visible, false);
     host.placement.apply(metrics, settings);
     const restoredFullscreen = await checkOrder(before, window);
-    assert.equal(raises, 0);
+    assert.equal(raises, host.placement.changes.shows, 'Leaving fullscreen raises only the restored widget');
+    const raisesBeforePolling = raises;
     const changes = { ...host.placement.changes };
     for (let i = 0; i < 100; i++) host.placement.apply(metrics, settings);
     assert.deepEqual(host.placement.changes, changes, 'Unchanged polls must not show/resize the widget');
-    assert.equal(raises, 0, 'Unchanged polls must not raise the widget');
+    assert.equal(raises, raisesBeforePolling, 'Unchanged polls must not raise the widget');
     host.placement.apply({ available: false }, settings);
     assert.equal((await inspect(window)).visible, true, 'Helper outages must not hide a placed bar');
     host.placement.apply({ ...metrics, visible: false }, settings);
@@ -124,7 +144,7 @@ app.whenReady().then(async () => {
       'The Windows-accepted height must not overlap shell buttons');
     metricsOverride = null;
     host.probe.child.stdin.write('query\n');
-    await until(() => lastMetrics.parented === true && window.getBounds().y >= metrics.bar.y);
+    await until(() => lastMetrics.attached === true && window.getBounds().y >= metrics.bar.y);
     host.probe.stop();
     const restoredParent = await checkOrder(before, window);
 
@@ -140,11 +160,13 @@ app.whenReady().then(async () => {
     const panel = BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/index.html'));
     assert.ok(panel);
     await panel.webContents.executeJavaScript('window.renderReady');
+    await window.webContents.executeJavaScript(`globalThis.inputTrace = []; for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'pointercancel']) document.addEventListener(type, event => inputTrace.push({ type, target: event.target.id || event.target.className, x: event.clientX, y: event.clientY }), true);`);
     const clicks = [];
     for (let pass = 0; pass < 3; pass++) {
       for (const selector of ['#short-reset', '#short-bar', '#short-value', '#weekly-reset', '#weekly-bar', '#weekly-value']) {
         panel.hide();
         await click(window, selector);
+        if (!panel.isVisible()) console.log('NATIVE_INPUT_TRACE', JSON.stringify({ events: await window.webContents.executeJavaScript('inputTrace'), native: await inspect(window) }));
         assert.equal(panel.isVisible(), true, selector + ' must open details');
         const order = await inspect(window);
         assert.ok(order.visible && order.topmost && order.aboveTaskbar, selector + ' must keep the bar above Explorer');
@@ -158,9 +180,30 @@ app.whenReady().then(async () => {
       assert.equal(panel.isVisible(), false);
       assert.equal((await inspect(window)).visible, true, 'Closing details must keep the bar visible');
     }
+    const { DeepSeekController } = require('../../common/ai-connects/deepseek/controller.cjs');
+    const controller = new DeepSeekController({ credentials: { read: () => 'smoke-fixture' }, client: { balance: async () => ({ is_available: true,
+      balance_infos: [{ currency: 'USD', total_balance: '0', granted_balance: '0', topped_up_balance: '0' }] }) } });
+    await controller.refresh();
+    const baseState = await window.webContents.executeJavaScript('window.limits.get()');
+    const monetaryClicks = [];
+    for (const language of ['ru', 'en']) {
+      const state = { ...baseState, ...controller.state, displayName: 'DeepSeek', language };
+      await window.webContents.executeJavaScript(`render(${JSON.stringify(state)})`);
+      for (const selector of ['[data-metric-id="total_balance"] .metric-label', '[data-metric-id="total_balance"] .metric-value',
+        '[data-metric-id="granted_balance"] .metric-label', '[data-metric-id="granted_balance"] .metric-value']) {
+        panel.hide(); await click(window, selector);
+        assert.ok(panel.isVisible(), 'Real clicks on balance text must open details');
+        monetaryClicks.push({ language, selector });
+      }
+      const bounds = window.getBounds();
+      panel.hide(); await click(window, '.metric-compact-row .metric-label', -40);
+      assert.ok(window.getBounds().x < bounds.x - 20, 'Real dragging on balance text must move the widget');
+      assert.equal(panel.isVisible(), false, 'Dragging balance text must not also open details');
+    }
+    controller.disconnect();
     const screenshot = path.join(artifactRoot, 'widget-startup.png');
     fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG());
-    const report = { initial, restoredMode, restoredFullscreen, restoredParent, fallback, shellChecks, clicks, panelClicks: 9, raises, unchangedPolls: 100, screenshot };
+    const report = { initial, restoredMode, restoredFullscreen, restoredParent, fallback, shellChecks, clicks, monetaryClicks, nativeDragging: true, panelClicks: 9, raises, unchangedPolls: 100, screenshot };
     fs.writeFileSync(path.join(artifactRoot, 'widget-startup-smoke.json'), JSON.stringify(report, null, 2));
     console.log('WIDGET_STARTUP_SMOKE_OK', JSON.stringify(report));
     app.quit();

@@ -77,7 +77,7 @@ The five-hour countdown uses the server's `resetsAt`, rounding up to the next mi
 
 ## Platform behavior
 
-The Windows widget is a child window on the horizontal taskbar surface so Quick Settings cannot move Explorer above it. It does not reserve taskbar button space; a crowded taskbar uses a separate floating row above it. Child placement uses taskbar coordinates while details and saved drag positions use screen coordinates. Position, width, display mode, and language are saved. True full-screen apps hide it; maximized windows, Start, and Windows Search do not count as full-screen apps. The helper restarts after failure, and the widget is recreated if its taskbar parent is replaced. In tray mode, two usage icons replace the widget; unchanged icon images are reused.
+The Windows widget remains a top-level Electron window owned by the horizontal taskbar, preserving native clicks and mouse capture while keeping the widget above its owner. It does not reserve taskbar button space; a crowded taskbar uses a separate floating row above it. Widget placement, details and saved drag positions use screen coordinates. Position, width, display mode, and language are saved. True full-screen apps hide it; maximized windows, Start, and Windows Search do not count as full-screen apps. The helper restarts after failure, and the widget is recreated if its taskbar owner is replaced. In tray mode, two usage icons replace the widget; unchanged icon images are reused.
 
 macOS uses menu bar indicators or notch mode on a compatible screen. The menu bar countdown updates locally every 15 seconds. Native screen information controls notch availability and monitor placement; disconnecting the notch screen falls back to menu bar mode.
 
