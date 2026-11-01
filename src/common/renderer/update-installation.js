@@ -3,22 +3,22 @@
   const words = {
     ru: {
       downloading: 'Скачиваем обновление', verifying: 'Проверяем обновление…', ready: 'Обновление готово к установке.',
-      installing: 'Устанавливаем обновление…', restart: 'Установить и перезапустить', retry: 'Повторить скачивание',
-      automaticHint: 'Обновление скачивается автоматически. Нажмите «Установить и перезапустить», когда удобно. Данные и настройки сохранятся.',
+      installing: 'Устанавливаем обновление…', download: 'Скачать обновление', restart: 'Установить и перезапустить', retry: 'Повторить скачивание',
+      downloadHint: 'Нажмите «Скачать обновление», чтобы начать загрузку. После проверки файла можно выбрать «Установить и перезапустить». Данные и настройки сохранятся.',
       downloadFailed: 'Не удалось скачать обновление. Проверьте подключение и повторите скачивание.',
       invalidPackage: 'Пакет не прошёл проверку. Установка отменена. Попробуйте скачать обновление ещё раз.',
-      moveToApplications: 'Переместите Limits в папку «Программы» и перезапустите приложение для автообновлений.',
+      moveToApplications: 'Переместите Limits в папку «Программы» и перезапустите приложение для обновлений из приложения.',
       installFailed: 'Не удалось установить обновление. Предыдущая версия сохранена. Повторите попытку.',
       installLocation: 'Папка приложения недоступна для обновления. Выберите доступную для записи папку или переустановите Limits.',
       packageManagerMissing: 'Для установки DEB нужны dpkg и системный запрос прав pkexec. Установите их или используйте AppImage.',
     },
     en: {
       downloading: 'Downloading update', verifying: 'Verifying update…', ready: 'The update is ready to install.',
-      installing: 'Installing update…', restart: 'Install and restart', retry: 'Retry download',
-      automaticHint: 'Updates download automatically. Choose Install and restart when convenient. Your accounts and settings are preserved.',
+      installing: 'Installing update…', download: 'Download update', restart: 'Install and restart', retry: 'Retry download',
+      downloadHint: 'Choose Download update to start downloading. After verification, choose Install and restart when convenient. Your accounts and settings are preserved.',
       downloadFailed: 'Could not download the update. Check your connection and retry.',
       invalidPackage: 'Package verification failed. Installation was cancelled. Try downloading the update again.',
-      moveToApplications: 'Move Limits to Applications and restart it to enable automatic updates.',
+      moveToApplications: 'Move Limits to Applications and restart it to enable in-app updates.',
       installFailed: 'Could not install the update. The previous version was preserved. Try again.',
       installLocation: 'The application location cannot be updated. Use a writable directory or reinstall Limits.',
       packageManagerMissing: 'DEB updates require dpkg and the system authorization tool pkexec. Install them or use AppImage.',
@@ -36,11 +36,15 @@
       const value = next.updates?.installation;
       if (!['darwin', 'win32', 'linux'].includes(next.platform) || !value?.enabled) return null;
       const t = this.words(next);
-      const busy = ['downloading', 'verifying', 'installing'].includes(value.status);
-      if (next.updates.status === 'checking' || next.updates.status === 'error') return { hint: t.automaticHint, disabled: busy };
-      return { result: value.status === 'downloading' ? `${t.downloading}${value.progress == null ? '…' : ` · ${value.progress}%`}` : value.status === 'error' ? t[value.error] : t[value.status],
-        button: value.status === 'ready' ? t.restart : value.status === 'error' ? t.retry : busy ? t[value.status] : null,
-        disabled: busy, error: value.status === 'error', hint: t.automaticHint };
+      const differentVersion = value.version && next.updates.release && value.version !== next.updates.release.version;
+      const status = differentVersion && value.status !== 'installing' ? 'idle' : value.status;
+      const busy = ['downloading', 'verifying', 'installing'].includes(status);
+      const presentation = { button: status === 'ready' ? t.restart : status === 'error' ? t.retry : busy ? t[status] : t.download,
+        disabled: busy, hint: t.downloadHint };
+      if (next.updates.status === 'checking' || next.updates.status === 'error') return presentation;
+      return { ...presentation,
+        result: status === 'downloading' ? `${t.downloading}${value.progress == null ? '…' : ` · ${value.progress}%`}` : status === 'error' ? t[value.error] : t[status],
+        error: status === 'error' };
     },
   };
 })();

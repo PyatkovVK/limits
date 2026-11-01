@@ -34,7 +34,6 @@ class WindowsUpdates extends Updates {
       if (this.job) { fs.rmSync(this.job, { recursive: true, force: true }); this.job = null; }
     }
     super.publish(patch);
-    if (patch.status === 'available' && this.installation?.enabled) void this.prepare(this.state.release);
   }
   prepare(release) {
     if (this.stopped || !release || !this.installation.enabled || this.installation.status === 'installing') return Promise.resolve();

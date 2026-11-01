@@ -34,10 +34,12 @@ function setup(t, platform, portable = true) {
   t.after(() => { updater.stop(); fs.rmSync(root, { recursive: true, force: true }); });
   return { updater, root, target, name, bytes, commands, counts: () => ({ quit, installs }) };
 }
-test('native package selection downloads, verifies and coalesces without installing before the action', async t => {
+test('native package selection downloads on request, verifies and waits for a separate install action', async t => {
   for (const platform of ['linux']) for (const portable of platform === 'win32' ? [true, false] : [true]) {
     const { updater, name, commands, counts } = setup(t, platform, portable);
-    const pending = updater.prepare(release); assert.equal(updater.prepare(release), pending); await pending;
+    updater.publish({ status: 'available', release });
+    const action = updater.openRelease(), pending = updater.downloadTask;
+    assert.equal(updater.prepare(release), pending); assert.deepEqual(await action, { downloaded: true });
     assert.equal(updater.installation.status, 'ready'); assert.equal(path.basename(updater.packageFile), name);
     assert.deepEqual(counts(), { quit: 0, installs: 0 });
     const result = await updater.openRelease(); assert.equal(result.installing, true); assert.deepEqual(counts(), { quit: 1, installs: 1 });
@@ -57,7 +59,7 @@ test('tampered payloads are rejected before native verification or handoff, and 
 });
 test('a current-version result discards a prepared package and shutdown cancels in-flight networking', async t => {
   const { updater } = setup(t, 'linux');
-  updater.publish({ status: 'available', release }); await updater.downloadTask;
+  updater.publish({ status: 'available', release }); await updater.openRelease();
   const file = updater.packageFile; assert.equal(fs.existsSync(file), true);
   updater.publish({ status: 'current', release: null }); assert.equal(fs.existsSync(file), false); assert.equal(updater.installation.status, 'idle');
   updater.fetchImpl = async (_url, { signal }) => new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
@@ -70,7 +72,7 @@ test('source builds retain manual release opening and demo installation has no n
     let opened = 0;
     const updater = new PackageUpdates({ root, currentVersion: '1.4.0', demo, adapter: { enabled: false }, openExternal: async () => opened++ });
     t.after(() => updater.stop()); updater.state.release = release;
-    if (demo) { await updater.prepare(release); assert.equal((await updater.openRelease()).simulated, true); assert.equal(opened, 0); }
+    if (demo) { assert.deepEqual(await updater.openRelease(), { downloaded: true }); assert.equal((await updater.openRelease()).simulated, true); assert.equal(opened, 0); }
     else { assert.equal((await updater.openRelease()).opened, true); assert.equal(opened, 1); }
   }
 });

@@ -36,7 +36,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 - **Automatic refresh:** polling about one minute after each completed request, refresh after waking from sleep, and a manual refresh button.
 - **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
 - **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons or a compact desktop widget.
-- **Application updates:** automatic package downloads, verification, and installation with restart in supported installed builds on Windows, macOS, and Linux.
+- **Application updates:** offers new versions, downloads on request, verifies packages, and installs with restart in supported installed builds on Windows, macOS, and Linux.
 - **Launch at login:** enable autostart in Settings for supported installed builds on each platform.
 - **English and Russian UI:** language and display preferences persist across launches.
 
@@ -133,11 +133,13 @@ On Linux, select **Widget** in Settings for a compact floating window with two q
 
 Limits checks stable releases on GitHub in the background at startup and every six hours. After waking, it checks if the scheduled time has passed. Open **Settings → Updates → Check for updates** for a manual check, the installed version and the last check result.
 
-**macOS (1.5):** installed copies in `/Applications` or `~/Applications` automatically download the matching Apple Silicon or Intel ZIP from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
+When a new version is found, choose **Download update** in the offer or Settings to start downloading. **Later** postpones the offer without downloading. After verification, choose **Install and restart** when convenient.
 
-**Windows:** installed and portable x64 builds download their matching update automatically from Actions-published stable GitHub Releases. Packages are checked against SHA256SUMS.txt and product/version metadata; signed installations also require a valid matching publisher. Choose **Install and restart** when ready. Portable updates replace the original executable and keep a backup until relaunch. Accounts and settings are retained. The app reports download, verification and installation errors and allows retries.
+**macOS:** installed copies in `/Applications` or `~/Applications` download the matching Apple Silicon or Intel ZIP on request from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
 
-**Linux:** Linux also downloads stable update packages automatically and verifies SHA-256 before offering Install and restart. Writable AppImages update in place; installed DEBs use dpkg/pkexec and ask for system authorization only when installing. Accounts and settings remain in place. See [platform installation details](docs/in-app-updates.md). Source/unpacked builds retain manual installation.
+**Windows:** installed and portable x64 builds download their matching update on request from Actions-published stable GitHub Releases. Packages are checked against SHA256SUMS.txt and product/version metadata; signed installations also require a valid matching publisher. Choose **Install and restart** when ready. Portable updates replace the original executable and keep a backup until relaunch. Accounts and settings are retained. The app reports download, verification and installation errors and allows retries.
+
+**Linux:** Linux also downloads stable update packages on request and verifies SHA-256 before offering Install and restart. Writable AppImages update in place; installed DEBs use dpkg/pkexec and ask for system authorization only when installing. Accounts and settings remain in place. See [platform installation details](docs/in-app-updates.md). Source/unpacked builds retain manual installation.
 
 Demo mode simulates update checks without contacting GitHub or opening a browser; **Demo result** in Updates lets you preview current, available and failed states.
 
