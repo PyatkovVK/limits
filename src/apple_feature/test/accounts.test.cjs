@@ -46,27 +46,6 @@ test('macOS distinguishes connected subscriptions and current Codex sources with
   assert.throws(() => accounts.setMode('unknown'));
 });
 
-test('multiple local Codex homes remain visible, persist and can be forgotten without logout', async t => {
-  const { accounts, root, shared, options, monitors } = setup(t);
-  const another = path.join(root, 'vscode'); fs.mkdirSync(another);
-  assert.equal(accounts.addSource(shared), 'default');
-  const id = accounts.addSource(another);
-  assert.equal(accounts.addSource(another), id);
-  assert.equal(accounts.snapshot().profiles.length, 2);
-  assert.equal(monitors.get(id).options.env.CODEX_HOME, fs.realpathSync(another));
-  accounts.selectProfile(id);
-  const restored = new AppleAccounts(options); t.after(() => restored.stop());
-  assert.equal(restored.snapshot().selectedProfileId, id);
-  assert.equal(restored.snapshot().subscriptions.active, 2);
-  assert.ok(!fs.readFileSync(path.join(root, 'accounts.json'), 'utf8').includes(id));
-  await assert.rejects(accounts.login(id));
-  await accounts.remove(id);
-  assert.equal(monitors.get(id).lastRequest, undefined, 'forgetting a source must never log it out');
-  assert.equal(fs.existsSync(another), true);
-  assert.equal(accounts.snapshot().selectedProfileId, 'default');
-  await assert.rejects(accounts.remove('default'));
-});
-
 test('current-account polling reloads external sign-in changes without forced refresh-token rotation', async t => {
   class Client extends EventEmitter {
     generation = 0; reads = []; connected = false;

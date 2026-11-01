@@ -4,6 +4,10 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ## 1.7.0
 
+### Changed
+
+- Remove the separate Add Codex profile button and manual CODEX_HOME folder tracking on all platforms. Previously added folder references are no longer loaded; their folders and sign-ins remain untouched. Add subscriptions through the provider selector; automatic tracking of the current Codex / VS Code account remains available.
+
 ### Added
 
 - Add DeepSeek to the subscription provider selector. Open its API-key page in the browser, validate a pasted key before adding a profile, and store it encrypted with the OS. Monitor total, granted and topped-up balances in their original currencies once per minute with an independent polling setting; support key replacement and local removal without model requests.

@@ -36,7 +36,9 @@ app.whenReady().then(async () => {
           selected: document.getElementById('apple-subscription-mode').value,
           externalEditable: [...document.querySelectorAll('.profile-card')].some(card => card.dataset.profileId === 'default' && !card.querySelector('.profile-edit').hidden),
           quotasVisible: [...document.querySelectorAll('.profile-card:not([hidden]) .profile-quotas')].every(node => !node.hidden),
+          controls: [...document.querySelector('.subscription-controls').children].map(node => node.id), addSourceApi: typeof window.limits.addSubscriptionSource,
           overflow: document.body.scrollWidth > innerWidth })`);
+        assert.deepEqual(result.controls, ['apple-subscription-mode', 'account-provider', 'add-account']); assert.equal(result.addSourceApi, 'undefined');
         assert.equal(result.visible, count); assert.equal(result.selected, mode);
         assert.equal(result.externalEditable, false); assert.equal(result.overflow, false); assert.equal(result.quotasVisible, true);
         checks.push({ language, mode, ...result });

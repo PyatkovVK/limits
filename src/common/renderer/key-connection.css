@@ -9,4 +9,3 @@
 .key-connection-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .key-connection .notice { margin: 12px 0 0; }
 .subscription-controls #account-provider { grid-column: auto; }
-.subscription-controls [id$="subscription-add-source"] { grid-column: 1 / -1; }

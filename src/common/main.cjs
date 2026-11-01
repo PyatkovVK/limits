@@ -383,16 +383,6 @@ async function setup() {
     if (!monitor?.setMode) return { error: 'accountActionFailed' };
     try { monitor.setMode(mode); return {}; } catch { return { error: 'accountActionFailed' }; }
   });
-  handle('limits:subscriptions-add-source', async () => {
-    if (!monitor?.addSource || demo) return { error: 'accountActionFailed' };
-    try {
-      const parent = usesNotch() ? appleNotch?.window : window;
-      const choose = () => dialog.showOpenDialog(parent, { properties: ['openDirectory', 'showHiddenFiles'] });
-      const result = usesNotch() ? await appleNotch.withModal(choose) : windowsPanel ? await windowsPanel.withModal(choose) : await choose();
-      if (!result.canceled && result.filePaths.length === 1) monitor.addSource(result.filePaths[0]);
-      return {};
-    } catch { return { error: 'accountActionFailed' }; }
-  });
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   if (linuxPanel) await window.webContents.executeJavaScript('window.limitsLinuxPanelReady');
   if (macPanel) await window.webContents.executeJavaScript('window.limitsMacPanelReady');

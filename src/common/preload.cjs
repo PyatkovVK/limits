@@ -25,7 +25,6 @@ contextBridge.exposeInMainWorld('limits', {
   openKeyBrowser: id => ipcRenderer.invoke('limits:key-browser', id),
   accountAction: (action, id, value) => ipcRenderer.invoke('limits:profile-action', action, id, value),
   subscriptionMode: mode => ipcRenderer.invoke('limits:subscriptions-mode', mode),
-  addSubscriptionSource: () => ipcRenderer.invoke('limits:subscriptions-add-source'),
   select: id => ipcRenderer.invoke('limits:select', id),
   language: language => ipcRenderer.invoke('limits:language', language),
   displayMode: mode => ipcRenderer.invoke('limits:display-mode', mode),
