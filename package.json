@@ -19,6 +19,7 @@
     "smoke:onboarding": "npm run prepare:app && electron scripts/smoke-onboarding.cjs",
     "smoke:accounts": "npm run prepare:app && electron scripts/smoke-accounts.cjs",
     "smoke:ai-connects": "npm run prepare:app && electron scripts/smoke-ai-connects.cjs",
+    "smoke:deepseek": "npm run prepare:app && electron scripts/smoke-deepseek.cjs",
     "smoke:updates": "npm run prepare:app && electron scripts/smoke-updates.cjs",
     "smoke:resets": "npm run prepare:app && electron scripts/smoke-resets.cjs",
     "smoke:panel-follow": "npm run prepare:app && electron scripts/smoke-windows-panel-follow.cjs",

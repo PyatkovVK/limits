@@ -31,6 +31,9 @@ class AiController extends EventEmitter {
   signIn() { return Promise.reject(contractError('loginUnavailable')); }
   cancelSignIn() { return Promise.resolve(); }
   signOut() { return Promise.reject(contractError('accountActionFailed')); }
+  authenticate() { return Promise.reject(contractError('loginUnavailable')); }
+  saveCredentials() { throw contractError('loginUnavailable'); }
+  getCredentialsUrl() { return null; }
   isSignInUrlAllowed() { return false; }
   get busy() { return Boolean(this.loginAttempt || this.loginTask); }
 }

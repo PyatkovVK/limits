@@ -2,6 +2,12 @@
 (function (root) {
   const strings = {
     ru: {
+      connectApiKey: 'Подключить API-ключ', replaceApiKey: 'Заменить API-ключ',
+      invalidApiKey: 'Ключ не принят. Проверьте API-ключ DeepSeek и попробуйте ещё раз.',
+      credentialStorageUnavailable: 'Защищённое хранилище ключей недоступно. Ключ не сохранён; проверьте хранилище ОС.',
+      balanceRefreshFailed: 'Не удалось получить баланс DeepSeek. Проверьте соединение и повторите попытку.',
+      insufficientBalance: 'Недостаточно средств для API-вызовов. Пополните баланс DeepSeek.',
+      browserOpenFailed: 'Не удалось открыть браузер. Нажмите «Открыть кабинет» ещё раз.',
       providerUnavailable: 'Контроллер этого сервиса недоступен.',
       provider: 'AI-сервис', genericLogin: 'Войти ↗',
       genericUnsupported: 'Для этого аккаунта чтение лимитов недоступно.',
@@ -37,6 +43,12 @@
       refreshFailed: 'Не удалось получить лимиты. Проверьте интернет и вход в Codex. Повторяем автоматически.'
     },
     en: {
+      connectApiKey: 'Connect API key', replaceApiKey: 'Replace API key',
+      invalidApiKey: 'The key was rejected. Check your DeepSeek API key and try again.',
+      credentialStorageUnavailable: 'Secure key storage is unavailable. The key was not saved; check your OS credential storage.',
+      balanceRefreshFailed: 'Could not read your DeepSeek balance. Check your connection and try again.',
+      insufficientBalance: 'Insufficient funds for API calls. Top up your DeepSeek balance.',
+      browserOpenFailed: 'Could not open the browser. Choose Open platform to try again.',
       providerUnavailable: 'The controller for this service is unavailable.',
       provider: 'AI service', genericLogin: 'Sign in ↗',
       genericUnsupported: 'Usage limits are unavailable for this account.',

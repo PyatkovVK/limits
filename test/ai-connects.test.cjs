@@ -15,11 +15,11 @@ const { isStale } = require('../src/common/limits.cjs');
 const { TrayPresentation } = require('../src/common/tray.cjs');
 const { MoneyController } = require('./fixtures/money-controller.cjs');
 
-test('the abstract contract rejects incomplete controllers and production registers only Codex', () => {
+test('the abstract contract rejects incomplete controllers and production registers supported providers', () => {
   assert.throws(() => new AiController(), { code: 'controllerContract' });
   class MissingMethods extends AiController {}
   assert.throws(() => new MissingMethods(), { code: 'controllerContract' });
-  assert.deepEqual([...registry.providers.keys()], ['codex']);
+  assert.deepEqual([...registry.providers.keys()], ['codex', 'deepseek']);
 });
 test('a monetary controller uses the shared scheduler and schema, retaining zero, units and stale samples', async t => {
   const controller = new MoneyController({ profileId: 'money-profile' }); const monitor = new Monitor(controller);

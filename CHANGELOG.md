@@ -6,6 +6,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Added
 
+- Add DeepSeek to the subscription provider selector. Open its API-key page in the browser, validate a pasted key before adding a profile, and store it encrypted with the OS. Monitor total, granted and topped-up balances in their original currencies once per minute with an independent polling setting; support key replacement and local removal without model requests.
 - On macOS, add a third display mode with persistent quota values on both sides of the physical notch, curved black edges, and expanding in-panel notifications for low allowance, Codex Resets and update offers. Fit additional metrics with a +N control and scrollable details; queue messages without stealing focus and preserve the menu-bar and original notch modes.
 
 ### Fixed
@@ -16,7 +17,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 ### Changed
 
-- Introduce shared pluggable AI controllers with Codex as the only initial integration. Preserve existing profiles, authentication, polling, and quota displays; support schema-driven percentage, monetary, and count metrics for future integrations.
+- Introduce shared pluggable AI controllers for Codex and DeepSeek. Preserve existing profiles, authentication, polling, and quota displays; support schema-driven percentage, monetary, and count metrics.
 
 ## 1.6.0
 

@@ -52,12 +52,18 @@ class Monitor extends EventEmitter {
     }).finally(() => {
       this.inflight = null;
       if (this.stopped) return;
-      const delay = Math.min(Math.max(300000, this.intervalMs), this.intervalMs * 2 ** this.failures);
-      this.publish({ refreshing: false, interval: delay / 1000 });
+      this.publish({ refreshing: false });
       if (this.rerunRequested) { this.rerunRequested = false; void this.refresh({ reload: false }); }
-      else this.timer = setTimeout(() => void this.refresh(), delay);
+      else this.schedule();
     });
     return this.inflight;
+  }
+  schedule() {
+    if (this.stopped) return;
+    clearTimeout(this.timer);
+    const delay = Math.min(Math.max(300000, this.intervalMs), this.intervalMs * 2 ** this.failures);
+    this.publish({ interval: delay / 1000 });
+    this.timer = setTimeout(() => void this.refresh(), delay);
   }
   reconnect() {
     if (this.stopped) return Promise.resolve(this.state);

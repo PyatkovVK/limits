@@ -33,6 +33,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 
 - **Two usage windows:** remaining five-hour and weekly allowances, with reset information.
 - **Multiple accounts:** subscriptions connected in Limits and current local Codex / VS Code profiles, with separate usage data, local names, filters, and a selected account for your compact indicators.
+- **DeepSeek balance:** connect an API key from Settings → Subscriptions, then monitor total, granted and topped-up funds in USD or CNY with independent refreshes.
 - **Automatic refresh:** polling about one minute after each completed request, refresh after waking from sleep, and a manual refresh button.
 - **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
 - **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons or a compact desktop widget.
@@ -151,7 +152,9 @@ Demo mode simulates update checks without contacting GitHub or opening a browser
 
 ## Data and sign-in
 
-Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required; API-key authentication does not expose these subscription limits. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
+For Codex, Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required for Codex subscription limits; API-key authentication does not expose those allowances. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
+
+**DeepSeek:** open Settings → Subscriptions, select DeepSeek, and choose **+ Add**. Limits opens the API-key page in your browser. Sign in, create a key, return to Limits and paste it into **Connect DeepSeek**. The profile is added after a successful balance check; cancellation leaves no empty profile. Keys are encrypted on this device using the OS credential storage through Electron; connecting fails if secure storage is unavailable. Use **Name and connection → Replace API key** to change a key, or disconnect the profile to delete its saved key locally. This does not revoke the key in DeepSeek. Balances refresh about one minute after each completed request, independently from Codex. Different currencies are kept separate. Account-wide token or spending history is not included.
 
 **macOS:** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Use **Add Codex profile** to select another local `CODEX_HOME` if your clients use different stores. Forgetting it stops tracking without logging it out. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
 
