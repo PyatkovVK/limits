@@ -75,7 +75,7 @@
       body.classList.toggle('apple-island', layout.mode === 'island');
       body.dataset.notchPhase = layout.phase;
       body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
-      const properties = { 'cap-height': layout.capHeight, 'full-width': layout.fullWidth, 'full-height': layout.fullHeight, 'closed-width': layout.closedWidth, 'closed-height': layout.closedHeight, 'peek-width': layout.peekWidth, 'peek-height': layout.peekHeight, 'notification-width': layout.notificationWidth, 'notification-height': layout.notificationHeight };
+      const properties = { 'cap-height': layout.capHeight, 'content-top': layout.contentTop, 'menu-bar-width': layout.menuBarWidth, 'meters-top': layout.metersTop, 'meters-height': layout.metersHeight, 'full-width': layout.fullWidth, 'full-height': layout.fullHeight, 'closed-width': layout.closedWidth, 'closed-height': layout.closedHeight, 'peek-width': layout.peekWidth, 'peek-height': layout.peekHeight, 'notification-width': layout.notificationWidth, 'notification-height': layout.notificationHeight };
       for (const [name, value] of Object.entries(properties)) body.style.setProperty(`--${name}`, `${value}px`);
       const expanded = layout.phase === 'expanded';
       document.querySelector('.apple-content').inert = !expanded;

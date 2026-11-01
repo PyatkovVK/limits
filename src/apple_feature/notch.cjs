@@ -1,6 +1,6 @@
 'use strict';
 const path = require('node:path');
-const { chooseDisplay, notchLayout, hitBounds, contains } = require('./geometry.cjs');
+const { chooseDisplay, notchLayout, fitMenuBar, hitBounds, contains } = require('./geometry.cjs');
 const { readScreens } = require('./screens.cjs');
 
 class AppleNotch {
@@ -59,7 +59,25 @@ class AppleNotch {
 
   fitContent() {
     if (!this.layout || !this.contentHeight) return;
-    this.layout.fullHeight = Math.min(this.layout.maxFullHeight, Math.max(this.layout.peekHeight, this.contentHeight + this.layout.capHeight));
+    this.layout.fullHeight = Math.min(this.layout.maxFullHeight, Math.max(this.layout.peekHeight, this.contentHeight + this.layout.contentTop));
+  }
+
+  async refreshMenuBar() {
+    if (!this.enabled || this.menuBarPending) return;
+    this.menuBarPending = true;
+    const activation = this.activation, revision = this.revision;
+    try {
+      let screens;
+      try { screens = await this.readNativeScreens(); } catch { screens = []; }
+      if (!this.enabled || activation !== this.activation || revision !== this.revision) return;
+      const info = screens.find(info => info.id === this.display?.id && info.top > 0 && info.notchWidth > 0);
+      // A failed probe removes permission to draw over the menu bar, not the notch.
+      this.screenInfo = info || { ...this.screenInfo, menuBarLeft: undefined, menuBarRight: undefined };
+      const next = notchLayout(this.display, this.screenInfo, this.mode);
+      if (next.menuBarWidth === this.layout.menuBarWidth) return;
+      this.layout.menuBarWidth = next.menuBarWidth;
+      this.update(); this.trackPointer();
+    } finally { this.menuBarPending = false; }
   }
 
   resize(height) {
@@ -85,7 +103,8 @@ class AppleNotch {
     if (this.enabled) this.disable();
     if (!this.available) throw new Error('No physical notch on connected displays');
     this.mode = mode;
-    this.layout = notchLayout(this.display, this.screenInfo, mode); this.fitContent();
+    // Metadata discovered before activation may describe a different foreground app.
+    this.layout = notchLayout(this.display, { ...this.screenInfo, menuBarLeft: undefined, menuBarRight: undefined }, mode); this.fitContent();
     const activation = ++this.activation;
     await this.prepare();
     if (activation !== this.activation || !this.available) return;
@@ -94,12 +113,16 @@ class AppleNotch {
     this.place();
     this.window.showInactive();
     this.timer = setInterval(() => this.trackPointer(), 50);
+    this.menuBarTimer = setInterval(() => { void this.refreshMenuBar(); }, 1000);
+    this.menuBarTimer.unref?.();
+    void this.refreshMenuBar();
     this.trackPointer(); this.onChange();
   }
 
   disable() {
     this.enabled = false; this.revision++; this.activation++;
     clearInterval(this.timer); this.timer = null;
+    clearInterval(this.menuBarTimer); this.menuBarTimer = null;
     this.clearTimer(this.notificationTimer); this.notificationTimer = null; this.notifications = [];
     this.enteredAt = this.leftAt = null;
     this.phase = 'closed'; this.setInteractive(false);
@@ -182,11 +205,11 @@ class AppleNotch {
   update() {
     if (!this.window || this.window.isDestroyed()) return;
     const state = this.getState();
-    if (this.layout && this.mode === 'island') {
+    if (this.layout) {
       const group = state.groups?.find(group => group.id === state.selectedId) || state.groups?.[0];
       const count = state.displaySchema?.groups?.find(schema => schema.id === group?.id)?.metrics.length || 2;
-      this.layout.closedWidth = Math.min(this.layout.fullWidth, count > 2 ? this.layout.fullWidth : this.layout.notchWidth + 192);
-      this.layout.peekWidth = Math.min(this.layout.fullWidth, Math.max(340, this.layout.closedWidth + 40));
+      fitMenuBar(this.layout, this.mode, count);
+      this.fitContent();
     }
     this.window.webContents.send('limits:state', { ...state, appleNotch: this.snapshot() });
   }

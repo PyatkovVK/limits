@@ -72,8 +72,8 @@ body[data-platform="darwin"] #settings-dialog .subscription-controls:has(> butto
 body[data-platform="darwin"] #settings-dialog .settings-content { flex: 1 1 auto; min-height: 0; max-height: none; overscroll-behavior: contain; }
 body[data-platform="darwin"].apple-notch #settings-dialog[open] {
   --settings-inset: 12px;
-  top: calc(var(--cap-height) + var(--settings-inset));
-  max-height: calc(var(--full-height) - var(--cap-height) - 2 * var(--settings-inset));
+  top: calc(var(--content-top) + var(--settings-inset));
+  max-height: calc(var(--full-height) - var(--content-top) - 2 * var(--settings-inset));
 }
 body[data-platform="darwin"] .account-row { margin-bottom: 16px; gap: 10px; }
 body[data-platform="darwin"] #account { font-size: 13px; }
@@ -137,6 +137,7 @@ body[data-platform="darwin"][data-theme="dark"].apple-notch {
   --surface: rgba(255,255,255,.045); --control: rgba(255,255,255,.085);
   --track: rgba(255,255,255,.13); --short: #78e7ca; --weekly: #b6a0ff;
   --cap-height: 10px; --full-width: 460px; --full-height: 630px;
+  --content-top: var(--cap-height); --menu-bar-width: 124px;
   --closed-width: 148px; --closed-height: 30px; --peek-width: 340px; --peek-height: 126px;
   color-scheme: dark; background: transparent; border: 0; border-radius: 0; box-shadow: none; display: block;
 }
@@ -144,6 +145,7 @@ body[data-platform="darwin"][data-theme="dark"].apple-notch {
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
   width: var(--closed-width); height: var(--closed-height);
   overflow: hidden; background: #050506; border-radius: 0 0 16px 16px;
+  clip-path: polygon(calc(50% - var(--menu-bar-width) / 2) 0, calc(50% + var(--menu-bar-width) / 2) 0, calc(50% + var(--menu-bar-width) / 2) var(--cap-height), 100% var(--cap-height), 100% 100%, 0 100%, 0 var(--cap-height), calc(50% - var(--menu-bar-width) / 2) var(--cap-height));
   box-shadow: 0 6px 16px rgba(0,0,0,.2), inset 0 -1px 0 rgba(255,255,255,.08);
   transition: width 440ms cubic-bezier(.16,1,.3,1), height 440ms cubic-bezier(.16,1,.3,1), border-radius 440ms cubic-bezier(.16,1,.3,1), box-shadow 300ms;
 }
@@ -159,7 +161,7 @@ body[data-platform="darwin"].apple-notch .apple-trigger:hover {
 .apple-mini { display: flex; gap: 5px; position: absolute; width: 100px; bottom: 5px; left: 50%; transform: translateX(-50%); transition: opacity 150ms; }
 body[data-platform="darwin"].apple-notch .apple-mini progress { height: 2px; }
 body[data-platform="darwin"].apple-notch .apple-mini-weekly::-webkit-progress-value { background: var(--weekly); }
-.apple-preview { position: absolute; top: calc(var(--cap-height) + 12px); left: 22px; right: 22px; opacity: 0; transform: translateY(-8px); transition: opacity 160ms, transform 300ms cubic-bezier(.16,1,.3,1); }
+.apple-preview { position: absolute; top: calc(var(--content-top) + 12px); left: 22px; right: 22px; opacity: 0; transform: translateY(-8px); transition: opacity 160ms, transform 300ms cubic-bezier(.16,1,.3,1); }
 .apple-preview-heading { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; letter-spacing: -.2px; margin-bottom: 18px; }
 #apple-hint { font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
 .apple-preview-row { display: grid; grid-template-columns: 76px 1fr 34px; align-items: center; gap: 12px; margin-top: 12px; text-align: left; font-variant-numeric: tabular-nums; font-size: 11px; }
@@ -172,7 +174,7 @@ body[data-notch-phase="peek"] .apple-mini,
 body[data-notch-phase="expanded"] .apple-mini { opacity: 0; }
 body[data-notch-phase="expanded"] .apple-trigger { pointer-events: none; }
 .apple-content {
-  position: absolute; top: var(--cap-height); left: 50%; width: var(--full-width); height: calc(var(--full-height) - var(--cap-height));
+  position: absolute; top: var(--content-top); left: 50%; width: var(--full-width); height: calc(var(--full-height) - var(--content-top));
   display: flex; flex-direction: column; opacity: 0; transform: translateX(-50%) translateY(-14px) scale(.975);
   transform-origin: top center; pointer-events: none;
   transition: opacity 140ms, transform 350ms cubic-bezier(.16,1,.3,1), height 440ms cubic-bezier(.16,1,.3,1);
@@ -220,7 +222,7 @@ body.apple-island:not([data-notch-phase="expanded"]) {
 .apple-island .apple-content { clip-path: inset(0 round 0 0 28px 28px); }
 .apple-island .apple-mini { display: none; }
 body[data-platform="darwin"].apple-island .apple-island-meters {
-  position: absolute; top: 0; left: 18px; right: 18px; height: var(--closed-height);
+  position: absolute; top: var(--meters-top); left: 18px; right: 18px; height: var(--meters-height);
   display: flex; align-items: center; justify-content: space-between;
   width: auto; padding: 0; border: 0; border-radius: 0; background: transparent;
   color: #f4f5f8; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 650;

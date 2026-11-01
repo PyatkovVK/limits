@@ -12,25 +12,48 @@ function notchLayout(display, info = {}, mode = 'notch') {
   const fullWidth = Math.min(island ? Math.max(500, info.notchWidth + 208) : 460, display.bounds.width - 32);
   const capHeight = physical ? Math.round(info.top) : 10;
   const fullHeight = Math.min(630, display.workArea.y + display.workArea.height - display.bounds.y - 16);
-  const closedWidth = Math.min(fullWidth, Math.round(info.notchWidth + (island ? 192 : 24)));
   const center = physical ? display.bounds.x + info.notchX + info.notchWidth / 2 : display.bounds.x + display.bounds.width / 2;
+  const localCenter = info.notchX + info.notchWidth / 2;
+  // Keep curved joins away from adjacent menus. Missing/partial metadata is occupied.
+  const clearance = Number.isFinite(info.menuBarLeft) && Number.isFinite(info.menuBarRight)
+    ? 2 * Math.min(localCenter - info.menuBarLeft, info.menuBarRight - localCenter) - 24 : 0;
   const x = Math.max(display.bounds.x + 4, Math.min(center - fullWidth / 2 - 12, display.bounds.x + display.bounds.width - fullWidth - 28));
-  return {
+  const layout = {
     physical, displayId: display.id, capHeight, fullWidth, fullHeight, maxFullHeight: fullHeight,
     notchWidth: Math.round(info.notchWidth),
-    closedWidth, closedHeight: capHeight + (island ? 4 : 9),
-    notificationWidth: fullWidth, notificationHeight: Math.min(fullHeight, capHeight + 164),
-    peekWidth: Math.min(fullWidth, Math.max(340, closedWidth + 40)), peekHeight: capHeight + 116,
+    menuBarWidth: Math.max(Math.round(info.notchWidth), Math.floor(clearance)),
+    notificationWidth: fullWidth,
     bounds: { x: Math.round(x), y: display.bounds.y, width: fullWidth + 24, height: fullHeight + 24 }
   };
+  fitMenuBar(layout, mode);
+  return layout;
+}
+
+function fitMenuBar(layout, mode, metricCount = 2) {
+  const island = mode === 'island';
+  layout.closedWidth = Math.min(layout.fullWidth, island && metricCount > 2 ? layout.fullWidth : layout.notchWidth + (island ? 192 : 24));
+  layout.metersBelowMenuBar = island && layout.menuBarWidth < layout.fullWidth;
+  layout.metersTop = layout.metersBelowMenuBar ? layout.capHeight : 0;
+  layout.metersHeight = layout.metersBelowMenuBar ? 30 : layout.capHeight + 4;
+  layout.contentTop = layout.capHeight + (layout.metersBelowMenuBar ? layout.metersHeight : 0);
+  layout.closedHeight = island ? layout.metersTop + layout.metersHeight : layout.capHeight + 9;
+  layout.peekWidth = Math.min(layout.fullWidth, Math.max(340, layout.closedWidth + 40));
+  layout.peekHeight = layout.contentTop + 116;
+  layout.notificationHeight = Math.min(layout.maxFullHeight, layout.closedHeight + 164);
 }
 
 function hitBounds(layout, phase) {
   const width = phase === 'notification' ? layout.notificationWidth : phase === 'expanded' ? layout.fullWidth : phase === 'peek' ? layout.peekWidth : layout.closedWidth;
   const height = phase === 'notification' ? layout.notificationHeight : phase === 'expanded' ? layout.fullHeight : phase === 'peek' ? layout.peekHeight : layout.closedHeight;
-  return { x: layout.bounds.x + (layout.bounds.width - width) / 2, y: layout.bounds.y, width, height };
+  return { x: layout.bounds.x + (layout.bounds.width - width) / 2, y: layout.bounds.y, width, height,
+    capHeight: layout.capHeight, menuBarWidth: Math.min(width, layout.menuBarWidth) };
 }
 function contains(bounds, point, margin = 0) {
+  if (point.y < bounds.y + (bounds.capHeight || 0)) {
+    // Hover slop must never extend into neighbouring menu-bar controls.
+    const inset = (bounds.width - bounds.menuBarWidth) / 2;
+    return point.y >= bounds.y && point.x >= bounds.x + inset && point.x <= bounds.x + bounds.width - inset;
+  }
   return point.x >= bounds.x - margin && point.x <= bounds.x + bounds.width + margin && point.y >= bounds.y && point.y <= bounds.y + bounds.height + margin;
 }
-module.exports = { chooseDisplay, notchLayout, hitBounds, contains };
+module.exports = { chooseDisplay, notchLayout, fitMenuBar, hitBounds, contains };
