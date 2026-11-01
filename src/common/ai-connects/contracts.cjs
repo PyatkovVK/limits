@@ -3,7 +3,7 @@ const text = value => typeof value === 'string' ? value.replace(/[\x00-\x1f\x7f]
 const number = value => typeof value === 'number' && Number.isFinite(value) ? value : null;
 const time = value => number(value) !== null && value > 0 && value < 8640000000000000 ? value : null;
 const captions = value => ({ ru: text(value?.ru) || '', en: text(value?.en) || '' });
-const safeCodes = new Set(['disconnected', 'refreshFailed', 'loginIncomplete', 'providerUnavailable', 'unsupported', 'loginBusy', 'loginUnavailable', 'accountActionFailed', 'controllerContract']);
+const safeCodes = new Set(['disconnected', 'refreshFailed', 'loginIncomplete', 'providerUnavailable', 'unsupported', 'loginBusy', 'loginUnavailable', 'accountActionFailed', 'controllerContract', 'invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'browserOpenFailed']);
 function contractError(code = 'controllerContract') { return Object.assign(new Error(code), { code }); }
 function diagnostic(info) {
   return { stage: ['connect', 'access', 'refresh', 'signIn', 'signOut', 'disconnect'].includes(info?.stage) ? info.stage : 'refresh',
@@ -32,11 +32,11 @@ function snapshot(raw = {}) {
   const displaySchema = { layout: raw.displaySchema?.layout === 'quota-windows' ? 'quota-windows' : 'metrics', primaryMetricId: text(raw.displaySchema?.primaryMetricId),
     groups: unique(raw.displaySchema?.groups, group => ({ id: text(group?.id), metrics: unique(group?.metrics, item => ({ id: text(item?.id), label: captions(item?.label), compactLabel: captions(item?.compactLabel),
       slot: ['short', 'weekly'].includes(item?.slot) ? item.slot : null })) })) };
-  return { providerId: text(raw.providerId), profileId: text(raw.profileId), account: account || null,
+  return { providerId: text(raw.providerId), profileId: text(raw.profileId), account: account || null, accountAvailable: typeof raw.accountAvailable === 'boolean' ? raw.accountAvailable : null,
     groups: unique(raw.groups, group => ({ id: text(group?.id), name: text(group?.name) || '', plan: text(group?.plan), metrics: unique(group?.metrics, metric) })),
     selectedId: text(raw.selectedId), updatedAt: time(raw.updatedAt), refreshing: Boolean(raw.refreshing),
     status: ['connecting', 'ready', 'signed-out', 'signing-in', 'unsupported', 'error'].includes(raw.status) ? raw.status : 'connecting',
     error: safeCodes.has(raw.error) ? raw.error : raw.error ? 'refreshFailed' : null,
-    capabilities: { signIn: raw.capabilities?.signIn === true, cancelSignIn: raw.capabilities?.cancelSignIn === true, signOut: raw.capabilities?.signOut === true }, displaySchema };
+    capabilities: { signIn: raw.capabilities?.signIn === true, cancelSignIn: raw.capabilities?.cancelSignIn === true, signOut: raw.capabilities?.signOut === true, apiKey: raw.capabilities?.apiKey === true }, displaySchema };
 }
 module.exports = { snapshot, contractError, diagnostic };

@@ -1,5 +1,5 @@
 'use strict';
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog, safeStorage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { CODEX_POLL_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
@@ -313,6 +313,8 @@ async function setup() {
     let profileId = id === undefined ? monitor.selectedProfileId : id;
     let attempt;
     try {
+      const profile = monitor.snapshot().profiles.find(item => item.id === profileId);
+      if (profile?.capabilities.apiKey) return await openKeyConnection(profile.providerId, profileId);
       if (monitor.isExternal?.(profileId)) {
         if (monitor.loginActive) return { error: 'loginBusy' };
         profileId = monitor.add(); monitor.selectProfile(profileId);
@@ -332,17 +334,40 @@ async function setup() {
       return { error: error.code === 'loginBusy' ? 'loginBusy' : 'loginFailed' };
     }
   }
+  async function openCredentials(id) {
+    const url = monitor?.credentialsUrl(id);
+    if (!url || demo) return { error: 'loginUnavailable' };
+    try {
+      if (usesNotch()) await appleNotch?.beforeBrowserLogin();
+      if (monitor.credentialsUrl(id) !== url) return {};
+      if (process.platform === 'linux') await require('../linux_feature/browser.cjs').openBrowser(url);
+      else await shell.openExternal(url);
+      return {};
+    } catch { return { error: 'browserOpenFailed' }; }
+  }
+  async function openKeyConnection(providerId, profileId) {
+    const connection = monitor.beginKeyConnection(providerId, profileId);
+    return { connection, ...await openCredentials(connection.id) };
+  }
   handle('limits:login', openLogin);
   handle('limits:profile-add', async providerId => {
     if (!monitor || demo) return { error: 'loginUnavailable' };
-    if (monitor.loginActive) return { error: 'loginBusy' };
+    if (monitor.loginActive || monitor.keyConnection) return { error: 'loginBusy' };
     try {
+      if (monitor.registry.list().find(provider => provider.id === providerId)?.authentication === 'api-key') return await openKeyConnection(providerId);
       const id = monitor.add(providerId);
       const profile = monitor.snapshot().profiles.find(item => item.id === id);
       if (profile?.capabilities?.signIn === false) { void monitor.refresh(); return {}; }
       return await openLogin(id);
     } catch { return { error: 'accountActionFailed' }; }
   });
+  handle('limits:key-submit', async (id, key) => {
+    if (!monitor || demo || typeof id !== 'string') return { error: 'loginUnavailable' };
+    try { return { profileId: await monitor.submitKeyConnection(id, key) }; }
+    catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
+  });
+  handle('limits:key-cancel', id => { if (typeof id === 'string') monitor?.cancelKeyConnection(id); return {}; });
+  handle('limits:key-browser', id => typeof id === 'string' ? openCredentials(id) : { error: 'loginUnavailable' });
   handle('limits:profile-action', async (action, id, value) => {
     if (!monitor || typeof id !== 'string') return { error: 'accountActionFailed' };
     try {
@@ -395,7 +420,7 @@ async function setup() {
         const { DemoMonitor } = require('./demo-monitor.cjs');
         monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
       } else {
-        monitor = new AccountService({ root, controllerContext: () => ({ resourcesPath: app.isPackaged ? process.resourcesPath : null,
+        monitor = new AccountService({ root, controllerContext: () => ({ safeStorage, resourcesPath: app.isPackaged ? process.resourcesPath : null,
           preserveStartupSample: process.platform === 'linux' }) });
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));

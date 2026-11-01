@@ -1,0 +1,12 @@
+.key-connection { color: #eee; background: #15171c; border: 1px solid #414650; border-radius: 16px; padding: 20px; width: min(370px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow-y: auto; box-shadow: 0 16px 60px #0008; }
+.key-connection::backdrop { background: #0008; }
+.key-connection, .key-connection * { -webkit-app-region: no-drag; }
+.key-connection h2 { margin: 0 0 12px; font-size: 16px; }
+.key-connection-hint { color: #aab3c3; line-height: 1.5; font-size: 11px; margin: 10px 0; }
+.key-connection label { display: block; margin: 18px 0 6px; }
+.key-connection input { display: block; width: 100%; border: 1px solid #596575; border-radius: 6px; padding: 10px; background: #222a33; color: inherit; }
+.key-connection input:focus-visible { outline: 2px solid #7ecfba; outline-offset: 2px; }
+.key-connection-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.key-connection .notice { margin: 12px 0 0; }
+.subscription-controls #account-provider { grid-column: auto; }
+.subscription-controls [id$="subscription-add-source"] { grid-column: 1 / -1; }

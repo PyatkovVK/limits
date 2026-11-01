@@ -33,7 +33,7 @@ function renderAccounts(next, t) {
     if (providers.some(provider => provider.id === selected)) providerSelect.value = selected;
     providerSelect.dataset.signature = providerSignature;
   }
-  providerSelect.hidden = providers.length < 2; providerSelect.disabled = next.demo || Boolean(next.loginProfileId);
+  providerSelect.hidden = providers.length < 2; providerSelect.disabled = next.demo || Boolean(next.loginProfileId || next.keyConnection);
   providerSelect.setAttribute('aria-label', t('provider'));
   const profiles = next.profiles || [];
   for (const [id, card] of profileCards) {
@@ -92,7 +92,7 @@ function renderAccounts(next, t) {
     card.name.title = profile.account?.email || '';
     card.select.textContent = t(selected ? 'inWidget' : 'useWidget');
     card.select.disabled = selected;
-    card.status.textContent = [profile.account?.planType, t(profile.error || (profile.status === 'ready' ? profile.stale ? 'stale' : 'online' : profile.status === 'signing-in' ? 'signingIn' : profile.status === 'signed-out' ? 'signedOut' : 'connecting'))].filter(Boolean).join(' · ');
+    card.status.textContent = [profile.account?.planType, t(profile.error || (profile.accountAvailable === false ? 'insufficientBalance' : profile.status === 'ready' ? profile.stale ? 'stale' : 'online' : profile.status === 'signing-in' ? 'signingIn' : profile.status === 'signed-out' ? 'signedOut' : 'connecting'))].filter(Boolean).join(' · ');
     card.quotas.hidden = selected;
     const generic = Boolean(profile.displaySchema && profile.displaySchema.layout !== 'quota-windows');
     for (const value of Object.values(card.values)) value.row.hidden = generic;
@@ -118,14 +118,14 @@ function renderAccounts(next, t) {
     card.input.placeholder = t('nickname'); card.input.setAttribute('aria-label', t('nickname'));
     if (document.activeElement !== card.input) card.input.value = profile.nickname;
     card.save.textContent = t('save');
-    card.login.textContent = t(profile.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
-    card.login.disabled = profile.capabilities?.signIn === false || next.demo || Boolean(next.loginProfileId && next.loginProfileId !== profile.id) || profile.refreshing;
+    card.login.textContent = t(profile.capabilities?.apiKey ? profile.account ? 'replaceApiKey' : 'connectApiKey' : profile.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
+    card.login.disabled = (profile.capabilities?.signIn === false && !profile.capabilities?.apiKey) || next.demo || Boolean(next.keyConnection || next.loginProfileId && next.loginProfileId !== profile.id) || profile.refreshing;
     card.cancel.textContent = t('cancelLogin'); card.cancel.hidden = next.loginProfileId !== profile.id;
     const removeLabel = `${t('removeAccount')}: ${card.name.textContent}`;
     card.remove.title = removeLabel; card.remove.setAttribute('aria-label', removeLabel);
     card.remove.hidden = profile.id === 'default'; card.remove.disabled = next.demo || removingProfiles.has(profile.id);
   }
-  $('add-account').disabled = next.demo || Boolean(next.loginProfileId) || !profiles.length;
+  $('add-account').disabled = next.demo || Boolean(next.loginProfileId || next.keyConnection) || !profiles.length;
 }
 function renderCountdown() {
   if (!state) return;
@@ -169,7 +169,7 @@ function render(next) {
   $('account').title = next.account?.email || '';
   $('plan').hidden = !next.account?.planType;
   $('plan').textContent = next.account?.planType || '';
-  const messageKey = actionError || next.error || next.widgetError || (next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
+  const messageKey = actionError || next.error || next.widgetError || (next.accountAvailable === false ? 'insufficientBalance' : next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
   const message = messageKey ? t(messageKey) : null;
   $('error').hidden = !message;
   $('error').textContent = message || '';
@@ -199,8 +199,8 @@ function render(next) {
   $('other').hidden = !bucket?.other?.length;
   $('other').textContent = bucket?.other?.map(item => `${item.duration ?? '?'} ${t('minutes')}: ${item.remaining === null ? t('noData') : `${item.remaining}%`}`).join(' · ') || '';
   $('refresh').disabled = next.refreshing || next.demo;
-  $('login').disabled = (next.capabilities?.signIn === false && !next.readOnly) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId);
-  $('login').textContent = t(next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
+  $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
+  $('login').textContent = t(next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
   $('updated').textContent = next.updatedAt ? `${t('updated')} ${new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('waiting');
   renderAccounts(next, t);
   renderCountdown();
@@ -212,14 +212,16 @@ $('refresh').addEventListener('click', async () => { actionError = null; render(
 async function beginLogin(id) {
   actionError = null; $('login').disabled = true;
   const result = await window.limits.login(id);
-  actionError = result.error || null;
+  window.limitsKeyConnection?.open(result);
+  actionError = result.connection ? null : result.error || null;
   render(await window.limits.get());
 }
 $('login').addEventListener('click', () => beginLogin());
 $('add-account').addEventListener('click', async () => {
   actionError = null; $('add-account').disabled = true;
   const result = await window.limits.addAccount(providerSelect.value || undefined);
-  actionError = result.error || null;
+  window.limitsKeyConnection?.open(result);
+  actionError = result.connection ? null : result.error || null;
   render(await window.limits.get());
 });
 $('bucket').addEventListener('change', () => window.limits.select($('bucket').value));
