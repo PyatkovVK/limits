@@ -101,7 +101,7 @@ Finished packages are written to `release/`; local build commands do not publish
 
 ### Signing releases
 
-The release workflow sets `CODEX_LIMITS_RELEASE=1` and `CODEX_LIMITS_ALLOW_UNSIGNED=1`. Without a certificate, it produces unsigned Windows packages and ad hoc signed macOS packages without notarization. Once a certificate is configured, signing and verification are mandatory; macOS also requires complete notarization credentials. Failed signing, incomplete notarization credentials, or failed verification stop the release. Remove `CODEX_LIMITS_ALLOW_UNSIGNED=1` to require certificates for every Windows and macOS release. Existing downloads are not re-signed by this configuration change.
+CI packaging sets `CODEX_LIMITS_RELEASE=1` and `CODEX_LIMITS_ALLOW_UNSIGNED=1`. Ordinary branch and PR builds receive no signing credentials: Windows packages are unsigned and macOS packages use ad hoc signing without notarization. Numeric branch pushes and manual runs can use configured certificates. Once a certificate is configured for a release, signing and verification are mandatory; macOS also requires complete notarization credentials. Failed signing, incomplete notarization credentials, or failed verification stop the release. Remove `CODEX_LIMITS_ALLOW_UNSIGNED=1` to require certificates for every Windows and macOS release. Existing downloads are not re-signed by this configuration change.
 
 Configure these GitHub Actions secrets to enable signed releases:
 
@@ -116,22 +116,24 @@ Local development builds without `CODEX_LIMITS_RELEASE=1` remain available witho
 
 ## Automated releases
 
-Create feature/task branches only as `limits/<description>`, for example `limits/improve-installation`; the prefix is mandatory for fixes, refactors and documentation as well. `main`, numeric versions and numeric `-demo` branches are reserved for integration and releases. The [branch naming requirements](../requirements/common/build-and-release.md#branch-naming) define this policy, and the [GitHub ruleset guide](github-rulesets.md) explains server enforcement.
+Create feature/task branches only as `limits/<description>`, for example `limits/improve-installation`; the prefix is mandatory for fixes, refactors and documentation as well. `main`, `demo`, numeric versions and numeric `-demo` branches are reserved for integration and releases. The [branch naming requirements](../requirements/common/build-and-release.md#branch-naming) define this policy, and the [GitHub ruleset guide](github-rulesets.md) explains server enforcement.
 
 The [Test, build and release workflow](../.github/workflows/release.yml) runs on every branch push, manual branch dispatch, and pull request to any target. Routing uses exact branch names and patterns, with no per-version demo list or legacy fix-branch exception. See the agreed [build and release requirements](../requirements/common/build-and-release.md).
 
 | Branch | Tests | Packaging and verification | Publication |
 | --- | --- | --- | --- |
-| `main` | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | No release or tag |
+| `main` and `demo` | Windows, macOS and Linux | No packaging or uploads | No release or tag |
 | Numeric version: `<major>.<minor>[.<patch>]` | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | Publish/update `v<branch>` |
-| Numeric version with `-demo`: `<release>-demo` | Each of the four build targets | The full package pipeline, including artifact uploads and SHA-256 verification | No release or tag |
-| Every other branch, including feature branches and names with other suffixes | Windows, macOS and Linux | No packaging or uploads | No release or tag |
+| Numeric version with `-demo`: `<release>-demo` | Windows, macOS and Linux | No packaging or uploads | No release or tag |
+| Every other branch, including feature branches and names with other suffixes | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | No release or tag |
 
-Pull requests use the **source** branch for this table and test the proposed merge result. A feature branch targeting a demo branch therefore runs tests only; a PR from a numeric demo branch runs full package verification. PR runs never publish or move tags and receive no signing secrets. Manual branch runs use the same rules as pushes. Tag pushes do not trigger CI, and tag refs or deleted branches cannot build or publish.
+Pull requests use the **source** branch for this table and test the proposed merge result. A feature branch targeting a demo branch therefore builds all targets; a PR from a numeric demo branch runs only tests. PR runs never publish or move tags and receive no signing secrets in their process environment. Manual branch runs use the same rules as pushes. Tag pushes do not trigger CI, and tag refs or deleted branches cannot build or publish.
 
-- `main` uses the version in `package.json`. Numeric and demo branches derive the package version from the numeric name: strip the optional `-demo` suffix and append a zero patch component if omitted. The override occurs inside CI without a version commit or npm-created tag.
-- All four build jobs run tests before packaging. A separate job with read-only repository access verifies that all eight packages exist and are nonempty, calculates `SHA256SUMS.txt`, and saves it as `packages-checksums`. Packages and checksums stay in Actions artifacts for seven days, including on `main` and demo branches.
+- Ordinary branches use the version in `package.json`. Numeric branches derive the package version from their name, appending a zero patch component if omitted. The override occurs inside CI without a version commit or npm-created tag. Test-only branches do not override the version.
+- All four build jobs run tests before packaging. A separate job with read-only repository access verifies that all eight packages exist and are nonempty files, calculates `SHA256SUMS.txt`, and saves it as `packages-checksums`. Packages and checksums stay in Actions artifacts for seven days for ordinary and numeric branches. `main`, `demo` and numeric-demo branches never build or upload packages.
 - Only numeric branch pushes or manual runs can enter the publication job, after all tests, builds and verification pass. It uses the standard `GITHUB_TOKEN` with `contents: write`, points `v<branch>` at the built commit, uploads the eight packages and checksums to a draft, then makes the release public.
 - A later run for the same numeric branch updates that release's tag and assets. Other versions are preserved, and runs for the same workflow/ref are serialized.
 
-The workflow must exist in the selected branch; manual dispatch also requires it on the default branch. See [CHANGELOG.md](../CHANGELOG.md) for release contents.
+The entrypoint calls small workflows for [tests](../.github/workflows/ci-tests.yml), [builds](../.github/workflows/ci-build.yml), [verification](../.github/workflows/ci-verify.yml) and [publication](../.github/workflows/ci-publish.yml). A [composite action](../.github/actions/setup/action.yml) shares Node.js/dependency setup. Every CI YAML file stays within 100 lines; branch routing, checksums, tags and publication logic live in [scripts/ci](../scripts/ci/).
+
+The workflows must exist in the selected branch; manual dispatch also requires the entrypoint on the default branch. See [CHANGELOG.md](../CHANGELOG.md) for release contents.

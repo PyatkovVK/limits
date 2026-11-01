@@ -1,0 +1,12 @@
+name: Set up Limits
+description: Install Node.js and project dependencies without a tracked lockfile
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: '22'
+        package-manager-cache: false
+    - name: Install dependencies
+      shell: bash
+      run: npm install --no-audit --no-fund

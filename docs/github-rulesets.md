@@ -2,7 +2,7 @@
 
 [Development guide](development.md) · [Branch naming requirements](../requirements/common/build-and-release.md#branch-naming)
 
-New feature/task branches must use `limits/<description>`, including fixes, refactors and documentation. `main`, exact numeric release branches and their `-demo` variants retain their integration/release roles. This guide describes settings to apply separately on GitHub; adding these files does not activate repository rules.
+New feature/task branches must use `limits/<description>`, including fixes, refactors and documentation. `main`, `demo`, exact numeric release branches and their `-demo` variants retain their integration/release roles. This guide describes settings to apply separately on GitHub; adding these files does not activate repository rules.
 
 ## Restrict branch creation in this repository
 
@@ -17,6 +17,7 @@ An administrator, or a role with permission to edit repository rules, can config
    limits/*
    limits/**/*
    main
+   demo
    ```
 
    Also add every approved numeric release/demo branch by its exact name before creating it. Use the actual names selected for the release, rather than placeholder text. The first two patterns allow task names under `limits/`, including nested descriptions. Target patterns use GitHub's `fnmatch` syntax, not regular expressions; broad numeric-prefix wildcards also allow non-release names and should not replace exact release exceptions.
@@ -33,7 +34,7 @@ GitHub checks remote operations; it cannot block a local `git switch -c feature/
 GitHub Enterprise organizations can use metadata restrictions for branch names. If **Restrict branch names** is available, target all branches, choose **Must match a given regex pattern**, and use:
 
 ```regex
-^(main|limits/.+|(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?(-demo)?)$
+^(main|demo|limits/.+|(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?(-demo)?)$
 ```
 
 This accepts the task namespace and exact numeric release/demo names without maintaining per-version exclusions. Review the active legacy branches before enabling name restrictions. See [GitHub Enterprise metadata restrictions](https://docs.github.com/en/enterprise-cloud@latest/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets#metadata-restrictions).

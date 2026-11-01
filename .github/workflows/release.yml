@@ -2,15 +2,13 @@ name: Test, build and release
 
 on:
   push:
-    branches:
-      - '**'
+    branches: ['**']
   workflow_dispatch:
   pull_request:
 
 permissions:
   contents: read
 
-# Serialize updates of the same release, including its tag and downloadable files.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -19,244 +17,49 @@ jobs:
   check-branch:
     name: Select branch pipeline
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
+      check: ${{ steps.branch.outputs.check }}
       build: ${{ steps.branch.outputs.build }}
       publish: ${{ steps.branch.outputs.publish }}
       branch: ${{ steps.branch.outputs.branch }}
       version: ${{ steps.branch.outputs.version }}
       tag: ${{ steps.branch.outputs.tag }}
-      prerelease: ${{ steps.branch.outputs.prerelease }}
-      check: ${{ steps.branch.outputs.check }}
     steps:
-      - name: Select tests, packages and publication
-        id: branch
-        uses: actions/github-script@v9
+      - uses: actions/checkout@v7
         with:
-          script: |
-            const isPull = context.eventName === 'pull_request';
-            const branch = isPull ? context.payload.pull_request?.head.ref || '' :
-              context.ref.startsWith('refs/heads/') ? context.ref.slice('refs/heads/'.length) : '';
-            const active = ['push', 'workflow_dispatch', 'pull_request'].includes(context.eventName) &&
-              context.payload.deleted !== true && branch !== '';
-            const match = /^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)(-demo)?$/.exec(branch);
-            const isVersion = Boolean(match) && match[0] === branch;
-            const build = active && (branch === 'main' || isVersion);
-            const publish = build && isVersion && !match[2] && !isPull;
-            const version = build && isVersion ?
-              (match[1].split('.').length === 2 ? `${match[1]}.0` : match[1]) : '';
-            core.setOutput('build', String(build));
-            core.setOutput('publish', String(publish));
-            core.setOutput('check', String(active && !build));
-            core.setOutput('branch', branch);
-            core.setOutput('version', version);
-            core.setOutput('tag', publish ? `v${branch}` : '');
-            core.setOutput('prerelease', 'false');
-            core.info(!active ? `Skipping ${context.ref}.` : build ?
-              `Testing, building and verifying ${branch}; publication: ${publish}.` :
-              `Running tests only for ${branch}.`);
+          persist-credentials: false
+      - uses: actions/github-script@v9
+        id: branch
+        with:
+          script: require('./scripts/ci/route.cjs').route({ context, core })
 
   check:
-    name: Test on ${{ matrix.os }}
     needs: check-branch
     if: needs.check-branch.outputs.check == 'true'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-15, ubuntu-24.04]
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          package-manager-cache: false
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Run tests
-        run: npm test
+    uses: ./.github/workflows/ci-tests.yml
 
   build:
-    name: Build ${{ matrix.name }}
     needs: check-branch
     if: needs.check-branch.outputs.build == 'true'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows x64
-            os: windows-latest
-            target: win
-            arch: x64
-            script: build:win:x64
-          - name: macOS Apple Silicon
-            os: macos-15
-            target: mac
-            arch: arm64
-            script: build:mac:arm64
-          - name: macOS Intel
-            os: macos-15-intel
-            target: mac
-            arch: x64
-            script: build:mac:x64
-          - name: Linux x64
-            os: ubuntu-24.04
-            target: linux
-            arch: x64
-            script: build:linux:x64
-    defaults:
-      run:
-        shell: bash
-    env:
-      RELEASE_VERSION: ${{ needs.check-branch.outputs.version }}
-      BUILD_SCRIPT: ${{ matrix.script }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          # package-lock.json is intentionally not tracked in this repository.
-          package-manager-cache: false
-      - name: Set version from the branch
-        if: env.RELEASE_VERSION != ''
-        run: npm version "$RELEASE_VERSION" --no-git-tag-version --ignore-scripts --allow-same-version
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Run tests
-        run: npm test
-      - name: Build packages
-        env:
-          CODEX_LIMITS_RELEASE: '1'
-          CODEX_LIMITS_ALLOW_UNSIGNED: '1'
-          WIN_CSC_LINK: ${{ github.event_name != 'pull_request' && matrix.target == 'win' && secrets.WIN_CSC_LINK || '' }}
-          WIN_CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && matrix.target == 'win' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
-          CSC_LINK: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.MAC_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
-          APPLE_ID: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_ID || '' }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_TEAM_ID || '' }}
-        run: npm run "$BUILD_SCRIPT"
-      - name: Save packages
-        uses: actions/upload-artifact@v7
-        with:
-          name: packages-${{ matrix.target }}-${{ matrix.arch }}
-          path: |
-            release/*.exe
-            release/*.dmg
-            release/*.zip
-            release/*.AppImage
-            release/*.deb
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 7
+    uses: ./.github/workflows/ci-build.yml
+    with:
+      version: ${{ needs.check-branch.outputs.version }}
+      sign: ${{ needs.check-branch.outputs.publish == 'true' }}
+    secrets: inherit
 
   verify:
-    name: Verify all packages and save checksums
     needs: [check-branch, build]
-    if: needs.check-branch.outputs.build == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      RELEASE_VERSION: ${{ needs.check-branch.outputs.version }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: packages-*
-          path: release
-          merge-multiple: true
-      - name: Verify all packages and calculate checksums
-        shell: bash
-        run: |
-          version="$RELEASE_VERSION"
-          if [[ -z "$version" ]]; then
-            version="$(node -p "require('./package.json').version")"
-          fi
-          packages=(
-            "Limits-$version-portable.exe"
-            "Limits-Setup-$version.exe"
-            "Limits-$version-arm64.dmg"
-            "Limits-$version-arm64.zip"
-            "Limits-$version-x64.dmg"
-            "Limits-$version-x64.zip"
-            "Limits-$version-x86_64.AppImage"
-            "Limits-$version-amd64.deb"
-          )
-          cd release
-          for package in "${packages[@]}"; do
-            if [[ ! -s "$package" ]]; then
-              echo "Missing or empty package: $package" >&2
-              exit 1
-            fi
-          done
-          sha256sum "${packages[@]}" > SHA256SUMS.txt
-      - name: Save checksums
-        uses: actions/upload-artifact@v7
-        with:
-          name: packages-checksums
-          path: release/SHA256SUMS.txt
-          if-no-files-found: error
-          retention-days: 7
+    uses: ./.github/workflows/ci-verify.yml
+    with:
+      version: ${{ needs.check-branch.outputs.version }}
 
   publish:
-    name: Publish version release
     needs: [check-branch, verify]
     if: needs.check-branch.outputs.publish == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
     permissions:
       contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      RELEASE_BRANCH: ${{ needs.check-branch.outputs.branch }}
-      RELEASE_TAG: ${{ needs.check-branch.outputs.tag }}
-      RELEASE_PRERELEASE: ${{ needs.check-branch.outputs.prerelease }}
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: packages-*
-          path: release
-          merge-multiple: true
-      - name: Point the release tag at the built commit
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const ref = `tags/${process.env.RELEASE_TAG}`;
-            try {
-              await github.rest.git.getRef({ ...context.repo, ref });
-            } catch (error) {
-              if (error.status !== 404) throw error;
-              await github.rest.git.createRef({ ...context.repo, ref: `refs/${ref}`, sha: context.sha });
-              return;
-            }
-            await github.rest.git.updateRef({ ...context.repo, ref, sha: context.sha, force: true });
-      - name: Create or update the release and upload packages
-        shell: bash
-        run: |
-          notes_file="$RUNNER_TEMP/release-notes.md"
-          title="Limits $RELEASE_BRANCH"
-          cat > "$notes_file" <<EOF
-          Builds from branch \`$RELEASE_BRANCH\` for Windows x64, macOS Apple Silicon / Intel, and Linux x64.
-
-          Commit: $GITHUB_SHA
-
-          Windows: portable EXE and installer. macOS: DMG and ZIP for each architecture. Linux: AppImage and DEB.
-
-          File checksums: \`SHA256SUMS.txt\`.
-          EOF
-          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
-            gh release edit "$RELEASE_TAG" --title "$title" --notes-file "$notes_file" --draft --prerelease="$RELEASE_PRERELEASE"
-          else
-            gh release create "$RELEASE_TAG" --verify-tag --target "$GITHUB_SHA" --title "$title" --notes-file "$notes_file" --draft --prerelease="$RELEASE_PRERELEASE"
-          fi
-          gh release upload "$RELEASE_TAG" release/* --clobber
-          gh release edit "$RELEASE_TAG" --draft=false
+    uses: ./.github/workflows/ci-publish.yml
+    with:
+      branch: ${{ needs.check-branch.outputs.branch }}
+      tag: ${{ needs.check-branch.outputs.tag }}

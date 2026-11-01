@@ -22,7 +22,7 @@ For a feature request, explain the task you want to accomplish and how the propo
 
 If the default branch does not yet contain the app, choose `create-mvp` as your starting branch and PR base. Once the app is available in `main`, use `main`.
 
-`main`, numeric version branches and their `-demo` variants are reserved for integration and release work. See the [branch naming requirements](requirements/common/build-and-release.md#branch-naming) and [GitHub ruleset setup](docs/github-rulesets.md) for enforcement and its limits.
+`main`, `demo`, numeric version branches and their `-demo` variants are reserved for integration and release work. See the [branch naming requirements](requirements/common/build-and-release.md#branch-naming) and [GitHub ruleset setup](docs/github-rulesets.md) for enforcement and its limits.
 
 AI contributors should start with [local AI skills](docs/ai-skills.md) and follow local `AGENTS.md` instructions when present. Run `npm run setup:skills` to restore the ignored local `skills/` directory, then load the applicable skill. Platform-specific work defaults to the current host's platform directory; explicitly shared work stays in `src/common/`.
 

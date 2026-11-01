@@ -1,0 +1,84 @@
+name: Packages
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      sign:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            target: win
+            arch: x64
+            script: build:win:x64
+          - name: macOS Apple Silicon
+            os: macos-15
+            target: mac
+            arch: arm64
+            script: build:mac:arm64
+          - name: macOS Intel
+            os: macos-15-intel
+            target: mac
+            arch: x64
+            script: build:mac:x64
+          - name: Linux x64
+            os: ubuntu-24.04
+            target: linux
+            arch: x64
+            script: build:linux:x64
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      BUILD_SCRIPT: ${{ matrix.script }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Set version from the branch
+        if: env.RELEASE_VERSION != ''
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --ignore-scripts --allow-same-version
+      - name: Run tests
+        run: npm test
+      - name: Build packages
+        env:
+          CODEX_LIMITS_RELEASE: '1'
+          CODEX_LIMITS_ALLOW_UNSIGNED: '1'
+          WIN_CSC_LINK: ${{ inputs.sign && github.event_name != 'pull_request' && matrix.target == 'win' && secrets.WIN_CSC_LINK || '' }}
+          WIN_CSC_KEY_PASSWORD: ${{ inputs.sign && github.event_name != 'pull_request' && matrix.target == 'win' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+          CSC_LINK: ${{ inputs.sign && github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ inputs.sign && github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ inputs.sign && github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ inputs.sign && github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ inputs.sign && github.event_name != 'pull_request' && matrix.target == 'mac' && secrets.APPLE_TEAM_ID || '' }}
+        run: npm run "$BUILD_SCRIPT"
+      - name: Save packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-${{ matrix.target }}-${{ matrix.arch }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.deb
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7

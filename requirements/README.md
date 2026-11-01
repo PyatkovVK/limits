@@ -4,7 +4,7 @@ This directory describes the core requirements for the Limits application: commo
 
 [Pluggable AI controllers](common/ai-connects.md) describe the planned connection infrastructure in `src/common/ai-connects/`, a common data/display contract, and Codex as the only initial provider.
 
-[Build and release requirements](common/build-and-release.md) define the GitHub Actions flow, including the mandatory `limits/*` naming for new feature/task branches, branch routing, complete demo builds without release publication, and platform-specific npm commands.
+[Build and release requirements](common/build-and-release.md) define short GitHub Actions workflows, mandatory `limits/*` task names, tests-only main/demo branches, cross-platform builds for ordinary branches, numeric release publication, and platform-specific npm commands.
 
 ## Editing policy
 

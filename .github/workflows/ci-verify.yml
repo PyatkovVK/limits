@@ -1,0 +1,36 @@
+name: Package verification
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify all packages and save checksums
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: packages-*
+          path: release
+          merge-multiple: true
+      - name: Verify all packages and calculate checksums
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: node scripts/ci/packages.cjs
+      - name: Save checksums
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-checksums
+          path: release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
