@@ -123,13 +123,13 @@ The [Test, build and release workflow](../.github/workflows/release.yml) runs on
 | Branch | Tests | Packaging and verification | Publication |
 | --- | --- | --- | --- |
 | `main` | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | No release or tag |
-| Numeric version, e.g. `1.4`, `2.0`, `3.2.1` | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | Publish/update `v<branch>` |
-| Numeric version with `-demo`, e.g. `1.4-demo`, `2.0-demo` | Each of the four build targets | The full package pipeline, including artifact uploads and SHA-256 verification | No release or tag |
-| Every other branch, including `1.0-fix` and feature branches | Windows, macOS and Linux | No packaging or uploads | No release or tag |
+| Numeric version: `<major>.<minor>[.<patch>]` | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | Publish/update `v<branch>` |
+| Numeric version with `-demo`: `<release>-demo` | Each of the four build targets | The full package pipeline, including artifact uploads and SHA-256 verification | No release or tag |
+| Every other branch, including feature branches and names with other suffixes | Windows, macOS and Linux | No packaging or uploads | No release or tag |
 
-Pull requests use the **source** branch for this table and test the proposed merge result. A feature branch targeting `1.4-demo` therefore runs tests only; a PR from `1.4-demo` runs full package verification. PR runs never publish or move tags and receive no signing secrets. Manual branch runs use the same rules as pushes. Tag pushes do not trigger CI, and tag refs or deleted branches cannot build or publish.
+Pull requests use the **source** branch for this table and test the proposed merge result. A feature branch targeting a demo branch therefore runs tests only; a PR from a numeric demo branch runs full package verification. PR runs never publish or move tags and receive no signing secrets. Manual branch runs use the same rules as pushes. Tag pushes do not trigger CI, and tag refs or deleted branches cannot build or publish.
 
-- `main` uses the version in `package.json`. Numeric and demo branches derive the package version from the numeric name: `1.4` and `1.4-demo` produce `1.4.0`; `3.2.1-demo` produces `3.2.1`. The override occurs inside CI without a version commit or npm-created tag.
+- `main` uses the version in `package.json`. Numeric and demo branches derive the package version from the numeric name: strip the optional `-demo` suffix and append a zero patch component if omitted. The override occurs inside CI without a version commit or npm-created tag.
 - All four build jobs run tests before packaging. A separate job with read-only repository access verifies that all eight packages exist and are nonempty, calculates `SHA256SUMS.txt`, and saves it as `packages-checksums`. Packages and checksums stay in Actions artifacts for seven days, including on `main` and demo branches.
 - Only numeric branch pushes or manual runs can enter the publication job, after all tests, builds and verification pass. It uses the standard `GITHUB_TOKEN` with `contents: write`, points `v<branch>` at the built commit, uploads the eight packages and checksums to a draft, then makes the release public.
 - A later run for the same numeric branch updates that release's tag and assets. Other versions are preserved, and runs for the same workflow/ref are serialized.

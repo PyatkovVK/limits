@@ -21,7 +21,7 @@
 
 The following requirement describes a future change rather than an already completed implementation. It applies to Windows, macOS, and Linux.
 
-Version 1.3 satisfies runtime independence in COM-ACC-014; it does not claim the full storage/configuration isolation below. The default account may still share Codex's managed `CODEX_HOME` and credential store. Additional accounts continue to use isolated homes. Replacing the runtime prerequisite does not silently migrate or erase existing authentication data.
+Limits satisfies runtime independence in COM-ACC-014; it does not claim the full storage/configuration isolation below. The default account may still share Codex's managed `CODEX_HOME` and credential store. Additional accounts continue to use isolated homes. Replacing the runtime prerequisite does not silently migrate or erase existing authentication data.
 
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |

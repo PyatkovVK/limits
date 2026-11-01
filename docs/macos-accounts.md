@@ -1,4 +1,4 @@
-# macOS subscriptions — 1.5
+# macOS subscriptions
 
 Settings → Subscriptions has **All**, **Connected in Limits** and **In Codex / VS Code** views. All is the default and shows each source's plan, remaining quotas and connection status. Any subscription can be selected for the menu bar or notch regardless of the view filter. The filter and selection survive restarts.
 

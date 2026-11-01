@@ -1,6 +1,6 @@
-# Upcoming Codex reset notifications — 1.4
+# Upcoming Codex reset notifications
 
-This feature targets `1.4-demo` from `limits/codex-reset-notifications`. It uses [Codex Resets](https://codex-resets.com/), a community service tracking reset announcements. Thanks to its author, [@wong2__](https://x.com/wong2__), for the public API.
+This feature uses [Codex Resets](https://codex-resets.com/), a community service tracking reset announcements. Thanks to its author, [@wong2__](https://x.com/wong2__), for the public API.
 
 ## Settings
 

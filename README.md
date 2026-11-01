@@ -19,7 +19,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
   <a href="README.ru.md">Русский</a>
 </p>
 
-**Limits 1.5** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
+**Limits** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
 
 <p align="center">
   <img src="docs/screenshots/windows-accounts.png" width="440" alt="Windows account panel with demo accounts and remaining usage">
@@ -147,7 +147,7 @@ Demo mode simulates update checks without contacting GitHub or opening a browser
 
 Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required; API-key authentication does not expose these subscription limits. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
 
-**macOS (1.5):** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Use **Add Codex profile** to select another local `CODEX_HOME` if your clients use different stores. Forgetting it stops tracking without logging it out. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
+**macOS:** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Use **Add Codex profile** to select another local `CODEX_HOME` if your clients use different stores. Forgetting it stops tracking without logging it out. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
 
 On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically; add another CODEX_HOME folder to track a separate local profile. External profiles reload sign-in changes on polling; sign in or out in Codex / VS Code. Removing a source only stops tracking it. Accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
 

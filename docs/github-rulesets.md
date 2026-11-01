@@ -17,11 +17,9 @@ An administrator, or a role with permission to edit repository rules, can config
    limits/*
    limits/**/*
    main
-   1.4
-   1.4-demo
    ```
 
-   Add other approved numeric release/demo branches by their exact names, such as `2.0` and `2.0-demo`, before creating them. The first two patterns allow task names under `limits/`, including nested descriptions. Target patterns use GitHub's `fnmatch` syntax, not regular expressions; broad patterns such as `1.*` also allow non-release names and should not replace exact release exceptions.
+   Also add every approved numeric release/demo branch by its exact name before creating it. Use the actual names selected for the release, rather than placeholder text. The first two patterns allow task names under `limits/`, including nested descriptions. Target patterns use GitHub's `fnmatch` syntax, not regular expressions; broad numeric-prefix wildcards also allow non-release names and should not replace exact release exceptions.
 5. Under **Branch rules/protections**, enable **Restrict creations** only for this naming ruleset. Leave **Restrict updates**, **Restrict deletions**, and other unrelated protections off; GitHub may preselect deletion/force-push protections. Existing branch-protection rules can remain in their own rulesets.
 6. Leave the **Bypass list** empty to apply the restriction to everyone. An actor on that list can create names outside the allowed namespace, so adding a role/app there creates an explicit exception.
 7. Click **Create**.

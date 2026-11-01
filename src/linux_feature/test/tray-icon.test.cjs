@@ -5,7 +5,7 @@ const { createHash } = require('node:crypto');
 const { EventEmitter } = require('node:events');
 const { TrayPresentation } = require('../../common/tray.cjs');
 
-test('classic pixels match the archived 1.0.0 Linux renderer exactly', () => {
+test('classic pixels match the archived Linux renderer exactly', () => {
   const digest = createHash('sha256');
   for (const size of [16, 20, 24, 40]) for (const kind of ['short', 'weekly']) for (const remaining of [null, 0, 7, 53, 100]) for (const stale of [false, true]) {
     digest.update(bitmap({ size, kind, remaining, stale, style: 'classic' }).pixels);

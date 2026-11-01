@@ -6,7 +6,7 @@ Linux implementation, renderer controls and tests live in this directory. The co
 
 Choose **Settings → Display**, in this order:
 
-1. **Percentages and bar** preserves the colored percentage badges from Limits 1.0.0. This is the default for profiles without an explicit selection.
+1. **Percentages and bar** uses the classic colored percentage badges. This is the default for profiles without an explicit selection.
 2. **Bar · 5h / 7d** displays the fixed quota duration above a proportional remaining-usage bar. Russian labels are `5ч` / `7д`. Unknown values use a dashed bar.
 3. **Desktop widget** shows the compact draggable widget with two quota bars and reset countdowns. Its width, visibility and position are saved.
 
