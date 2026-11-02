@@ -67,7 +67,7 @@ async function until(check) {
   while (!check() && Date.now() < deadline) await pause();
   assert.ok(check(), 'Native parent/placement transition must complete');
 }
-async function click(target, selector, delta) {
+async function click(target, selector, delta, fast = false) {
   const point = await target.webContents.executeJavaScript(`(() => {
     const node = document.querySelector(${JSON.stringify(selector)});
     if (!node) throw new Error('Missing click target');
@@ -79,7 +79,7 @@ async function click(target, selector, delta) {
     const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
     const bounds = target.getBounds();
     const native = screen.dipToScreenPoint({ x: bounds.x + point.x, y: bounds.y + point.y });
-    await runHelper([delta ? '--test-widget-drag' : '--test-widget-click', String(process.pid), id, String(native.x), String(native.y), ...(delta ? [String(delta)] : [])]);
+    await runHelper([delta ? fast ? '--test-widget-drag-fast' : '--test-widget-drag' : '--test-widget-click', String(process.pid), id, String(native.x), String(native.y), ...(delta ? [String(delta)] : [])]);
   } else {
     target.webContents.sendInputEvent({ type: 'mouseDown', ...point, button: 'left', clickCount: 1 });
     target.webContents.sendInputEvent({ type: 'mouseUp', ...point, button: 'left', clickCount: 1 });
@@ -91,8 +91,8 @@ app.whenReady().then(async () => {
     const deadline = Date.now() + 10000;
     while (!host && Date.now() < deadline) await pause();
     assert.ok(host, 'Widget must start with a fresh profile');
-    assert.equal(raises, host.placement.changes.shows, 'Raise only when showing the widget');
-    host.probe.stop();
+    assert.equal(raises, 0, 'An embedded widget must not fight Explorer with top-level raises');
+    clearInterval(host.probe.timer); // Keep the native input bridge alive while freezing geometry.
     const window = host.window;
     await window.webContents.executeJavaScript('window.renderReady');
     await click(window, '#short-value');
@@ -100,13 +100,16 @@ app.whenReady().then(async () => {
     const dragBefore = window.getBounds();
     await click(window, '.account', -40);
     assert.ok(window.getBounds().x < dragBefore.x - 20, 'A real held-button gesture must move the widget');
+    const fastBefore = window.getBounds();
+    await click(window, '#short-bar', -100, true);
+    assert.ok(window.getBounds().x < fastBefore.x - 80, 'A quick real drag must retain the original press position');
     BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/index.html')).hide();
     await pause(); const before = await inspect(window);
     await window.webContents.executeJavaScript("window.limits.displayMode('tray')");
     assert.equal((await inspect(window)).visible, false);
     await window.webContents.executeJavaScript("window.limits.displayMode('widget')");
     const restoredMode = await checkOrder(before, window);
-    assert.equal(raises, host.placement.changes.shows, 'Restoring the widget raises it once');
+    assert.equal(raises, 0, 'Restoring an embedded widget needs no top-level raise');
 
     const metrics = { ...lastMetrics,
       // Geometry simulations below start from the current native order, not
@@ -122,7 +125,7 @@ app.whenReady().then(async () => {
     assert.equal((await inspect(window)).visible, false);
     host.placement.apply(metrics, settings);
     const restoredFullscreen = await checkOrder(before, window);
-    assert.equal(raises, host.placement.changes.shows, 'Leaving fullscreen raises only the restored widget');
+    assert.equal(raises, 0, 'Leaving fullscreen keeps the widget on the taskbar surface');
     const raisesBeforePolling = raises;
     const changes = { ...host.placement.changes };
     for (let i = 0; i < 100; i++) host.placement.apply(metrics, settings);
@@ -135,7 +138,7 @@ app.whenReady().then(async () => {
     host.placement.apply({ available: false }, settings);
     assert.equal((await inspect(window)).visible, false, 'An outage must preserve intentional hiding');
     metricsOverride = { occupied: [lastMetrics.bar] };
-    await host.probe.start();
+    host.probe.child.stdin.write('query\n');
     await until(() => lastMetrics.parented === false && window.getBounds().y < metrics.bar.y);
     const fallback = window.getBounds();
     assert.equal((await inspect(window)).visible, true, 'A crowded taskbar uses a separate row');
@@ -145,7 +148,7 @@ app.whenReady().then(async () => {
     metricsOverride = null;
     host.probe.child.stdin.write('query\n');
     await until(() => lastMetrics.attached === true && window.getBounds().y >= metrics.bar.y);
-    host.probe.stop();
+    clearInterval(host.probe.timer);
     const restoredParent = await checkOrder(before, window);
 
     const shellChecks = [];
@@ -160,13 +163,15 @@ app.whenReady().then(async () => {
     const panel = BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/index.html'));
     assert.ok(panel);
     await panel.webContents.executeJavaScript('window.renderReady');
+    const panelTrace = [];
+    for (const event of ['show', 'hide', 'focus', 'blur']) panel.on(event, () => panelTrace.push({ event, at: Date.now() }));
     await window.webContents.executeJavaScript(`globalThis.inputTrace = []; for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'pointercancel']) document.addEventListener(type, event => inputTrace.push({ type, target: event.target.id || event.target.className, x: event.clientX, y: event.clientY }), true);`);
     const clicks = [];
     for (let pass = 0; pass < 3; pass++) {
       for (const selector of ['#short-reset', '#short-bar', '#short-value', '#weekly-reset', '#weekly-bar', '#weekly-value']) {
         panel.hide();
         await click(window, selector);
-        if (!panel.isVisible()) console.log('NATIVE_INPUT_TRACE', JSON.stringify({ events: await window.webContents.executeJavaScript('inputTrace'), native: await inspect(window) }));
+        if (!panel.isVisible()) console.log('NATIVE_INPUT_TRACE', JSON.stringify({ panelTrace, dragResult: await window.webContents.executeJavaScript('lastDragResult'), events: await window.webContents.executeJavaScript('inputTrace'), native: await inspect(window) }));
         assert.equal(panel.isVisible(), true, selector + ' must open details');
         const order = await inspect(window);
         assert.ok(order.visible && order.topmost && order.aboveTaskbar, selector + ' must keep the bar above Explorer');
@@ -203,7 +208,7 @@ app.whenReady().then(async () => {
     controller.disconnect();
     const screenshot = path.join(artifactRoot, 'widget-startup.png');
     fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG());
-    const report = { initial, restoredMode, restoredFullscreen, restoredParent, fallback, shellChecks, clicks, monetaryClicks, nativeDragging: true, panelClicks: 9, raises, unchangedPolls: 100, screenshot };
+    const report = { initial, restoredMode, restoredFullscreen, restoredParent, fallback, shellChecks, clicks, monetaryClicks, nativeDragging: true, fastDragging: true, cursorMovement: true, panelClicks: 9, raises, unchangedPolls: 100, screenshot };
     fs.writeFileSync(path.join(artifactRoot, 'widget-startup-smoke.json'), JSON.stringify(report, null, 2));
     console.log('WIDGET_STARTUP_SMOKE_OK', JSON.stringify(report));
     app.quit();

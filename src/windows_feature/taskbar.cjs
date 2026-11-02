@@ -99,6 +99,7 @@ class TaskbarProbe extends EventEmitter {
       if (this.child !== child) return;
       let metrics;
       try { metrics = JSON.parse(line); } catch { fail(); return; }
+      if (metrics.input) { this.emit('input', metrics.input); return; }
       waiting = false;
       clearTimeout(this.deadline);
       this.emit('metrics', metrics);

@@ -266,6 +266,16 @@ test('geometry helper retries after a startup timeout reports unavailable', { ti
   assert.notEqual(value.child.pid, oldChild.pid);
 });
 
+test('mouse input never satisfies a pending geometry query or cancels its timeout', { timeout: 5000 }, async t => {
+  const value = probe(t, { args: [path.join(__dirname, 'fixtures/taskbar.cjs'), '--input-only'] });
+  const received = once(value, 'input');
+  const started = value.start();
+  assert.deepEqual((await received)[0], { type: 'mouseDown', button: 'left', x: 240, y: 1040 });
+  t.mock.timers.tick(value.timeout);
+  assert.deepEqual(await started, { available: false });
+  assert.equal(value.child, null, 'Input traffic must not keep a stalled geometry helper alive');
+});
+
 test('geometry helper restarts after exiting and continues reporting', { timeout: 5000 }, async t => {
   const value = probe(t);
   assert.equal((await value.start()).available, true);

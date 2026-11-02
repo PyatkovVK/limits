@@ -33,6 +33,7 @@ function render(next) {
 }
 const dragArea = document.body;
 let drag = null, lastDragResult = Promise.resolve(false);
+window.limitsWindows.onWidgetClick(() => { void window.limits.open(); });
 $('details').addEventListener('click', async event => {
   // The native cursor decides whether the gesture moved. Wait for pointerup's
   // result before opening details so a drag never also acts as a click.
