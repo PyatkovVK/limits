@@ -15,6 +15,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ### Fixed
 
+- On Windows and Linux, show Panel settings only when the widget display mode is selected, use a platform-neutral section title, and rename the Linux percentage-icon option to Icons · percentages.
 - On Windows, keep compact balance rows evenly spaced inside the taskbar widget, including short taskbars, with room below the bonus amount.
 - On Windows, restore native clicks and dragging on the taskbar widget, including DeepSeek balance text. Keep Electron's window at desktop level with the taskbar as its owner, preserve placement across shell changes, and verify real mouse input rather than only injected renderer events.
 - On Windows, close the hidden-icons flyout through Explorer when opening Limits from the tray so its chevron returns to the collapsed state instead of leaving the popup logically open.
