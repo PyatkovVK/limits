@@ -234,6 +234,7 @@ async function verifyAppleIsland({ appleNotch, target, trayPresentation, artifac
 async function verifyNotchSurface({ appleNotch, target, artifactRoot }) {
   const original = appleNotch.phase;
   const checks = [];
+  let compactRect;
   try {
     for (const phase of ['closed', 'peek', 'expanded']) {
       appleNotch.setPhase(phase);
@@ -242,6 +243,11 @@ async function verifyNotchSurface({ appleNotch, target, artifactRoot }) {
         const rect = document.querySelector('.apple-shell').getBoundingClientRect();
         return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
       })()`);
+      if (phase === 'closed') compactRect = rect;
+      if (phase === 'peek' && appleNotch.mode === 'island' &&
+          (Math.abs(rect.x - compactRect.x) > 0.5 || Math.abs(rect.width - compactRect.width) > 0.5)) {
+        throw new Error('Hover preview changed the compact side margins: ' + JSON.stringify({ compact: compactRect, hover: rect }));
+      }
       const image = await target.webContents.capturePage();
       const size = image.getSize(), bitmap = image.toBitmap();
       // capturePage reports physical pixels; DOM geometry is in CSS points.
@@ -249,11 +255,11 @@ async function verifyNotchSurface({ appleNotch, target, artifactRoot }) {
       const alpha = (x, y) => bitmap[(Math.floor(y * scale) * size.width + Math.floor(x * scale)) * 4 + 3];
       const cap = appleNotch.layout.capHeight;
       const neckLeft = rect.x + (rect.width - appleNotch.layout.capWidth) / 2;
-      const closed = phase === 'closed';
-      // Sample outside the shoulder and inside the neck even for narrow joins.
-      const cornerAlpha = alpha(rect.x + (closed ? 1 : 0), closed ? rect.height - 1 : cap);
-      const joinAlpha = alpha(closed ? rect.x + 2 : neckLeft, closed ? cap / 2 : cap - 2);
-      if (closed) {
+      const straightSides = Math.abs(rect.width - appleNotch.layout.capWidth) < 0.5;
+      // A preview matching the compact width has straight sides and rounded bottom corners.
+      const cornerAlpha = alpha(rect.x + (straightSides ? 1 : 0), straightSides ? rect.height - 1 : cap);
+      const joinAlpha = alpha(straightSides ? rect.x + 2 : neckLeft, straightSides ? cap / 2 : cap - 2);
+      if (straightSides) {
         for (const x of [rect.x + 2, rect.x + rect.width - 3]) {
           const pixel = (Math.floor(cap / 2 * scale) * size.width + Math.floor(x * scale)) * 4;
           if (bitmap[pixel + 3] < 250 || bitmap[pixel] + bitmap[pixel + 1] + bitmap[pixel + 2] > 8) throw new Error('Compact notch has transparent or light side margins');
@@ -266,7 +272,8 @@ async function verifyNotchSurface({ appleNotch, target, artifactRoot }) {
         fs.writeFileSync(path.join(artifactRoot, `apple-${appleNotch.mode}-${phase}-surface.png`), (await target.webContents.capturePage({ x: 0, y: 0, width: appleNotch.layout.bounds.width, height: Math.ceil(rect.height + 16) })).toPNG());
       } finally { await target.webContents.executeJavaScript("document.documentElement.style.removeProperty('background')"); }
       if (cornerAlpha > 8 || joinAlpha < 240) throw new Error('Notch has square shoulders or a disconnected neck: ' + JSON.stringify({ mode: appleNotch.mode, phase, cornerAlpha, joinAlpha, rect, cap, neckLeft, size, bitmapLength: bitmap.length, scale }));
-      checks.push({ phase, ...(closed ? { blackSideMargins: true, roundedBottom: true } : { roundedShoulders: true }), connectedNeck: true });
+      checks.push({ phase, left: rect.x, right: rect.x + rect.width, width: rect.width,
+        ...(straightSides ? { blackSideMargins: true, roundedBottom: true } : { roundedShoulders: true }), connectedNeck: true });
     }
     return checks;
   } finally { appleNotch.setPhase(original); }

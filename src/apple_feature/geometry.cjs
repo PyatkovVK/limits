@@ -40,7 +40,7 @@ function fitMenuBar(layout, mode, metricCount = 2) {
   layout.metersHeight = layout.capHeight + 4;
   layout.contentTop = layout.capHeight;
   layout.closedHeight = layout.capHeight + (island ? 4 : 9);
-  layout.peekWidth = Math.min(layout.fullWidth, Math.max(340, layout.closedWidth + (island ? 16 : 40)));
+  layout.peekWidth = island ? layout.closedWidth : Math.min(layout.fullWidth, Math.max(340, layout.closedWidth + 40));
   layout.peekHeight = layout.contentTop + 116;
   layout.notificationHeight = Math.min(layout.maxFullHeight, layout.closedHeight + 164);
 }

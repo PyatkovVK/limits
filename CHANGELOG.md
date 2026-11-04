@@ -15,7 +15,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ### Fixed
 
-- On macOS, reduce the extra width of the notch side panel's hover preview to eight points per side while preserving its collapsed and click-expanded sizes.
+- On macOS, keep the notch side panel's hover preview at exactly the collapsed width: its left and right edges stay fixed while it grows downward to show details. Preserve the click-expanded panel size.
 - On Windows and Linux, show Panel settings only when the widget display mode is selected, use a platform-neutral section title, and rename the Linux percentage-icon option to Icons · percentages.
 - On Windows, keep compact balance rows evenly spaced inside the taskbar widget, including short taskbars, with room below the bonus amount.
 - On Windows, keep the taskbar widget visible when opening Start, Quick Settings and Limits details, while preserving its chosen position. Embed it in the taskbar surface and forward its mouse gestures so clicks, context menus and dragging still work, including DeepSeek balance text.
