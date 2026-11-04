@@ -4,13 +4,15 @@
     if (![width, height, neckWidth, capHeight, radius].every(Number.isFinite) || width <= 0 || height <= 0) return '';
     const shoulder = (width - Math.min(width, Math.max(0, neckWidth))) / 2;
     const cap = Math.min(height, Math.max(0, capHeight));
-    const join = Math.min(12, shoulder / 2, cap);
-    const upper = Math.min(radius, shoulder - join, (height - cap) / 2);
-    const lower = Math.min(radius, width / 2, shoulder ? height - cap - upper : height / 2);
+    // Curved joins must start below the protected menu band, including in fallback.
+    const join = Math.min(12, shoulder / 2, (height - cap) / 2);
+    const shoulderTop = cap + join;
+    const upper = Math.min(radius, shoulder - join, (height - shoulderTop) / 2);
+    const lower = Math.min(radius, width / 2, shoulder ? height - shoulderTop - upper : height / 2);
     const n = value => Math.round(value * 1000) / 1000;
     if (shoulder < 0.01) return `M 0 0 H ${n(width)} V ${n(height - lower)} Q ${n(width)} ${n(height)} ${n(width - lower)} ${n(height)} H ${n(lower)} Q 0 ${n(height)} 0 ${n(height - lower)} Z`;
     const left = shoulder, right = width - shoulder;
-    return `M ${n(left)} 0 H ${n(right)} V ${n(cap - join)} Q ${n(right)} ${n(cap)} ${n(right + join)} ${n(cap)} H ${n(width - upper)} Q ${n(width)} ${n(cap)} ${n(width)} ${n(cap + upper)} V ${n(height - lower)} Q ${n(width)} ${n(height)} ${n(width - lower)} ${n(height)} H ${n(lower)} Q 0 ${n(height)} 0 ${n(height - lower)} V ${n(cap + upper)} Q 0 ${n(cap)} ${n(upper)} ${n(cap)} H ${n(left - join)} Q ${n(left)} ${n(cap)} ${n(left)} ${n(cap - join)} Z`;
+    return `M ${n(left)} 0 H ${n(right)} V ${n(cap)} Q ${n(right)} ${n(shoulderTop)} ${n(right + join)} ${n(shoulderTop)} H ${n(width - upper)} Q ${n(width)} ${n(shoulderTop)} ${n(width)} ${n(shoulderTop + upper)} V ${n(height - lower)} Q ${n(width)} ${n(height)} ${n(width - lower)} ${n(height)} H ${n(lower)} Q 0 ${n(height)} 0 ${n(height - lower)} V ${n(shoulderTop + upper)} Q 0 ${n(shoulderTop)} ${n(upper)} ${n(shoulderTop)} H ${n(left - join)} Q ${n(left)} ${n(shoulderTop)} ${n(left)} ${n(cap)} Z`;
   }
 
   function observeSurface(shell, body) {

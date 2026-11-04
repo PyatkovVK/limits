@@ -75,6 +75,8 @@
       this.state = next;
       const layout = next.appleNotch;
       body.classList.toggle('apple-island', layout.mode === 'island');
+      body.dataset.islandIndicators = layout.indicatorMode;
+      body.classList.toggle('apple-narrow-preview', layout.mode === 'island' && layout.closedWidth < 340);
       body.dataset.notchPhase = layout.phase;
       body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
       const properties = { 'cap-height': layout.capHeight, 'content-top': layout.contentTop, 'menu-bar-width': layout.capWidth, 'meters-width': layout.metersWidth, 'meters-top': layout.metersTop, 'meters-height': layout.metersHeight, 'full-width': layout.fullWidth, 'full-height': layout.fullHeight, 'closed-width': layout.closedWidth, 'closed-height': layout.closedHeight, 'peek-width': layout.peekWidth, 'peek-height': layout.peekHeight, 'notification-width': layout.notificationWidth, 'notification-height': layout.notificationHeight };

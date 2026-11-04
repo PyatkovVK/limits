@@ -218,6 +218,12 @@ body.apple-notch:not([data-notch-phase="expanded"]) {
 .apple-island .apple-trigger { overflow: hidden; }
 .apple-island .apple-content { clip-path: inset(0 round 0 0 28px 28px); }
 .apple-island .apple-mini { display: none; }
+body.apple-island[data-island-indicators="hidden"] .apple-mini { display: flex; }
+body.apple-island[data-island-indicators="values"] .apple-island-label { display: none; }
+body.apple-island.apple-narrow-preview .apple-preview { left: 12px; right: 12px; }
+body.apple-island.apple-narrow-preview #apple-hint { display: none; }
+body.apple-island.apple-narrow-preview .apple-preview-row { grid-template-columns: 56px minmax(0, 1fr) 30px; gap: 8px; }
+body.apple-island.apple-narrow-preview .apple-period { gap: 4px; }
 body[data-platform="darwin"].apple-island .apple-island-meters {
   position: absolute; top: var(--meters-top); left: 50%; transform: translateX(-50%); height: var(--meters-height);
   display: flex; align-items: center; justify-content: space-between;

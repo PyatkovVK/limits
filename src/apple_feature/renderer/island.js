@@ -36,9 +36,10 @@
       if (!metrics.length) metrics = [{ id: 'unknown', compactLabel: 'Limits', type: 'count', value: null, formatted: '—' }];
       const shellWidth = layout.phase === 'closed' ? layout.closedWidth : layout.phase === 'peek' ? layout.peekWidth : layout.fullWidth;
       const width = Math.min(shellWidth, layout.metersWidth);
-      const nextSignature = JSON.stringify([metrics, next.stale, next.language, width, layout.notchWidth, layout.phase]);
+      const nextSignature = JSON.stringify([metrics, next.stale, next.language, width, layout.notchWidth, layout.phase, layout.indicatorMode]);
       if (nextSignature === signature) return;
       signature = nextSignature;
+      header.hidden = layout.indicatorMode === 'hidden';
       for (const [id, node] of nodes) if (!metrics.some(metric => metric.id === id)) { node.remove(); nodes.delete(id); }
       const ordered = metrics.map((metric, index) => {
         let node = nodes.get(metric.id);
@@ -61,6 +62,11 @@
       });
       const sideWidth = Math.max(0, (width - layout.notchWidth) / 2 - 24);
       header.style.setProperty('--island-wing-width', `${sideWidth}px`);
+      if (header.hidden) {
+        for (const node of ordered) node.hidden = true;
+        more.hidden = true;
+        return;
+      }
       more.hidden = false; more.textContent = `+${metrics.length}`; right.append(more);
       const plan = fitIndicators(ordered.map(node => node.getBoundingClientRect().width), sideWidth, more.getBoundingClientRect().width);
       for (const index of plan.left) left.append(ordered[index]);

@@ -10,7 +10,8 @@ function notchLayout(display, info = {}, mode = 'notch') {
   if (!display || !physical) return null;
   const island = mode === 'island';
   const fullWidth = Math.min(island ? Math.max(500, info.notchWidth + 208) : 460, display.bounds.width - 32);
-  const capHeight = physical ? Math.round(info.top) : 10;
+  // The visible menu bar can extend one point below the camera's safe-area inset.
+  const capHeight = Math.max(Math.ceil(info.top), display.workArea.y - display.bounds.y);
   const fullHeight = Math.min(630, display.workArea.y + display.workArea.height - display.bounds.y - 16);
   const center = physical ? display.bounds.x + info.notchX + info.notchWidth / 2 : display.bounds.x + display.bounds.width / 2;
   const localCenter = info.notchX + info.notchWidth / 2;
@@ -31,15 +32,18 @@ function notchLayout(display, info = {}, mode = 'notch') {
 
 function fitMenuBar(layout, mode, metricCount = 2) {
   const island = mode === 'island';
-  layout.closedWidth = Math.min(layout.fullWidth, island && metricCount > 2 ? layout.fullWidth : layout.notchWidth + (island ? 192 : 24));
-  // Keep the neck attached to the physical notch and its compact indicators.
-  // Foreground menu changes must not widen it into a rectangular top block.
+  const preferredWidth = Math.min(layout.fullWidth, island && metricCount > 2 ? layout.fullWidth : layout.notchWidth + (island ? 192 : 24));
+  const availableWidth = Math.min(preferredWidth, layout.menuBarWidth);
+  // Below this width even the overflow button cannot fit beside the camera.
+  layout.indicatorMode = !island || availableWidth >= preferredWidth ? 'full'
+    : availableWidth >= layout.notchWidth + 128 ? 'values' : 'hidden';
+  layout.closedWidth = !island ? preferredWidth : layout.indicatorMode === 'hidden' ? Math.min(layout.fullWidth, layout.notchWidth) : availableWidth;
   layout.capWidth = layout.closedWidth;
   layout.metersWidth = Math.min(layout.fullWidth, layout.capWidth);
   layout.metersTop = 0;
   layout.metersHeight = layout.capHeight + 4;
   layout.contentTop = layout.capHeight;
-  layout.closedHeight = layout.capHeight + (island ? 4 : 9);
+  layout.closedHeight = layout.capHeight + (island && layout.indicatorMode !== 'hidden' ? 4 : 9);
   layout.peekWidth = island ? layout.closedWidth : Math.min(layout.fullWidth, Math.max(340, layout.closedWidth + 40));
   layout.peekHeight = layout.contentTop + 116;
   layout.notificationHeight = Math.min(layout.maxFullHeight, layout.closedHeight + 164);
