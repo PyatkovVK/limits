@@ -220,6 +220,11 @@ body.apple-notch:not([data-notch-phase="expanded"]) {
 .apple-island .apple-mini { display: none; }
 body.apple-island[data-island-indicators="hidden"] .apple-mini { display: flex; }
 body.apple-island[data-island-indicators="values"] .apple-island-label { display: none; }
+body.apple-island[data-island-indicators="values"] .apple-island-dot { display: none; }
+body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meters { width: min(calc(100% - 8px), calc(var(--meters-width) - 8px)); }
+body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter { color: var(--short); }
+body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter.weekly { color: var(--weekly); }
+body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter.unknown { color: #949bab; }
 body.apple-island.apple-narrow-preview .apple-preview { left: 12px; right: 12px; }
 body.apple-island.apple-narrow-preview #apple-hint { display: none; }
 body.apple-island.apple-narrow-preview .apple-preview-row { grid-template-columns: 56px minmax(0, 1fr) 30px; gap: 8px; }

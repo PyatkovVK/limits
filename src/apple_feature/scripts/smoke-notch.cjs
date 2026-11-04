@@ -43,6 +43,7 @@ app.whenReady().then(async () => {
     }
     assert.ok(instances.notch?.available, 'A connected display must have a physical notch');
     assert.ok(panel && instances.accounts && instances.resets?.listenerCount('notification'), 'Demo controllers did not become ready');
+    await instances.notch.prepare();
     const initialMenuSpace = instances.notch.screenInfo;
     const report = await require('../smoke.cjs').verifyAppleIsland({
       appleNotch: instances.notch, target: instances.notch.window, trayPresentation: instances.tray,
@@ -53,7 +54,8 @@ app.whenReady().then(async () => {
         return instances.notch.notifications.length === count + 1;
       }
     });
-    const result = { ...report, initialMenuSpace, startupTrayChecked: false, artifacts: root };
+    const live = await instances.notch.withModal(() => require('../smoke.cjs').verifyLiveAppleIsland({ appleNotch: instances.notch, target: instances.notch.window, artifactRoot: root }));
+    const result = { ...report, live, initialMenuSpace, startupTrayChecked: false, artifacts: root };
     fs.writeFileSync(path.join(root, 'notch-smoke.json'), JSON.stringify(result, null, 2));
     console.log('MAC_NOTCH_SMOKE_OK', JSON.stringify(result));
     app.exit(0);

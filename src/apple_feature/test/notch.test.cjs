@@ -116,14 +116,14 @@ test('expanded content grows and shrinks inside a stationary notch host and surv
     await notch.enable(); clearInterval(notch.timer); notch.expand();
     const host = { ...notch.window.bounds };
     notch.resize(300);
-    assert.equal(notch.snapshot().fullHeight, 300 + info.top);
-    assert.equal(hitBounds(notch.snapshot(), 'expanded').height, 338);
+    assert.equal(notch.snapshot().fullHeight, 300 + info.top + 12);
+    assert.equal(hitBounds(notch.snapshot(), 'expanded').height, 350);
     assert.deepEqual(notch.window.bounds, host);
     notch.resize(480);
-    assert.equal(notch.snapshot().fullHeight, 518);
+    assert.equal(notch.snapshot().fullHeight, 530);
     notch.resize(300);
     await notch.discover();
-    assert.equal(notch.snapshot().fullHeight, 338);
+    assert.equal(notch.snapshot().fullHeight, 350);
     notch.resize(10000);
     assert.equal(notch.snapshot().fullHeight, 630);
     for (const height of [NaN, Infinity, -1, 0, '320']) assert.equal(notch.resize(height), false);
@@ -235,10 +235,9 @@ test('an incoming message preserves expanded Settings and all notification work 
   } finally { notch.destroy(); }
 });
 
-test('occupied or unknown menu space never paints wings over neighbouring controls', () => {
-  const cases = [info, { ...info, menuBarLeft: 760, menuBarRight: 1500 },
+test('confirmed occupied menu space never paints wings over neighbouring controls', () => {
+  const cases = [{ ...info, menuBarLeft: 760, menuBarRight: 1500 },
     { ...info, menuBarLeft: 300, menuBarRight: 1040 },
-    { ...info, menuBarLeft: NaN, menuBarRight: 1500 },
     { ...info, menuBarLeft: 1100, menuBarRight: 700 }];
   for (const native of cases) {
     const layout = notchLayout(display, native, 'island');
@@ -265,8 +264,8 @@ test('the tighter side controls a centred panel and hover uses the same edges', 
     assert.equal(closed.x, hover.x);
     assert.equal(closed.width, hover.width);
     assert.equal(closed.x + closed.width / 2, 900);
-    assert.ok(closed.x >= native.menuBarLeft + 12);
-    assert.ok(closed.x + closed.width <= native.menuBarRight - 12);
+    assert.ok(closed.x >= native.menuBarLeft + 8);
+    assert.ok(closed.x + closed.width <= native.menuBarRight - 8);
     assert.ok(layout.capWidth <= layout.menuBarWidth);
   }
 });
@@ -312,7 +311,7 @@ test('changing menu occupancy preserves the host, expanded content and queued no
     assert.equal(notch.snapshot().indicatorMode, 'hidden');
     assert.equal(notch.snapshot().peekWidth, notch.snapshot().closedWidth);
     assert.equal(notch.phase, 'expanded');
-    assert.equal(notch.snapshot().fullHeight, 300 + info.top);
+    assert.equal(notch.snapshot().fullHeight, 300 + info.top + 12);
     assert.equal(notch.snapshot().notification.body, 'Keep this message');
     assert.deepEqual(notch.window.bounds, host);
     notch.collapse(); assert.equal(notch.phase, 'notification');
@@ -321,9 +320,10 @@ test('changing menu occupancy preserves the host, expanded content and queued no
     assert.equal(notch.window.ignoring, true);
     notch.trackPointer({ x: 1009, y: 20 });
     assert.equal(notch.window.ignoring, false);
+    const lastWidth = notch.snapshot().menuBarWidth;
     notch.readNativeScreens = async () => { throw new Error('Native probe failed'); };
     await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().menuBarWidth, info.notchWidth);
+    assert.equal(notch.snapshot().menuBarWidth, lastWidth);
   } finally { notch.destroy(); }
 });
 
@@ -351,25 +351,26 @@ test('menu-bar polling coalesces slow probes, ignores late results and stops whe
 
 test('menu space shrinks immediately, grows after stability, and ignores tiny widening', async () => {
   let time = 0;
-  let native = { ...info, menuBarLeft: 300, menuBarRight: 1500 };
+  let native = { ...info, menuBarLeft: 760, menuBarRight: 1080 };
   const notch = await controller({ now: () => time, menuBarGrowDelay: 1000, readNativeScreens: async () => [native] });
   try {
     await notch.enable('island'); clearInterval(notch.timer); clearInterval(notch.menuBarTimer);
     assert.equal(notch.snapshot().indicatorMode, 'hidden');
+    native = { ...info, menuBarLeft: 300, menuBarRight: 1500 }; await notch.refreshMenuBar();
     time = 1000; await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'full');
     native = { ...info, menuBarLeft: 700, menuBarRight: 1500 };
     await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'values');
-    assert.equal(notch.snapshot().closedWidth, 376);
+    assert.equal(notch.snapshot().closedWidth, 384);
     native.menuBarLeft = 700.5; await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().closedWidth, 375);
+    assert.equal(notch.snapshot().closedWidth, 383);
     native.menuBarLeft = 700; time = 3000; await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().closedWidth, 375);
+    assert.equal(notch.snapshot().closedWidth, 383);
     native.menuBarLeft = 300; await notch.refreshMenuBar();
     time = 3500; await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().closedWidth, 375);
-    native = info; await notch.refreshMenuBar();
+    assert.equal(notch.snapshot().closedWidth, 383);
+    native = { ...info, menuBarLeft: 760, menuBarRight: 1080 }; await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'hidden');
     native = { ...info, menuBarLeft: 300, menuBarRight: 1500 };
     time = 4000; await notch.refreshMenuBar();
@@ -378,5 +379,52 @@ test('menu space shrinks immediately, grows after stability, and ignores tiny wi
     time = 5000; await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'full');
     assert.equal(notch.snapshot().peekWidth, notch.snapshot().closedWidth);
+  } finally { notch.destroy(); }
+});
+
+test('unavailable metadata does not remove side values and a known right boundary still constrains them', () => {
+  for (const native of [info, { ...info, menuBarLeft: null, menuBarRight: null }, { ...info, menuBarLeft: NaN, menuBarRight: 1500 }]) {
+    const layout = notchLayout(display, native, 'island');
+    assert.equal(layout.indicatorMode, 'full');
+    assert.equal(layout.closedWidth, info.notchWidth + 192);
+    assert.equal(layout.peekWidth, layout.closedWidth);
+  }
+  const native = { ...info, menuBarLeft: null, menuBarRight: info.notchX + info.notchWidth + 64 };
+  const layout = notchLayout(display, native, 'island');
+  assert.equal(layout.indicatorMode, 'values');
+  assert.ok(layout.closedWidth > info.notchWidth);
+  assert.equal(layout.closedWidth, layout.peekWidth);
+  const bounds = hitBounds(layout, 'closed');
+  assert.ok(bounds.x + bounds.width <= native.menuBarRight - 8);
+});
+
+test('probe failures retain the last real measurement instead of collapsing the panel', async () => {
+  const notch = await controller();
+  try {
+    await notch.enable('island'); clearInterval(notch.timer); clearInterval(notch.menuBarTimer);
+    const before = notch.snapshot();
+    notch.readNativeScreens = async () => [];
+    await notch.refreshMenuBar();
+    assert.equal(notch.snapshot().closedWidth, before.closedWidth);
+    assert.equal(notch.snapshot().indicatorMode, 'full');
+    notch.readNativeScreens = async () => [{ ...info, menuBarLeft: null, menuBarRight: null }];
+    await notch.refreshMenuBar();
+    assert.equal(notch.snapshot().menuBarWidth, before.menuBarWidth);
+  } finally { notch.destroy(); }
+});
+
+test('cancelling the pre-show menu probe cannot show a late notch window', async () => {
+  const notch = await controller();
+  let resume;
+  notch.readNativeScreens = () => new Promise(resolve => { resume = resolve; });
+  try {
+    const pending = notch.enable('island');
+    while (!resume) await new Promise(resolve => setImmediate(resolve));
+    notch.disable();
+    resume([{ ...info, menuBarLeft: 300, menuBarRight: 1500 }]);
+    await pending;
+    assert.equal(notch.enabled, false);
+    assert.equal(Boolean(notch.window.visible), false);
+    assert.equal(notch.timer, null);
   } finally { notch.destroy(); }
 });

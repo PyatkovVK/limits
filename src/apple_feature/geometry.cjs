@@ -15,9 +15,10 @@ function notchLayout(display, info = {}, mode = 'notch') {
   const fullHeight = Math.min(630, display.workArea.y + display.workArea.height - display.bounds.y - 16);
   const center = physical ? display.bounds.x + info.notchX + info.notchWidth / 2 : display.bounds.x + display.bounds.width / 2;
   const localCenter = info.notchX + info.notchWidth / 2;
-  // Keep curved joins away from adjacent menus. Missing/partial metadata is occupied.
-  const clearance = Number.isFinite(info.menuBarLeft) && Number.isFinite(info.menuBarRight)
-    ? 2 * Math.min(localCenter - info.menuBarLeft, info.menuBarRight - localCenter) - 24 : 0;
+  // Only confirmed boundaries restrict a wing. Unknown is not the same as occupied.
+  const left = Number.isFinite(info.menuBarLeft) ? info.menuBarLeft : 0;
+  const right = Number.isFinite(info.menuBarRight) ? info.menuBarRight : display.bounds.width;
+  const clearance = 2 * Math.min(localCenter - left, right - localCenter) - 16;
   const x = Math.max(display.bounds.x + 4, Math.min(center - fullWidth / 2 - 12, display.bounds.x + display.bounds.width - fullWidth - 28));
   const layout = {
     physical, displayId: display.id, capHeight, fullWidth, fullHeight, maxFullHeight: fullHeight,
@@ -34,15 +35,16 @@ function fitMenuBar(layout, mode, metricCount = 2) {
   const island = mode === 'island';
   const preferredWidth = Math.min(layout.fullWidth, island && metricCount > 2 ? layout.fullWidth : layout.notchWidth + (island ? 192 : 24));
   const availableWidth = Math.min(preferredWidth, layout.menuBarWidth);
-  // Below this width even the overflow button cannot fit beside the camera.
+  // Compact values use smaller outer padding and omit labels and decorative dots.
   layout.indicatorMode = !island || availableWidth >= preferredWidth ? 'full'
-    : availableWidth >= layout.notchWidth + 128 ? 'values' : 'hidden';
+    : availableWidth >= layout.notchWidth + 80 ? 'values' : 'hidden';
   layout.closedWidth = !island ? preferredWidth : layout.indicatorMode === 'hidden' ? Math.min(layout.fullWidth, layout.notchWidth) : availableWidth;
   layout.capWidth = layout.closedWidth;
   layout.metersWidth = Math.min(layout.fullWidth, layout.capWidth);
   layout.metersTop = 0;
   layout.metersHeight = layout.capHeight + 4;
-  layout.contentTop = layout.capHeight;
+  // Leave a full inset after the curved shoulder before details and Settings.
+  layout.contentTop = layout.capHeight + 12;
   layout.closedHeight = layout.capHeight + (island && layout.indicatorMode !== 'hidden' ? 4 : 9);
   layout.peekWidth = island ? layout.closedWidth : Math.min(layout.fullWidth, Math.max(340, layout.closedWidth + 40));
   layout.peekHeight = layout.contentTop + 116;

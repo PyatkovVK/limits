@@ -30,10 +30,13 @@ async function verifyContentSizing(window, notch = null) {
     const close = dialog.querySelector('.settings-close').getBoundingClientRect();
     const cap = document.body.classList.contains('apple-notch') ? parseFloat(getComputedStyle(document.body).getPropertyValue('--content-top')) : 0;
     const bottom = document.body.classList.contains('apple-notch') ? parseFloat(getComputedStyle(document.body).getPropertyValue('--full-height')) : innerHeight;
-    return { top: bounds.top, bottom: bounds.bottom, safeTop: cap, safeBottom: bottom,
+    const shoulderBottom = document.body.classList.contains('apple-notch') ? parseFloat(getComputedStyle(document.body).getPropertyValue('--cap-height')) + 12 : 0;
+    const inset = parseFloat(getComputedStyle(dialog).getPropertyValue('--settings-inset')) || 14;
+    return { top: bounds.top, bottom: bounds.bottom, safeTop: cap, safeBottom: bottom, shoulderBottom, inset,
       closeWidth: close.width, closeHeight: close.height, contained: close.top >= bounds.top && close.right <= bounds.right && close.bottom <= bounds.bottom };
   })()`);
   if (modal.top < modal.safeTop || modal.bottom > modal.safeBottom + 1) throw new Error('Mac Settings overlaps the notch or leaves its panel: ' + JSON.stringify(modal));
+  if (notch && modal.top - modal.shoulderBottom < modal.inset) throw new Error('Settings has no top inset after the notch shoulders: ' + JSON.stringify(modal));
   if (modal.closeWidth !== 32 || modal.closeHeight !== 32 || !modal.contained) throw new Error('Mac Settings close button is stretched: ' + JSON.stringify(modal));
   await window.webContents.executeJavaScript('window.limitsSettings.dialog.close()');
   if (await height() !== compact) throw new Error('Mac panel did not shrink after closing Settings');
@@ -144,7 +147,7 @@ async function verifyAppleNotch({ appleNotch, window, trayPresentation, setDispl
 
 async function verifyAppleIsland(options) {
   const { appleNotch } = options;
-  const read = appleNotch.readNativeScreens, growDelay = appleNotch.menuBarGrowDelay;
+  const read = appleNotch.readNativeScreens, growDelay = appleNotch.menuBarGrowDelay, measured = appleNotch.layoutScreenInfo;
   const native = appleNotch.screenInfo;
   // Exercise deterministic menu layouts without relying on the user's current status items.
   appleNotch.readNativeScreens = async () => [{ ...native, menuBarLeft: 0, menuBarRight: appleNotch.display.bounds.width }];
@@ -153,6 +156,7 @@ async function verifyAppleIsland(options) {
   finally {
     appleNotch.readNativeScreens = read;
     appleNotch.menuBarGrowDelay = growDelay;
+    appleNotch.layoutScreenInfo = measured;
     await appleNotch.refreshMenuBar();
   }
 }
@@ -163,7 +167,7 @@ async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, 
   const renderState = () => run('window.limits.get().then(render)');
   async function preview(name, height) {
     // A neutral demo wallpaper makes the transparent curved edges visible in the artifact.
-    await run("document.documentElement.style.background = '#dbe2ec'");
+    await run("document.documentElement.style.background = '#dbe2ec'; new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     await delay(80);
     try { fs.writeFileSync(path.join(artifactRoot, name), (await target.webContents.capturePage({ x: 0, y: 0, width: appleNotch.layout.bounds.width, height })).toPNG()); }
     finally { await run("document.documentElement.style.removeProperty('background')"); }
@@ -321,6 +325,14 @@ async function verifyCompactAppearance({ appleNotch, target, artifactRoot }) {
         if (report.contentVisible !== (nextPhase === 'expanded') || (mode === 'image' ? !report.contentImage.includes('data:image/png') : report.contentColor !== 'rgb(255, 255, 255)')) throw new Error('Expanded notch lost its custom background: ' + JSON.stringify(report));
         checks.push({ mode, phase: nextPhase, blackChrome: nextPhase !== 'expanded', backgroundInDetails: true });
         if (nextPhase === 'closed') fs.writeFileSync(path.join(artifactRoot, `apple-${appleNotch.mode}-${mode}-closed.png`), (await target.webContents.capturePage({ x: 0, y: 0, width: appleNotch.layout.bounds.width, height: appleNotch.layout.closedHeight + 16 })).toPNG());
+        if (nextPhase === 'expanded') {
+          await run('window.limitsSettings.open()');
+          await new Promise(resolve => setTimeout(resolve, 600));
+          const gap = await run("document.getElementById('settings-dialog').getBoundingClientRect().top - parseFloat(getComputedStyle(document.body).getPropertyValue('--cap-height')) - 12");
+          if (gap < 12) throw new Error('Custom-background Settings lost its top inset: ' + gap);
+          fs.writeFileSync(path.join(artifactRoot, `apple-${appleNotch.mode}-${mode}-settings.png`), (await target.webContents.capturePage()).toPNG());
+          await run('window.limitsSettings.dialog.close()');
+        }
       }
     }
     return checks;
@@ -341,11 +353,13 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
     { name: 'values', metadata: { ...wide, menuBarLeft: native.notchX - 80 }, expected: 'values', side: 'left' },
     { name: 'crowded-left', metadata: { ...wide, menuBarLeft: native.notchX - 8 }, expected: 'hidden', side: 'left' },
     { name: 'crowded-right', metadata: { ...wide, menuBarRight: native.notchX + native.notchWidth + 8 }, expected: 'hidden', side: 'right' },
-    { name: 'unknown', metadata: { ...native, menuBarLeft: undefined, menuBarRight: undefined }, expected: 'hidden' }
+    { name: 'unknown-left', metadata: { ...native, menuBarLeft: null, menuBarRight: native.notchX + native.notchWidth + 64 }, expected: 'values', side: 'right' },
+    { name: 'unknown', metadata: { ...native, menuBarLeft: null, menuBarRight: null }, expected: 'full' }
   ];
   const checks = [];
   try {
     for (const scenario of cases) {
+      appleNotch.layoutScreenInfo = null;
       appleNotch.readNativeScreens = async () => [scenario.metadata];
       await appleNotch.refreshMenuBar();
       let compact;
@@ -399,4 +413,30 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
     appleNotch.setPhase(originalPhase);
   }
 }
-module.exports = { verifyMacPanel, verifyAppleNotch, verifyAppleIsland };
+async function verifyLiveAppleIsland({ appleNotch, target, artifactRoot }) {
+  const run = source => target.webContents.executeJavaScript(source);
+  await appleNotch.refreshMenuBar();
+  await new Promise(resolve => setTimeout(resolve, 1100));
+  await appleNotch.refreshMenuBar();
+  const layout = appleNotch.snapshot(), states = [];
+  if (layout.menuBarWidth >= layout.notchWidth + 80 && layout.indicatorMode === 'hidden') throw new Error('Real free space incorrectly hid side indicators');
+  for (const phase of ['closed', 'peek']) {
+    appleNotch.setPhase(phase);
+    await new Promise(resolve => setTimeout(resolve, 550));
+    const report = await run(`(() => {
+      const r = document.querySelector('.apple-shell').getBoundingClientRect();
+      const header = document.querySelector('.apple-island-meters');
+      return { phase: document.body.dataset.notchPhase, left: r.left, right: r.right, width: r.width,
+        visibleValues: header.hidden ? [] : [...header.querySelectorAll('.apple-island-meter:not([hidden]) .apple-island-value')].filter(el => el.getBoundingClientRect().width > 0).map(el => el.textContent) };
+    })()`);
+    if (layout.indicatorMode !== 'hidden' && report.visibleValues.join(',') !== '72%,46%') throw new Error('Real menu space lost the side quotas: ' + JSON.stringify(report));
+    states.push(report);
+    await run("document.documentElement.style.background = '#dbe2ec'; new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+    try { fs.writeFileSync(path.join(artifactRoot, `apple-island-live-${phase}.png`), (await target.webContents.capturePage({ x: 0, y: 0, width: layout.bounds.width, height: (phase === 'closed' ? layout.closedHeight : layout.peekHeight) + 16 })).toPNG()); }
+    finally { await run("document.documentElement.style.removeProperty('background')"); }
+  }
+  if (states[0].left !== states[1].left || states[0].right !== states[1].right) throw new Error('Real hover preview changed side edges');
+  const appearance = await verifyCompactAppearance({ appleNotch, target, artifactRoot });
+  return { nativeMenuSpace: appleNotch.screenInfo, indicatorMode: layout.indicatorMode, states, appearance, realGeometry: true };
+}
+module.exports = { verifyMacPanel, verifyAppleNotch, verifyAppleIsland, verifyLiveAppleIsland };

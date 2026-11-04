@@ -60,7 +60,7 @@
         node.hidden = false; left.append(node);
         return node;
       });
-      const sideWidth = Math.max(0, (width - layout.notchWidth) / 2 - 24);
+      const sideWidth = Math.max(0, (width - layout.notchWidth) / 2 - (layout.indicatorMode === 'values' ? 8 : 24));
       header.style.setProperty('--island-wing-width', `${sideWidth}px`);
       if (header.hidden) {
         for (const node of ordered) node.hidden = true;

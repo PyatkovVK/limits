@@ -15,7 +15,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ### Fixed
 
-- On macOS, fit the notch side panel between neighbouring menu-bar controls, shorten its labels when necessary, and fall back to a compact notch with limits on hover when space is insufficient or unknown. Keep collapsed and hover widths identical; shrink promptly and restore width only after stable free space.
+- On macOS, fit the notch side panel between neighbouring menu-bar controls, shorten its labels when necessary, and fall back to a compact notch with limits on hover only when space is confirmed insufficient. Measure status-item space without extra permissions and preserve side values when menu metadata is unavailable. Restore the top inset above Settings, including custom backgrounds. Keep collapsed and hover widths identical; shrink promptly and restore width only after stable free space.
 - On macOS, keep the notch side panel's hover preview at exactly the collapsed width: its left and right edges stay fixed while it grows downward to show details. Preserve the click-expanded panel size.
 - On Windows and Linux, show Panel settings only when the widget display mode is selected, use a platform-neutral section title, and rename the Linux percentage-icon option to Icons · percentages.
 - On Windows, keep compact balance rows evenly spaced inside the taskbar widget, including short taskbars, with room below the bonus amount.

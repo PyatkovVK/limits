@@ -53,6 +53,7 @@ class AppleNotch {
     const display = chooseDisplay(this.screen.getAllDisplays(), screens, this.screen.getPrimaryDisplay());
     this.available = Boolean(display);
     this.display = display; this.screenInfo = screens.find(info => info.id === display?.id);
+    this.layoutScreenInfo = this.screenInfo;
     this.layout = display ? notchLayout(display, this.screenInfo, this.mode) : null;
     this.fitContent();
   }
@@ -62,7 +63,7 @@ class AppleNotch {
     this.layout.fullHeight = Math.min(this.layout.maxFullHeight, Math.max(this.layout.peekHeight, this.contentHeight + this.layout.contentTop));
   }
 
-  async refreshMenuBar() {
+  async refreshMenuBar({ initial = false } = {}) {
     if (!this.enabled || this.menuBarPending) return;
     this.menuBarPending = true;
     const activation = this.activation, revision = this.revision;
@@ -71,11 +72,16 @@ class AppleNotch {
       try { screens = await this.readNativeScreens(); } catch { screens = []; }
       if (!this.enabled || activation !== this.activation || revision !== this.revision) return;
       const info = screens.find(info => info.id === this.display?.id && info.top > 0 && info.notchWidth > 0);
-      // A failed probe removes permission to draw over the menu bar, not the notch.
-      this.screenInfo = info || { ...this.screenInfo, menuBarLeft: undefined, menuBarRight: undefined };
+      // A probe failure is not evidence of occupied space. Keep the last measurement.
+      if (!info) { this.menuBarGrowth = null; return; }
+      this.screenInfo = { ...info };
+      for (const key of ['menuBarLeft', 'menuBarRight']) {
+        if (!Number.isFinite(this.screenInfo[key]) && Number.isFinite(this.layoutScreenInfo?.[key])) this.screenInfo[key] = this.layoutScreenInfo[key];
+      }
+      this.layoutScreenInfo = this.screenInfo;
       const next = notchLayout(this.display, this.screenInfo, this.mode);
       if (next.menuBarWidth === this.layout.menuBarWidth) { this.menuBarGrowth = null; return; }
-      if (next.menuBarWidth > this.layout.menuBarWidth) {
+      if (!initial && next.menuBarWidth > this.layout.menuBarWidth) {
         // Shrink on the first occupied probe; grow only after stable free space.
         if (next.menuBarWidth - this.layout.menuBarWidth < 8) { this.menuBarGrowth = null; return; }
         if (this.menuBarGrowth?.width !== next.menuBarWidth) this.menuBarGrowth = { width: next.menuBarWidth, since: this.now() };
@@ -111,12 +117,14 @@ class AppleNotch {
     if (!this.available) throw new Error('No physical notch on connected displays');
     this.mode = mode;
     this.menuBarGrowth = null;
-    // Metadata discovered before activation may describe a different foreground app.
-    this.layout = notchLayout(this.display, { ...this.screenInfo, menuBarLeft: undefined, menuBarRight: undefined }, mode); this.fitContent();
+    this.layout = notchLayout(this.display, this.screenInfo, mode); this.fitContent();
     const activation = ++this.activation;
     await this.prepare();
     if (activation !== this.activation || !this.available) return;
     this.enabled = true; this.phase = 'closed';
+    // Refresh before showing, rather than flashing an unmeasured width first.
+    await this.refreshMenuBar({ initial: true });
+    if (!this.enabled || activation !== this.activation || !this.available) return;
     this.hoverBlocked = false; this.enteredAt = this.leftAt = null;
     this.place();
     this.window.showInactive();
