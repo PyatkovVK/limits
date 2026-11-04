@@ -89,7 +89,7 @@ Two indicators, **5h** and **7d**, show remaining usage, with a reset timer besi
 
 **Settings → Display → Notch side panel** adds a third mode: a black panel with curved joins into the notch and persistent **5h** / **7d** values on either side. Low-allowance warnings, enabled Codex Resets alerts, and update announcements expand inside this panel. Messages queue, dismiss automatically after ten seconds when the pointer is away, and can be closed with × or Esc. Both notch modes require a physical MacBook notch.
 
-Notch panels protect application menus and status icons. When the available menu-bar space is too small or cannot be determined, the quota values move below the menu bar. This does not request additional macOS permissions.
+The compact side indicators stay level with the physical notch, including when menu-bar geometry is unavailable. The collapsed notch stays black; a selected background appears inside the expanded details panel. Areas outside the notch chrome remain transparent and pass clicks through. This does not request additional macOS permissions.
 
 The side panel adapts to additional metrics. Values that do not fit move into a **+N** control, which opens the complete list in the scrollable details panel.
 

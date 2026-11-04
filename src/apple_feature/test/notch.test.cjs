@@ -29,6 +29,14 @@ test('hit testing includes the visible island and passes through the transparent
   assert.ok(contains(hitBounds(layout, 'peek'), { x: 900, y: 110 }));
   assert.ok(!contains(hitBounds(layout, 'expanded'), { x: 650, y: 300 }));
 });
+test('the compact notch fills both side margins and keeps them interactive', () => {
+  const layout = notchLayout(display, info);
+  assert.equal(layout.capWidth, layout.closedWidth);
+  for (const offset of [-info.notchWidth / 2 - 6, info.notchWidth / 2 + 6]) {
+    assert.equal(contains(hitBounds(layout, 'closed'), { x: 900 + offset, y: info.top / 2 }), true);
+  }
+  assert.equal(contains(hitBounds(layout, 'closed'), { x: 900 + layout.closedWidth / 2 + 1, y: info.top / 2 }), false);
+});
 class FakeWindow extends EventEmitter {
   constructor() { super(); this.webContents = new EventEmitter(); this.webContents.send = (_channel, state) => { this.state = state; }; this.webContents.executeJavaScript = async () => {}; }
   setAlwaysOnTop() {} setVisibleOnAllWorkspaces() {} setHiddenInMissionControl() {}
@@ -227,22 +235,23 @@ test('an incoming message preserves expanded Settings and all notification work 
   } finally { notch.destroy(); }
 });
 
-test('occupied or unknown menu-bar space moves meters below the bar and protects every phase', () => {
+test('side indicators stay level with the notch when menu geometry is crowded or unknown', () => {
   const center = 900;
   const cases = [info, { ...info, menuBarLeft: 720, menuBarRight: 1500 },
     { ...info, menuBarLeft: 300, menuBarRight: 1080 },
     { ...info, menuBarLeft: NaN, menuBarRight: 1500 }];
   for (const native of cases) {
     const layout = notchLayout(display, native, 'island');
-    assert.equal(layout.metersBelowMenuBar, true);
-    assert.equal(layout.metersTop, info.top);
-    assert.equal(layout.contentTop, info.top + layout.metersHeight);
+    assert.equal(layout.metersTop, 0);
+    assert.equal(layout.closedHeight, info.top + 4);
+    assert.equal(layout.contentTop, info.top);
+    assert.ok(layout.metersWidth >= layout.closedWidth);
     for (const phase of ['closed', 'peek', 'expanded', 'notification']) {
       const bounds = hitBounds(layout, phase);
-      const protectedX = center + layout.menuBarWidth / 2 + 1;
+      const protectedX = center + layout.capWidth / 2 + 1;
       assert.equal(contains(bounds, { x: protectedX, y: 20 }, 6), false, phase);
       assert.equal(contains(bounds, { x: center, y: 20 }), true, phase);
-      assert.equal(contains(bounds, { x: center + layout.closedWidth / 2 - 10, y: info.top + 10 }), true, phase);
+      assert.equal(contains(bounds, { x: center + layout.closedWidth / 2 - 10, y: info.top + 2 }), true, phase);
     }
   }
 });
@@ -251,14 +260,14 @@ test('verified free space preserves menu-bar meters and negative monitor coordin
   const native = { ...info, menuBarLeft: 300, menuBarRight: 1500 };
   const secondary = { ...display, bounds: { ...display.bounds, x: -1800, y: -1169 } };
   const layout = notchLayout(secondary, native, 'island');
-  assert.equal(layout.metersBelowMenuBar, false);
   assert.equal(layout.metersTop, 0);
   assert.equal(layout.closedHeight, info.top + 4);
   assert.ok(layout.menuBarWidth >= layout.fullWidth);
   for (const phase of ['closed', 'peek', 'expanded', 'notification']) {
     const bounds = hitBounds(layout, phase);
-    assert.equal(contains(bounds, { x: -900 + bounds.width / 2 - 1, y: -1150 }), true);
-    assert.equal(contains(bounds, { x: -900 + bounds.width / 2 + 1, y: -1150 }, 6), false);
+    const capWidth = Math.min(bounds.width, layout.capWidth);
+    assert.equal(contains(bounds, { x: -900 + capWidth / 2 - 1, y: -1150 }), true);
+    assert.equal(contains(bounds, { x: -900 + capWidth / 2 + 1, y: -1150 }, 6), false);
   }
 });
 
@@ -268,22 +277,22 @@ test('changing menu occupancy preserves the host, expanded content and queued no
   try {
     await notch.enable('island'); clearInterval(notch.timer);
     await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().metersBelowMenuBar, false);
+    assert.equal(notch.snapshot().metersTop, 0);
     const host = { ...notch.window.bounds };
     notch.expand(); notch.resize(300);
     notch.notify({ title: 'Limits', body: 'Keep this message' });
     native = { ...info, menuBarLeft: 760, menuBarRight: 1080 };
     await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().metersBelowMenuBar, true);
+    assert.equal(notch.snapshot().metersTop, 0);
     assert.equal(notch.phase, 'expanded');
-    assert.equal(notch.snapshot().fullHeight, 300 + info.top + 30);
+    assert.equal(notch.snapshot().fullHeight, 300 + info.top);
     assert.equal(notch.snapshot().notification.body, 'Keep this message');
     assert.deepEqual(notch.window.bounds, host);
     notch.collapse(); assert.equal(notch.phase, 'notification');
     notch.dismissNotification(notch.snapshot().notification.id);
-    notch.trackPointer({ x: 1100, y: 20 });
+    notch.trackPointer({ x: 1110, y: 20 });
     assert.equal(notch.window.ignoring, true);
-    notch.trackPointer({ x: 1100, y: info.top + 10 });
+    notch.trackPointer({ x: 1100, y: 20 });
     assert.equal(notch.window.ignoring, false);
     notch.readNativeScreens = async () => { throw new Error('Native probe failed'); };
     await notch.refreshMenuBar();

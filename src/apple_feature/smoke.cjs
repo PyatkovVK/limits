@@ -103,7 +103,9 @@ async function verifyAppleNotch({ appleNotch, window, trayPresentation, setDispl
   await target.webContents.executeJavaScript('window.renderReady');
   async function renderState() { await target.webContents.executeJavaScript('window.limits.get().then(render)'); }
   await renderState();
+  const surface = await verifyNotchSurface({ appleNotch, target, artifactRoot });
   const contentSizing = await verifyContentSizing(target, appleNotch);
+  const compactAppearance = await verifyCompactAppearance({ appleNotch, target, artifactRoot });
   const report = await target.webContents.executeJavaScript(`({ isolated: typeof require === 'undefined', mode: document.getElementById('display-mode').value, values: ['short','weekly'].map(kind => document.getElementById('apple-' + kind + '-value').textContent), timer: document.getElementById('apple-short-reset').textContent, scroll: getComputedStyle(document.querySelector('main')).overflowY, horizontalOverflow: document.querySelector('main').scrollWidth > document.querySelector('main').clientWidth, animation: getComputedStyle(document.querySelector('.apple-shell')).transitionDuration })`);
   if (!report.isolated || report.mode !== 'notch' || report.timer === '—' || report.scroll !== 'auto' || report.horizontalOverflow || !report.animation.includes('0.44s') || (demo && report.values.join(',') !== '72%,46%')) throw new Error('Notch rendering failed: ' + JSON.stringify(report));
   if (demo) {
@@ -137,7 +139,7 @@ async function verifyAppleNotch({ appleNotch, window, trayPresentation, setDispl
   await target.webContents.executeJavaScript(`window.limits.displayMode('tray')`);
   if (appleNotch.enabled || target.isVisible() || trayPresentation.entries.length !== 2) throw new Error('Tray mode was not restored');
   await delay(100);
-  return { ...report, contentSizing, island, physical: layout.physical, displayId: layout.displayId, bounds: layout.bounds, hover: true, click: true, escape: true, accountSwitch: demo, reducedMotion: true, modeRestored: true };
+  return { ...report, surface, contentSizing, compactAppearance, island, physical: layout.physical, displayId: layout.displayId, bounds: layout.bounds, hover: true, click: true, escape: true, accountSwitch: demo, reducedMotion: true, modeRestored: true };
 }
 
 async function verifyAppleIsland({ appleNotch, target, trayPresentation, artifactRoot, demo, monitor, showResetNotification }) {
@@ -157,8 +159,10 @@ async function verifyAppleIsland({ appleNotch, target, trayPresentation, artifac
   clearInterval(appleNotch.menuBarTimer); appleNotch.menuBarTimer = null;
   await renderState(); await delay(550);
   if (appleNotch.mode !== 'island' || trayPresentation.entries.length) throw new Error('Side panel mode did not activate');
+  const surface = await verifyNotchSurface({ appleNotch, target, artifactRoot });
   const contentSizing = await verifyContentSizing(target, appleNotch);
   const menuBarProtection = await verifyMenuBarProtection({ appleNotch, target });
+  const compactAppearance = await verifyCompactAppearance({ appleNotch, target, artifactRoot });
   appleNotch.collapse(); await renderState(); await delay(500);
   const header = await run(`(() => {
     const shell = document.querySelector('.apple-shell').getBoundingClientRect();
@@ -224,7 +228,84 @@ async function verifyAppleIsland({ appleNotch, target, trayPresentation, artifac
   await run("document.getElementById('updates-later').click()");
   await run("window.limits.demoUpdate('current')");
   appleNotch.collapse(); await renderState();
-  return { header, notification, many, contentSizing, menuBarProtection, transparent, queue: true, resetRouting: true, updateRouting: true, settings: true, accountSwitch: demo };
+  return { header, notification, many, surface, contentSizing, compactAppearance, menuBarProtection, transparent, queue: true, resetRouting: true, updateRouting: true, settings: true, accountSwitch: demo };
+}
+
+async function verifyNotchSurface({ appleNotch, target, artifactRoot }) {
+  const original = appleNotch.phase;
+  const checks = [];
+  try {
+    for (const phase of ['closed', 'peek', 'expanded']) {
+      appleNotch.setPhase(phase);
+      await new Promise(resolve => setTimeout(resolve, 550));
+      const rect = await target.webContents.executeJavaScript(`(() => {
+        const rect = document.querySelector('.apple-shell').getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      })()`);
+      const image = await target.webContents.capturePage();
+      const size = image.getSize(), bitmap = image.toBitmap();
+      // capturePage reports physical pixels; DOM geometry is in CSS points.
+      const scale = size.width / appleNotch.layout.bounds.width;
+      const alpha = (x, y) => bitmap[(Math.floor(y * scale) * size.width + Math.floor(x * scale)) * 4 + 3];
+      const cap = appleNotch.layout.capHeight;
+      const neckLeft = rect.x + (rect.width - appleNotch.layout.capWidth) / 2;
+      const closed = phase === 'closed';
+      const cornerAlpha = alpha(rect.x + 1, closed ? rect.height - 1 : cap + 1);
+      const joinAlpha = alpha(closed ? rect.x + 2 : neckLeft - 2, closed ? cap / 2 : cap - 2);
+      if (closed) {
+        for (const x of [rect.x + 2, rect.x + rect.width - 3]) {
+          const pixel = (Math.floor(cap / 2 * scale) * size.width + Math.floor(x * scale)) * 4;
+          if (bitmap[pixel + 3] < 250 || bitmap[pixel] + bitmap[pixel + 1] + bitmap[pixel + 2] > 8) throw new Error('Compact notch has transparent or light side margins');
+        }
+      }
+      fs.writeFileSync(path.join(artifactRoot, `apple-${appleNotch.mode}-${phase}-alpha.png`), image.toPNG());
+      await target.webContents.executeJavaScript("document.documentElement.style.background = '#dbe2ec'; new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+      await new Promise(resolve => setTimeout(resolve, 100));
+      try {
+        fs.writeFileSync(path.join(artifactRoot, `apple-${appleNotch.mode}-${phase}-surface.png`), (await target.webContents.capturePage({ x: 0, y: 0, width: appleNotch.layout.bounds.width, height: Math.ceil(rect.height + 16) })).toPNG());
+      } finally { await target.webContents.executeJavaScript("document.documentElement.style.removeProperty('background')"); }
+      if (cornerAlpha > 8 || joinAlpha < 240) throw new Error('Notch has square shoulders or a disconnected neck: ' + JSON.stringify({ mode: appleNotch.mode, phase, cornerAlpha, joinAlpha, rect, cap, neckLeft, size, bitmapLength: bitmap.length, scale }));
+      checks.push({ phase, ...(closed ? { blackSideMargins: true, roundedBottom: true } : { roundedShoulders: true }), connectedNeck: true });
+    }
+    return checks;
+  } finally { appleNotch.setPhase(original); }
+}
+
+async function verifyCompactAppearance({ appleNotch, target, artifactRoot }) {
+  const { dialog, nativeImage } = require('electron');
+  const run = source => target.webContents.executeJavaScript(source);
+  const original = await run('window.limits.appearance()');
+  const phase = appleNotch.phase;
+  const chooser = dialog.showOpenDialog;
+  const fixture = path.join(artifactRoot, 'notch-background-smoke.png');
+  fs.writeFileSync(fixture, nativeImage.createFromBitmap(Buffer.alloc(16 * 16 * 4, 255), { width: 16, height: 16 }).toPNG());
+  const checks = [];
+  try {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [fixture] });
+    for (const mode of ['color', 'image']) {
+      await run(mode === 'image' ? 'window.limits.chooseBackground()' : "window.limits.setAppearance({ mode: 'color', color: '#ffffff' })");
+      for (const nextPhase of ['closed', 'peek', 'expanded']) {
+        appleNotch.setPhase(nextPhase);
+        await new Promise(resolve => setTimeout(resolve, 550));
+        const report = await run(`(() => {
+          const shell = getComputedStyle(document.querySelector('.apple-shell'));
+          const content = getComputedStyle(document.querySelector('.apple-content'));
+          return { shellColor: shell.backgroundColor, shellImage: shell.backgroundImage,
+            contentColor: content.backgroundColor, contentImage: content.backgroundImage,
+            contentVisible: content.opacity === '1' };
+        })()`);
+        if (report.shellImage !== 'none' || (nextPhase !== 'expanded' && report.shellColor !== 'rgb(0, 0, 0)')) throw new Error('Custom background painted compact notch chrome: ' + JSON.stringify(report));
+        if (report.contentVisible !== (nextPhase === 'expanded') || (mode === 'image' ? !report.contentImage.includes('data:image/png') : report.contentColor !== 'rgb(255, 255, 255)')) throw new Error('Expanded notch lost its custom background: ' + JSON.stringify(report));
+        checks.push({ mode, phase: nextPhase, blackChrome: nextPhase !== 'expanded', backgroundInDetails: true });
+        if (nextPhase === 'closed') fs.writeFileSync(path.join(artifactRoot, `apple-${appleNotch.mode}-${mode}-closed.png`), (await target.webContents.capturePage({ x: 0, y: 0, width: appleNotch.layout.bounds.width, height: appleNotch.layout.closedHeight + 16 })).toPNG());
+      }
+    }
+    return checks;
+  } finally {
+    dialog.showOpenDialog = chooser;
+    await run(`window.limits.setAppearance(${JSON.stringify({ mode: original.mode, color: original.color })})`);
+    appleNotch.setPhase(phase);
+  }
 }
 
 async function verifyMenuBarProtection({ appleNotch, target }) {
@@ -239,22 +320,22 @@ async function verifyMenuBarProtection({ appleNotch, target }) {
         appleNotch.setPhase(phase);
         await new Promise(resolve => setTimeout(resolve, 500));
         const layout = appleNotch.snapshot();
-        if (!layout.metersBelowMenuBar || layout.metersTop < layout.capHeight) throw new Error('Quota meters stayed over an occupied menu bar');
-        const x = layout.bounds.width / 2 - layout.notchWidth / 2 - 8, y = layout.capHeight / 2;
+        if (layout.metersTop !== 0 || layout.closedHeight !== layout.capHeight + 4) throw new Error('Side indicators moved below the physical notch');
+        const x = layout.bounds.width / 2 - layout.capWidth / 2 - 8, y = layout.capHeight / 2;
         if (contains(hitBounds(layout, phase), { x: layout.bounds.x + x, y: layout.bounds.y + y }, 6)) throw new Error('Protected menu-bar controls intercept clicks: ' + phase);
         const image = await target.webContents.capturePage();
         const size = image.getSize(), bitmap = image.toBitmap();
-        const scale = Math.sqrt(bitmap.length / (size.width * size.height * 4));
-        const pixel = (Math.floor(y * scale) * Math.round(size.width * scale) + Math.floor(x * scale)) * 4;
+        const scale = size.width / layout.bounds.width;
+        const pixel = (Math.floor(y * scale) * size.width + Math.floor(x * scale)) * 4;
         if (bitmap[pixel + 3] !== 0) throw new Error('Notch surface covers a protected menu-bar control: ' + phase);
         const row = await target.webContents.executeJavaScript("document.querySelector('.apple-island-meters').getBoundingClientRect().top");
-        if (row < layout.capHeight) throw new Error('Quota row was clipped by menu-bar protection');
+        if (row !== 0) throw new Error('Quota row is not level with the physical notch');
       }
     }
     appleNotch.readNativeScreens = async () => [{ ...native, menuBarLeft: 0, menuBarRight: appleNotch.display.bounds.width }];
     await appleNotch.refreshMenuBar();
-    if (appleNotch.snapshot().metersBelowMenuBar) throw new Error('Verified free menu-bar space was not restored');
-    return { phases, occupied: true, unknown: true, transparent: true, clickThrough: true, restoresFreeSpace: true };
+    if (appleNotch.snapshot().metersTop !== 0) throw new Error('Menu geometry moved the compact indicators');
+    return { phases, occupied: true, unknown: true, transparent: true, clickThrough: true, stableHeader: true };
   } finally {
     appleNotch.readNativeScreens = read;
     await appleNotch.refreshMenuBar();

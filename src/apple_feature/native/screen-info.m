@@ -80,7 +80,9 @@ int main(void) {
                     CGRect rect;
                     if (!CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)window[(__bridge NSString *)kCGWindowBounds], &rect)) continue;
                     // The menu-bar backdrop is a full-width window, not a menu item.
-                    if (layer == CGWindowLevelForKey(kCGMainMenuWindowLevelKey) && CGRectGetWidth(rect) >= CGRectGetWidth(bar) && CGRectGetHeight(rect) <= top) continue;
+                    // The menu bar can be one point taller than the physical
+                    // safe-area inset (39 vs 38 on a scaled MacBook display).
+                    if (layer == CGWindowLevelForKey(kCGMainMenuWindowLevelKey) && CGRectGetWidth(rect) >= CGRectGetWidth(bar) && CGRectGetHeight(rect) <= ceil(top) + 1) continue;
                     excludeRect(rect, bar, center, &left, &right);
                 }
             }

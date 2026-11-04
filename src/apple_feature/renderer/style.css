@@ -145,7 +145,6 @@ body[data-platform="darwin"][data-theme="dark"].apple-notch {
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
   width: var(--closed-width); height: var(--closed-height);
   overflow: hidden; background: #050506; border-radius: 0 0 16px 16px;
-  clip-path: polygon(calc(50% - var(--menu-bar-width) / 2) 0, calc(50% + var(--menu-bar-width) / 2) 0, calc(50% + var(--menu-bar-width) / 2) var(--cap-height), 100% var(--cap-height), 100% 100%, 0 100%, 0 var(--cap-height), calc(50% - var(--menu-bar-width) / 2) var(--cap-height));
   box-shadow: 0 6px 16px rgba(0,0,0,.2), inset 0 -1px 0 rgba(255,255,255,.08);
   transition: width 440ms cubic-bezier(.16,1,.3,1), height 440ms cubic-bezier(.16,1,.3,1), border-radius 440ms cubic-bezier(.16,1,.3,1), box-shadow 300ms;
 }
@@ -160,7 +159,10 @@ body[data-platform="darwin"].apple-notch .apple-trigger:hover {
 }
 .apple-mini { display: flex; gap: 5px; position: absolute; width: 100px; bottom: 5px; left: 50%; transform: translateX(-50%); transition: opacity 150ms; }
 body[data-platform="darwin"].apple-notch .apple-mini progress { height: 2px; }
-body[data-platform="darwin"].apple-notch .apple-mini-weekly::-webkit-progress-value { background: var(--weekly); }
+/* The notch chrome keeps its colors independently of the details background. */
+body[data-platform="darwin"].apple-notch :is(.apple-mini, .apple-preview) progress:not(#settings-dialog *)::-webkit-progress-value { background: var(--short); }
+body[data-platform="darwin"].apple-notch :is(.apple-mini-weekly, .apple-preview-row.weekly progress):not(#settings-dialog *)::-webkit-progress-value { background: var(--weekly); }
+body[data-platform="darwin"].apple-notch .apple-preview-row.low progress:not(#settings-dialog *)::-webkit-progress-value { background: #e75d70; }
 .apple-preview { position: absolute; top: calc(var(--content-top) + 12px); left: 22px; right: 22px; opacity: 0; transform: translateY(-8px); transition: opacity 160ms, transform 300ms cubic-bezier(.16,1,.3,1); }
 .apple-preview-heading { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; letter-spacing: -.2px; margin-bottom: 18px; }
 #apple-hint { font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
@@ -189,7 +191,7 @@ body[data-platform="darwin"].apple-notch .quota-card.weekly { border-top-color: 
 body[data-platform="darwin"].apple-notch .accounts-section { margin-top: 14px; padding-top: 12px; }
 body[data-platform="darwin"].apple-notch .profile-card { padding: 10px 12px; }
 body[data-platform="darwin"].apple-notch .footnote { line-height: 1.45; }
-body[data-platform="darwin"].apple-notch.stale .apple-mini progress::-webkit-progress-value { background: #949bab; }
+body[data-platform="darwin"].apple-notch.stale :is(.apple-mini, .apple-preview) progress:not(#settings-dialog *)::-webkit-progress-value { background: #949bab; }
 body.apple-notch.reduced-motion .apple-shell,
 body.apple-notch.reduced-motion .apple-content,
 body.apple-notch.reduced-motion .apple-preview,
@@ -207,24 +209,19 @@ body[data-platform="darwin"].apple-island .apple-shell {
   overflow: visible; background: #000; border-radius: 0 0 18px 18px;
   box-shadow: 0 5px 12px rgba(0,0,0,.12);
 }
-body.apple-island:not([data-notch-phase="expanded"]) .apple-shell { background: #000 !important; }
-body.apple-island:not([data-notch-phase="expanded"]) {
+body.apple-notch:not([data-notch-phase="expanded"]) .apple-shell { background: #000; }
+body.apple-notch:not([data-notch-phase="expanded"]) {
   --ink: #f4f5f8 !important; --muted: #9b9ca9 !important;
   --appearance-ink: #f4f5f8 !important; --appearance-muted: #9b9ca9 !important;
 }
 .apple-island .apple-cap { background: #000; border-radius: inherit; }
-.apple-island .apple-shell::before, .apple-island .apple-shell::after {
-  content: ''; position: absolute; top: 0; width: 12px; height: 12px; pointer-events: none;
-}
-.apple-island .apple-shell::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 12px, #000 12.5px); }
-.apple-island .apple-shell::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 12px, #000 12.5px); }
 .apple-island .apple-trigger { overflow: hidden; }
 .apple-island .apple-content { clip-path: inset(0 round 0 0 28px 28px); }
 .apple-island .apple-mini { display: none; }
 body[data-platform="darwin"].apple-island .apple-island-meters {
-  position: absolute; top: var(--meters-top); left: 18px; right: 18px; height: var(--meters-height);
+  position: absolute; top: var(--meters-top); left: 50%; transform: translateX(-50%); height: var(--meters-height);
   display: flex; align-items: center; justify-content: space-between;
-  width: auto; padding: 0; border: 0; border-radius: 0; background: transparent;
+  width: min(calc(100% - 36px), calc(var(--meters-width) - 36px)); padding: 0; border: 0; border-radius: 0; background: transparent;
   color: #f4f5f8; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 650;
 }
 .apple-island-wing { display: flex; align-items: center; gap: 8px; max-width: var(--island-wing-width); }

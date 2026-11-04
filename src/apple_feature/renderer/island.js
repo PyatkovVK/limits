@@ -34,7 +34,8 @@
           formatted: bucket?.[id]?.remaining == null ? '—' : `${bucket[id].remaining}%` }));
       }
       if (!metrics.length) metrics = [{ id: 'unknown', compactLabel: 'Limits', type: 'count', value: null, formatted: '—' }];
-      const width = layout.phase === 'closed' ? layout.closedWidth : layout.phase === 'peek' ? layout.peekWidth : layout.fullWidth;
+      const shellWidth = layout.phase === 'closed' ? layout.closedWidth : layout.phase === 'peek' ? layout.peekWidth : layout.fullWidth;
+      const width = Math.min(shellWidth, layout.metersWidth);
       const nextSignature = JSON.stringify([metrics, next.stale, next.language, width, layout.notchWidth, layout.phase]);
       if (nextSignature === signature) return;
       signature = nextSignature;

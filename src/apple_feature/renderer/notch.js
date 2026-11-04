@@ -2,7 +2,7 @@
 (function () {
   const isNotch = new URLSearchParams(location.search).get('apple') === 'notch';
   const body = document.body;
-  let islandIndicators;
+  let islandIndicators, updateSurface;
   // This option belongs only to the macOS adapter; shared hosts filter it out.
   const islandOption = document.createElement('option');
   islandOption.value = 'island'; islandOption.dataset.i18n = 'islandMode'; islandOption.hidden = islandOption.disabled = true;
@@ -11,6 +11,7 @@
     body.classList.add('apple-notch');
     const content = document.createElement('div');
     content.className = 'apple-content'; content.inert = true;
+    content.dataset.backgroundTarget = '';
     content.append(...body.children);
     const shell = document.createElement('div'); shell.className = 'apple-shell';
     const cap = document.createElement('div'); cap.className = 'apple-cap'; cap.setAttribute('aria-hidden', 'true');
@@ -43,6 +44,7 @@
     dismiss.onclick = () => window.limits.dismissNotification(window.limitsApple.state?.appleNotch?.notification?.id);
     notificationAction.onclick = () => window.limits.openNotification(window.limitsApple.state?.appleNotch?.notification?.id);
     trigger.append(meters, preview); shell.append(cap, trigger, content, islandIndicators.header, notification); body.append(shell);
+    updateSurface = window.limitsAppleSurface.observeSurface(shell, body);
     const loginNotice = document.createElement('div');
     loginNotice.id = 'apple-login-notice'; loginNotice.className = 'notice'; loginNotice.setAttribute('role', 'status'); loginNotice.hidden = true;
     content.querySelector('main').prepend(loginNotice);
@@ -75,8 +77,9 @@
       body.classList.toggle('apple-island', layout.mode === 'island');
       body.dataset.notchPhase = layout.phase;
       body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
-      const properties = { 'cap-height': layout.capHeight, 'content-top': layout.contentTop, 'menu-bar-width': layout.menuBarWidth, 'meters-top': layout.metersTop, 'meters-height': layout.metersHeight, 'full-width': layout.fullWidth, 'full-height': layout.fullHeight, 'closed-width': layout.closedWidth, 'closed-height': layout.closedHeight, 'peek-width': layout.peekWidth, 'peek-height': layout.peekHeight, 'notification-width': layout.notificationWidth, 'notification-height': layout.notificationHeight };
+      const properties = { 'cap-height': layout.capHeight, 'content-top': layout.contentTop, 'menu-bar-width': layout.capWidth, 'meters-width': layout.metersWidth, 'meters-top': layout.metersTop, 'meters-height': layout.metersHeight, 'full-width': layout.fullWidth, 'full-height': layout.fullHeight, 'closed-width': layout.closedWidth, 'closed-height': layout.closedHeight, 'peek-width': layout.peekWidth, 'peek-height': layout.peekHeight, 'notification-width': layout.notificationWidth, 'notification-height': layout.notificationHeight };
       for (const [name, value] of Object.entries(properties)) body.style.setProperty(`--${name}`, `${value}px`);
+      updateSurface();
       const expanded = layout.phase === 'expanded';
       document.querySelector('.apple-content').inert = !expanded;
       const trigger = document.getElementById('apple-trigger');

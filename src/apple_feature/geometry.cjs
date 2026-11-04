@@ -32,11 +32,14 @@ function notchLayout(display, info = {}, mode = 'notch') {
 function fitMenuBar(layout, mode, metricCount = 2) {
   const island = mode === 'island';
   layout.closedWidth = Math.min(layout.fullWidth, island && metricCount > 2 ? layout.fullWidth : layout.notchWidth + (island ? 192 : 24));
-  layout.metersBelowMenuBar = island && layout.menuBarWidth < layout.fullWidth;
-  layout.metersTop = layout.metersBelowMenuBar ? layout.capHeight : 0;
-  layout.metersHeight = layout.metersBelowMenuBar ? 30 : layout.capHeight + 4;
-  layout.contentTop = layout.capHeight + (layout.metersBelowMenuBar ? layout.metersHeight : 0);
-  layout.closedHeight = island ? layout.metersTop + layout.metersHeight : layout.capHeight + 9;
+  // Keep the neck attached to the physical notch and its compact indicators.
+  // Foreground menu changes must not widen it into a rectangular top block.
+  layout.capWidth = layout.closedWidth;
+  layout.metersWidth = Math.min(layout.fullWidth, layout.capWidth);
+  layout.metersTop = 0;
+  layout.metersHeight = layout.capHeight + 4;
+  layout.contentTop = layout.capHeight;
+  layout.closedHeight = layout.capHeight + (island ? 4 : 9);
   layout.peekWidth = Math.min(layout.fullWidth, Math.max(340, layout.closedWidth + 40));
   layout.peekHeight = layout.contentTop + 116;
   layout.notificationHeight = Math.min(layout.maxFullHeight, layout.closedHeight + 164);
@@ -46,7 +49,7 @@ function hitBounds(layout, phase) {
   const width = phase === 'notification' ? layout.notificationWidth : phase === 'expanded' ? layout.fullWidth : phase === 'peek' ? layout.peekWidth : layout.closedWidth;
   const height = phase === 'notification' ? layout.notificationHeight : phase === 'expanded' ? layout.fullHeight : phase === 'peek' ? layout.peekHeight : layout.closedHeight;
   return { x: layout.bounds.x + (layout.bounds.width - width) / 2, y: layout.bounds.y, width, height,
-    capHeight: layout.capHeight, menuBarWidth: Math.min(width, layout.menuBarWidth) };
+    capHeight: layout.capHeight, menuBarWidth: Math.min(width, layout.capWidth) };
 }
 function contains(bounds, point, margin = 0) {
   if (point.y < bounds.y + (bounds.capHeight || 0)) {
