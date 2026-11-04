@@ -250,8 +250,9 @@ async function verifyNotchSurface({ appleNotch, target, artifactRoot }) {
       const cap = appleNotch.layout.capHeight;
       const neckLeft = rect.x + (rect.width - appleNotch.layout.capWidth) / 2;
       const closed = phase === 'closed';
-      const cornerAlpha = alpha(rect.x + 1, closed ? rect.height - 1 : cap + 1);
-      const joinAlpha = alpha(closed ? rect.x + 2 : neckLeft - 2, closed ? cap / 2 : cap - 2);
+      // Sample outside the shoulder and inside the neck even for narrow joins.
+      const cornerAlpha = alpha(rect.x + (closed ? 1 : 0), closed ? rect.height - 1 : cap);
+      const joinAlpha = alpha(closed ? rect.x + 2 : neckLeft, closed ? cap / 2 : cap - 2);
       if (closed) {
         for (const x of [rect.x + 2, rect.x + rect.width - 3]) {
           const pixel = (Math.floor(cap / 2 * scale) * size.width + Math.floor(x * scale)) * 4;
