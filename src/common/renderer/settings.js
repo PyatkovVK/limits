@@ -1,8 +1,8 @@
 'use strict';
 (() => {
   const texts = {
-    ru: { settings: 'Настройки', close: 'Закрыть настройки', language: 'Язык', widget: 'Виджет Windows', width: 'Ширина', visible: 'Показывать виджет', reset: 'Сбросить положение', startup: 'Запускать при входе в систему', installed: 'Автозапуск доступен в установленной версии.', error: 'Не удалось изменить настройку. Попробуйте ещё раз.' },
-    en: { settings: 'Settings', close: 'Close settings', language: 'Language', widget: 'Windows widget', width: 'Width', visible: 'Show widget', reset: 'Reset position', startup: 'Launch at login', installed: 'Autostart is available in the installed app.', error: 'Could not change this setting. Try again.' },
+    ru: { settings: 'Настройки', close: 'Закрыть настройки', language: 'Язык', widget: 'Настройки панели', width: 'Ширина', visible: 'Показывать виджет', reset: 'Сбросить положение', startup: 'Запускать при входе в систему', installed: 'Автозапуск доступен в установленной версии.', error: 'Не удалось изменить настройку. Попробуйте ещё раз.' },
+    en: { settings: 'Settings', close: 'Close settings', language: 'Language', widget: 'Panel settings', width: 'Width', visible: 'Show widget', reset: 'Reset position', startup: 'Launch at login', installed: 'Autostart is available in the installed app.', error: 'Could not change this setting. Try again.' },
   };
   let current;
   const make = (tag, parent, className = '') => { const node = document.createElement(tag); node.className = className; parent?.append(node); return node; };
@@ -37,11 +37,11 @@
     const t = texts[next.language] || texts.en;
     button.textContent = t.settings; button.title = t.settings;
     title.textContent = t.settings; close.setAttribute('aria-label', t.close);
-    languageText.textContent = t.language; widgetTitle.textContent = next.platform === 'linux' ? next.language === 'ru' ? 'Виджет Linux' : 'Linux widget' : t.widget;
+    languageText.textContent = t.language; widgetTitle.textContent = t.widget;
     widthText.textContent = t.width; visibleText.textContent = t.visible; reset.textContent = t.reset;
     startupText.textContent = next.platform === 'darwin' ? window.limitsAppleI18n.t(next.language, 'startup') : t.startup; startupHint.textContent = t.installed;
     const prefs = next.preferences;
-    widgetSection.hidden = !prefs?.widgetSupported;
+    widgetSection.hidden = !prefs?.widgetSupported || next.displayMode !== 'widget';
     width.value = String(prefs?.width || 280); visible.checked = prefs?.visible !== false;
     width.disabled = visible.disabled = reset.disabled = next.displayMode !== 'widget';
     startupRow.hidden = !prefs?.startup.supported;

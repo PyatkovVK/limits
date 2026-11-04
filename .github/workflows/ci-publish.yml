@@ -1,0 +1,41 @@
+name: Release publication
+on:
+  workflow_call:
+    inputs:
+      branch:
+        type: string
+        required: true
+      tag:
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish version release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_BRANCH: ${{ inputs.branch }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: packages-*
+          path: release
+          merge-multiple: true
+      - name: Point the release tag at the built commit
+        uses: actions/github-script@v9
+        with:
+          script: await require('./scripts/ci/tag.cjs')({ context, github })
+      - name: Create or update the release and upload packages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash scripts/ci/publish.sh

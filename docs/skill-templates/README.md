@@ -9,7 +9,9 @@ Reference catalog for repository skill templates, in English and Russian. This f
 | --- | --- | --- | --- |
 | `platform-routing` | Platform routing | Выбор платформы для изменений | [SKILL.md](platform-routing/SKILL.md) |
 | `changelog` | Changelog updates | Обновление списка изменений | [SKILL.md](changelog/SKILL.md) |
+| `versionless-documentation` | Release numbers only in the changelog | Номера релизов только в списке изменений | [SKILL.md](versionless-documentation/SKILL.md) |
 | `focused-pull-requests` | One task per pull request | Отдельный MR на каждую задачу | [SKILL.md](focused-pull-requests/SKILL.md) |
+| `version-branches-from-main` | Version branches from main | Версионные ветки от main | [SKILL.md](version-branches-from-main/SKILL.md) |
 | `test-failure-analysis` | Test and CI failure analysis | Разбор падений тестов и CI | [SKILL.md](test-failure-analysis/SKILL.md) |
 
 **Platform routing:** selects the Linux, macOS or Windows implementation for platform-specific work. An explicit user target takes priority over the host OS; shared behavior stays in `src/common/`.
@@ -24,8 +26,12 @@ skills/
 │   └── SKILL.md                  # Instructions / Инструкция навыка
 ├── changelog/
 │   └── SKILL.md                  # Record release-worthy changes / Запись изменений
+├── versionless-documentation/
+│   └── SKILL.md                  # Keep release numbers in the changelog / Номера релизов только в списке изменений
 ├── focused-pull-requests/
 │   └── SKILL.md                  # Separate task branches / Отдельные ветки задач
+├── version-branches-from-main/
+│   └── SKILL.md                  # New version branches from main / Версионные ветки от main
 └── test-failure-analysis/
     └── SKILL.md                  # Trace failures before fixes / Разбор сбоев до правок
 ```

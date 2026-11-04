@@ -7,10 +7,10 @@ const path = require('node:path');
 const { Subscriptions } = require('../../common/subscriptions.cjs');
 const { DemoMonitor } = require('../../common/demo-monitor.cjs');
 
-test('Windows tracks multiple Codex homes independently from connected subscriptions and preserves selection', async t => {
+test('Windows tracks the current Codex home alongside connected subscriptions and preserves selection', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-win-subscriptions-'));
-  const home = path.join(root, 'Codex Personal'), work = path.join(root, 'VS Code Work');
-  fs.mkdirSync(home); fs.mkdirSync(work);
+  const home = path.join(root, 'Codex Personal');
+  fs.mkdirSync(home);
   const monitors = new Map();
   let logouts = 0;
   const options = { root, env: { CODEX_HOME: home, OPENAI_API_KEY: 'fixture', CODEX_API_KEY: 'fixture' }, createMonitor(profile, options) {
@@ -20,24 +20,19 @@ test('Windows tracks multiple Codex homes independently from connected subscript
   } };
   const accounts = new Subscriptions(options);
   t.after(() => { accounts.stop(); fs.rmSync(root, { recursive: true, force: true }); });
-  const connected = accounts.add(), external = accounts.addSource(work);
-  assert.equal(accounts.addSource(work), external);
+  const connected = accounts.add();
   const state = accounts.snapshot();
-  assert.deepEqual([state.subscriptions.active, state.subscriptions.connected], [2, 1]);
+  assert.deepEqual([state.subscriptions.active, state.subscriptions.connected], [1, 1]);
   assert.equal(monitors.get('default').options.env.OPENAI_API_KEY, undefined);
-  assert.equal(monitors.get(external).options.env.CODEX_API_KEY, undefined);
-  assert.equal(monitors.get(external).options.readOnly, true);
+  assert.equal(monitors.get('default').options.env.CODEX_API_KEY, undefined);
+  assert.equal(monitors.get('default').options.readOnly, true);
   assert.equal(monitors.get(connected).options.readOnly, undefined);
-  accounts.selectProfile(external); accounts.setMode('active');
+  accounts.selectProfile(connected); accounts.setMode('active');
   const restored = new Subscriptions(options); t.after(() => restored.stop());
-  assert.equal(restored.selectedProfileId, external);
+  assert.equal(restored.selectedProfileId, connected);
   assert.equal(restored.snapshot().subscriptions.mode, 'active');
-  await assert.rejects(accounts.login(external));
-  assert.throws(() => accounts.addSource(path.join(root, 'accounts', connected)));
-  const alias = path.join(root, 'accounts-alias');
-  fs.symlinkSync(path.join(root, 'accounts'), alias, process.platform === 'win32' ? 'junction' : 'dir');
-  assert.throws(() => accounts.addSource(path.join(alias, connected)));
-  await accounts.remove(external);
-  assert.equal(logouts, 0); assert.equal(fs.existsSync(work), true);
-  assert.equal(accounts.selectedProfileId, 'default');
+  await assert.rejects(accounts.login('default'));
+  await assert.rejects(accounts.remove('default'));
+  assert.equal(logouts, 0); assert.equal(fs.existsSync(home), true);
+  assert.equal(accounts.selectedProfileId, connected);
 });

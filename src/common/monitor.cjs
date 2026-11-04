@@ -1,248 +1,97 @@
 'use strict';
 const { EventEmitter } = require('node:events');
-const { normalizeLimits } = require('./limits.cjs');
-const { CODEX_POLL_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
-
+const { AiController } = require('./ai-connects/ai-controller.cjs');
+const { contractError, snapshot, diagnostic } = require('./ai-connects/contracts.cjs');
+const { legacyBuckets } = require('./renderer/metrics.js');
 class Monitor extends EventEmitter {
-  constructor(client, { refreshCredentials = true, reloadOnPoll = false, preserveStartupSample = false } = {}) {
+  constructor(controller) {
     super();
-    this.client = client;
-    Object.assign(this, { refreshCredentials, reloadOnPoll, preserveStartupSample, identifyingAccount: false, reloading: false });
-    this.state = { account: null, buckets: [], selectedId: 'codex', updatedAt: null, error: null, status: 'connecting', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60 };
-    this.failures = 0;
-    this.timer = null;
-    this.inflight = null;
-    this.stopped = false;
-    this.loginId = null;
-    this.loginAttempt = null;
-    this.loginTask = null;
-    this.accountRevision = 0;
-    this.rerunRequested = false;
-    this.credentialsGeneration = null;
-    this.reconnecting = null;
-    client.on('notification', (method, params) => {
+    if (!(controller instanceof AiController)) throw contractError();
+    this.controller = controller;
+    this.intervalMs = Number.isFinite(controller.pollIntervalMs) && controller.pollIntervalMs >= 1000 ? controller.pollIntervalMs : 60000;
+    const initial = snapshot({ ...controller.state, providerId: controller.providerId, profileId: controller.profileId, displaySchema: controller.getDisplaySchema() });
+    this.state = { ...initial, buckets: legacyBuckets(initial), interval: this.intervalMs / 1000, staleAfterMs: Math.max(90000, this.intervalMs * 1.5) };
+    this.revision = 0;
+    this.failures = 0; this.timer = null; this.inflight = null; this.stopped = false; this.rerunRequested = false; this.reconnecting = null;
+    this.unsubscribe = controller.subscribe(next => { if (!this.stopped) this.adopt(next); });
+    this.onRefreshRequested = () => {
       if (this.stopped) return;
-      if (method === 'account/rateLimits/updated') {
-        const incoming = normalizeLimits(params);
-        if (incoming.length) {
-          const merged = new Map(this.state.buckets.map(bucket => [bucket.id, bucket]));
-          incoming.forEach(bucket => merged.set(bucket.id, bucket));
-          this.publish({ buckets: [...merged.values()], updatedAt: Date.now() });
-        }
-      }
-      if (method === 'account/updated') {
-        // External profiles restart app-server on each poll. Its initial auth
-        // notification only describes the loaded store; account/read below is
-        // authoritative for identity changes. Keep the last sample until then.
-        if (this.loadingExternalAccount && this.state.account && params.authMode === this.state.account.type) return;
-        // Linux also retains its sample for unclassified startup announcements,
-        // invalidating and retrying account/read before publishing new quotas.
-        // Logout and notifications outside this handshake still clear immediately.
-        const retainSample = this.preserveStartupSample && this.identifyingAccount && params.authMode !== null;
-        this.accountRevision++;
-        if (!retainSample) this.publish({ account: null, buckets: [], updatedAt: null });
-        this.rerunRequested = Boolean(this.inflight);
-        void this.refresh();
-      }
-      if (method === 'account/login/completed') {
-        const attempt = this.loginAttempt;
-        if (!attempt || attempt.cancelled || typeof params.loginId !== 'string') return;
-        // A response and notification may be parsed in the same stdout batch.
-        if (attempt.phase === 'starting' && !attempt.loginId) {
-          attempt.completions.set(params.loginId, params);
-          if (attempt.completions.size > 16) attempt.completions.delete(attempt.completions.keys().next().value);
-        }
-        else this.completeLogin(attempt, params);
-      }
-    });
-    client.on('disconnected', () => {
-      if (this.loginAttempt) {
-        this.loginAttempt.cancelled = true;
-        this.finishLogin(this.loginAttempt);
-      }
-      this.loginId = null;
-      if (!this.stopped && !this.reconnecting && !this.reloading) this.publish({ status: 'error', error: 'disconnected' });
-    });
+      if (this.inflight) this.rerunRequested = true; else void this.refresh({ reload: false });
+    };
+    this.onLoginEnded = attempt => { if (!this.stopped) this.emit('login-ended', attempt); };
+    this.onDiagnostic = info => { if (!this.stopped) this.emit('diagnostic', diagnostic(info)); };
+    controller.on('refresh-requested', this.onRefreshRequested);
+    controller.on('login-ended', this.onLoginEnded);
+    controller.on('diagnostic', this.onDiagnostic);
   }
-
-  publish(patch) {
-    Object.assign(this.state, patch);
-    this.emit('state', this.state);
+  get loginAttempt() { return this.controller.loginAttempt; }
+  get loginTask() { return this.controller.loginTask; }
+  get loginId() { return this.controller.loginId; }
+  publish(patch) { Object.assign(this.state, patch); this.emit('state', this.state); }
+  adopt(raw) {
+    const next = snapshot({ ...raw, providerId: this.controller.providerId, profileId: this.controller.profileId });
+    this.publish({ ...next, buckets: legacyBuckets(next), refreshing: Boolean(this.inflight) });
   }
-
-  refresh({ reload = true } = {}) {
+  refresh(options) {
     if (this.stopped) return Promise.resolve(this.state);
     if (this.inflight) return this.inflight;
+    const revision = this.revision;
     clearTimeout(this.timer);
-    // Publish the lock before read() can receive a synchronous account event.
-    this.inflight = Promise.resolve().then(() => this.stopped ? this.state : this.read(reload)).finally(() => {
-      this.inflight = null;
-      const delay = Math.min(300000, CODEX_POLL_INTERVAL_MINUTES * 60 * 1000 * 2 ** this.failures);
-      this.publish({ interval: delay / 1000 });
-      if (!this.stopped) {
-        if (this.rerunRequested) { this.rerunRequested = false; void this.refresh({ reload: false }); }
-        else this.timer = setTimeout(() => void this.refresh(), delay);
+    this.inflight = Promise.resolve().then(async () => {
+      if (this.stopped) return this.state;
+      this.publish({ refreshing: true });
+      try {
+        const next = await this.controller.refresh(options);
+        if (!this.stopped && revision === this.revision) this.adopt(next);
+      } catch (error) {
+        this.onDiagnostic({ stage: 'refresh', code: error.code || error.name });
+        if (!this.stopped && revision === this.revision) this.publish({ status: 'error', error: 'refreshFailed' });
       }
+      if (!this.stopped && revision === this.revision) this.failures = this.state.status === 'error' ? Math.min(this.failures + 1, 4) : 0;
+      return this.state;
+    }).finally(() => {
+      this.inflight = null;
+      if (this.stopped) return;
+      this.publish({ refreshing: false });
+      if (this.rerunRequested) { this.rerunRequested = false; void this.refresh({ reload: false }); }
+      else this.schedule();
     });
     return this.inflight;
   }
-
+  schedule() {
+    if (this.stopped) return;
+    clearTimeout(this.timer);
+    const delay = Math.min(Math.max(300000, this.intervalMs), this.intervalMs * 2 ** this.failures);
+    this.publish({ interval: delay / 1000 });
+    this.timer = setTimeout(() => void this.refresh(), delay);
+  }
   reconnect() {
     if (this.stopped) return Promise.resolve(this.state);
     if (this.reconnecting) return this.reconnecting;
-    // Do not interrupt a browser sign-in or its cancellation RPC.
-    if (this.loginAttempt || this.loginTask) return this.refresh();
-    const task = Promise.resolve().then(async () => {
+    if (this.controller.busy) return this.refresh();
+    this.reconnecting = Promise.resolve().then(async () => {
       if (this.stopped) return this.state;
-      if (this.loginAttempt || this.loginTask) return this.refresh();
-      this.accountRevision++;
-      this.credentialsGeneration = null;
+      if (this.controller.busy) return this.refresh();
       this.failures = 0;
-      // Abort requests left pending across suspend before starting a fresh poll.
-      this.client.stop();
+      this.revision++;
+      await this.controller.disconnect();
       if (this.inflight) await this.inflight;
       return this.refresh();
-    });
-    this.reconnecting = task.finally(() => { this.reconnecting = null; });
+    }).finally(() => { this.reconnecting = null; });
     return this.reconnecting;
   }
-
-  async read(reload = true) {
-    const revision = this.accountRevision;
-    let stage = 'start';
-    this.publish({ refreshing: true });
-    try {
-      if (this.reloadOnPoll && reload) {
-        this.reloading = true;
-        try { this.client.stop(); } finally { this.reloading = false; }
-      }
-      this.loadingExternalAccount = this.reloadOnPoll;
-      this.identifyingAccount = true;
-      let account, generation;
-      try {
-        await this.client.start();
-        stage = 'account/read';
-        generation = this.client.generation ?? 0;
-        // Our own app-server refreshes stored credentials on every connection.
-        // Routine polls leave automatic token maintenance to that same process.
-        ({ account } = await this.client.request('account/read', { refreshToken: this.refreshCredentials && this.credentialsGeneration !== generation }));
-      } finally { this.loadingExternalAccount = false; this.identifyingAccount = false; }
-      this.credentialsGeneration = generation;
-      if (revision !== this.accountRevision || this.stopped) return this.state;
-      if (!account) {
-        this.failures = 0;
-        this.publish({ account: null, buckets: [], updatedAt: null, status: this.loginId ? 'signing-in' : 'signed-out', error: null });
-        return this.state;
-      }
-      // Account switches must never keep the previous account's percentages.
-      if (JSON.stringify(account) !== JSON.stringify(this.state.account)) this.publish({ account, buckets: [], updatedAt: null });
-      if (account.type !== 'chatgpt') {
-        this.publish({ account, buckets: [], updatedAt: null, status: 'unsupported', error: null });
-        return this.state;
-      }
-      stage = 'account/rateLimits/read';
-      const result = await this.client.request(stage);
-      if (revision !== this.accountRevision || this.stopped) return this.state;
-      this.failures = 0;
-      this.publish({ account, buckets: normalizeLimits(result), updatedAt: Date.now(), status: 'ready', error: null });
-    } catch (error) {
-      if (revision !== this.accountRevision || this.stopped) return this.state;
-      this.emit('diagnostic', { stage, code: error.code || error.name });
-      // RPC errors can leave a live server holding expired or externally rotated
-      // credentials. The next backed-off poll must reconnect and reload its store.
-      this.credentialsGeneration = null;
-      if (!this.loginAttempt && !this.loginTask) this.client.stop();
-      this.failures = Math.min(this.failures + 1, 4);
-      this.publish({ status: 'error', error: 'refreshFailed' });
-    } finally { this.publish({ refreshing: false }); }
-    return this.state;
-  }
-
-  login(attempt = { cancelled: false, phase: 'preparing' }) {
-    if (this.loginAttempt || this.loginTask) return Promise.reject(Object.assign(new Error('Login in progress'), { code: 'loginBusy' }));
-    this.loginAttempt = attempt;
-    const task = this.startLogin(attempt);
-    this.loginTask = task;
-    return task.finally(() => { if (this.loginTask === task) this.loginTask = null; });
-  }
-
-  async startLogin(attempt) {
-    const current = () => !this.stopped && !attempt.cancelled && this.loginAttempt === attempt;
-    try {
-      await this.refresh();
-      if (!current()) return null;
-      await this.client.start();
-      if (!current()) return null;
-      attempt.phase = 'starting';
-      attempt.generation = this.client.generation;
-      attempt.completions = new Map();
-      const result = await this.client.request('account/login/start', { type: 'chatgpt' });
-      if (!current()) {
-        if (attempt.cancelled && result.loginId) await this.cancelRemoteLogin(result.loginId, attempt.generation);
-        return null;
-      }
-      if (typeof result.loginId !== 'string' || !result.loginId || typeof result.authUrl !== 'string') throw new Error('Invalid login response');
-      attempt.loginId = result.loginId; attempt.phase = 'active';
-      this.loginId = result.loginId;
-      this.publish({ status: 'signing-in', error: null });
-      const completion = attempt.completions.get(result.loginId);
-      attempt.completions.clear();
-      if (completion) this.completeLogin(attempt, completion);
-      return current() ? result.authUrl : null;
-    } catch (error) {
-      this.finishLogin(attempt);
-      if (attempt.cancelled) return null;
-      throw error;
-    } finally {
-      if (!current()) this.finishLogin(attempt);
-    }
-  }
-
-  completeLogin(attempt, params) {
-    if (params.loginId !== attempt.loginId || this.loginAttempt !== attempt) return;
-    this.finishLogin(attempt);
-    if (params.success) { this.rerunRequested = Boolean(this.inflight); void this.refresh(); }
-    else this.publish({ status: 'error', error: 'loginIncomplete' });
-  }
-
-  finishLogin(attempt) {
-    if (this.loginAttempt !== attempt) return;
-    this.loginAttempt = null; this.loginId = null;
-    this.emit('login-ended', attempt);
-  }
-
-  async cancelRemoteLogin(loginId, generation) {
-    if (this.client.generation !== generation) return;
-    try { await this.client.request('account/login/cancel', { loginId }); }
-    catch (error) {
-      if (this.client.generation === generation) this.client.stop();
-      throw error;
-    }
-  }
-
-  select(id) {
-    if (this.state.buckets.some(bucket => bucket.id === id)) this.publish({ selectedId: id });
-  }
-
-  async cancelLogin() {
-    const attempt = this.loginAttempt;
-    if (!attempt) return;
-    attempt.cancelled = true; attempt.phase = 'cancelling';
-    const loginId = this.loginId;
-    const task = this.loginTask;
-    this.loginId = null;
-    this.publish({ status: this.state.account ? 'ready' : 'signed-out', error: null });
-    try {
-      if (loginId) await this.cancelRemoteLogin(loginId, attempt.generation);
-      if (task) await task;
-    } finally { this.finishLogin(attempt); }
-  }
-
+  login(attempt) { return this.controller.signIn(attempt); }
+  cancelLogin() { return this.controller.cancelSignIn(); }
+  signOut() { return this.controller.signOut(); }
+  isSignInUrlAllowed(url) { return this.controller.isSignInUrlAllowed(url); }
+  select(id) { if (this.state.groups.some(group => group.id === id)) this.controller.publish({ selectedId: id }); }
   stop() {
-    this.stopped = true; clearTimeout(this.timer);
-    if (this.loginAttempt) { this.loginAttempt.cancelled = true; this.finishLogin(this.loginAttempt); }
-    this.client.stop();
+    if (this.stopped) return;
+    this.stopped = true; clearTimeout(this.timer); this.unsubscribe();
+    this.controller.off('refresh-requested', this.onRefreshRequested);
+    this.controller.off('login-ended', this.onLoginEnded);
+    this.controller.off('diagnostic', this.onDiagnostic);
+    this.controller.disconnect();
   }
 }
-
 module.exports = { Monitor };

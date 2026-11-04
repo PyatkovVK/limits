@@ -19,3 +19,13 @@ These requirements describe how Limits obtains the data needed to display limits
 
 - COM-DATA-011: Sign-in and limit refreshes require a connection to the service. No application-owned analytics integration was found in Limits; the service provider’s data handling is governed by its own policies.
 - COM-DATA-012: Signing an additional profile out ends its use in the application; some local credential files may remain. Account directories, OAuth files, and complete profiles remain private and must not be included in packages, commits, or public reports.
+
+## Planned controller boundaries
+
+These requirements apply to the planned [AI controller infrastructure](ai-connects.md). The initial production provider remains Codex; adding the abstraction does not authorize new authentication hosts or services.
+
+| ID | Requirement | Acceptance criterion |
+| --- | --- | --- |
+| COM-DATA-013 | Keep provider credentials behind the controller boundary. | Shared UI state, normalized snapshots, schemas, and diagnostics contain no credentials or raw authentication payloads. Storage and environment handling belong to the provider implementation; an unknown provider ID cannot select another provider's credentials. |
+| COM-DATA-014 | Preserve verified sign-in addresses per provider. | Codex continues to enforce the exact HTTPS hosts in COM-DATA-008. Provider registration cannot bypass browser-opening validation, and schemas cannot initiate navigation. A future integration must explicitly define its allowed authentication addresses before use. |
+| COM-DATA-015 | Read access and usage without invoking a model. | `checkAccess()` and `refresh()` do not create chats, send prompts, or initiate paid inference. The Codex controller preserves the single quota-data request per refresh in COM-DATA-001; connection/authentication maintenance does not cause duplicate quota reads. |

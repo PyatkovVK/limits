@@ -1,12 +1,35 @@
 # Changelog
 
-User-visible changes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
+Only user-visible features and bug fixes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
+
+## 1.7.0
+
+### Changed
+
+- Remove the separate Add Codex profile button and manual CODEX_HOME folder tracking on all platforms. Previously added folder references are no longer loaded; their folders and sign-ins remain untouched. Add subscriptions through the provider selector; automatic tracking of the current Codex / VS Code account remains available.
+
+### Added
+
+- Add DeepSeek to the subscription provider selector. Open its API-key page in the browser, validate a pasted key before adding a profile, and store it encrypted with the OS. Monitor total, granted and topped-up balances in their original currencies once per minute with an independent polling setting; support key replacement and local removal without model requests.
+- On macOS, add a third display mode with persistent quota values on both sides of the physical notch, curved black edges, and expanding in-panel notifications for low allowance, Codex Resets and update offers. Fit additional metrics with a +N control and scrollable details; queue messages without stealing focus and preserve the menu-bar and original notch modes.
+
+### Fixed
+
+- On macOS, fit the notch side panel between neighbouring menu-bar controls, shorten its labels when necessary, and fall back to a compact notch with limits on hover only when space is confirmed insufficient. Measure status-item space without extra permissions and preserve side values when menu metadata is unavailable. Restore the top inset above Settings, including custom backgrounds. Keep collapsed and hover widths identical; shrink promptly and restore width only after stable free space.
+- On macOS, keep the notch side panel's hover preview at exactly the collapsed width: its left and right edges stay fixed while it grows downward to show details. Preserve the click-expanded panel size.
+- On Windows and Linux, show Panel settings only when the widget display mode is selected, use a platform-neutral section title, and rename the Linux percentage-icon option to Icons · percentages.
+- On Windows, keep compact balance rows evenly spaced inside the taskbar widget, including short taskbars, with room below the bonus amount.
+- On Windows, keep the taskbar widget visible when opening Start, Quick Settings and Limits details, while preserving its chosen position. Embed it in the taskbar surface and forward its mouse gestures so clicks, context menus and dragging still work, including DeepSeek balance text.
+- On Windows, close the hidden-icons flyout through Explorer when opening Limits from the tray so its chevron returns to the collapsed state instead of leaving the popup logically open.
+- On macOS, keep the compact quota indicators level with the physical notch when menu-bar space permits. Fill the small notch's side margins with black so its lower strip joins the physical notch without light cutouts. Join hover previews and expanded panels to the notch with smooth curved shoulders instead of rectangular steps, preserving the connection to the physical notch when foreground menus change. Keep both collapsed notch modes black and apply custom backgrounds only to expanded details. Pass clicks through transparent areas outside the notch chrome.
+- Keep the Windows bar on the taskbar surface while Quick Settings and other system flyouts open or close, without topmost polling repairs or position jumps. Preserve the measured tray geometry through transient failures and save position only during explicit dragging. Use a separate row above a crowded taskbar and continue hiding for fullscreen applications and taskbar auto-hide.
+- On Windows, macOS and Linux, offer new updates before downloading. Start the download only after choosing Download update, then offer Install and restart after verification; postponing or checking again does not download a package.
 
 ## 1.6.0
 
 ### Changed
 
-- Poll Codex usage once per minute and check enabled Codex Resets notifications every hour, with both defaults defined in minutes in a shared file.
+- Poll Codex usage once per minute and check enabled Codex Resets notifications every hour.
 
 ## 1.5.0
 
@@ -14,7 +37,7 @@ User-visible changes are recorded here. Downloadable packages and publication st
 
 - Add Linux login startup for installed DEB and AppImage builds through Settings. Create or remove a per-user XDG autostart entry and launch the saved presentation without opening details.
 - Combine Linux display choices into one Settings selector: classic percentage tray icons, period/bar tray icons, then the desktop widget. Preserve existing selections.
-- Extend connected/current subscription tracking to Linux and Windows through the shared registry and interface; retain independent local Codex homes, persisted filters and selection, and removal without logout.
+- Extend connected/current subscription tracking to Linux and Windows; retain independent local Codex homes, persisted filters and selection, and removal without logout.
 - Add a separate compact Linux desktop widget with two quota bars, reset countdowns, account switching, width/visibility controls and persisted draggable placement; retain tray mode. Wayland placement follows compositor policy.
 - macOS downloads the matching Apple Silicon/Intel update ZIP from Actions-published stable GitHub Releases, verifies SHA-256, bundle identity, version, architecture and code signature, and offers installation with restart. Preserve the previous bundle if replacement or launch fails.
 - On Linux, automatically download the matching AppImage/DEB update from Actions-published stable Releases, verify SHA-256 and package identity/architecture, and install from the app with restart. AppImage replacement restores the previous executable on launch failure; DEB uses system authorization through pkexec.
@@ -46,15 +69,8 @@ User-visible changes are recorded here. Downloadable packages and publication st
 - Celebrate a displayed 67% allowance with a brief SIX SEVEN animation and a pastel progress bar, including account cards and the Windows widget; respect reduced-motion preferences.
 - Add [opt-in Codex Resets notifications](docs/reset-notifications.md) in Settings, disabled by default. Check codex-resets.com on enable/startup and every six hours for an announced upcoming reset or active forecast; ignore completed resets and suppress duplicate alerts across restarts. Include a right-hand help control with source attribution and thanks to @wong2__.
 - Show the Windows taskbar widget above the taskbar on first launch and when restoring it, without requiring a taskbar click or taking focus (#15).
-- Require all new feature/task branches to use the `limits/` prefix, reserve `main` and numeric release/demo branches for integration and releases, and document GitHub ruleset configuration and fork limitations.
-- Replace GitHub Actions branch routing: `main` keeps all packages in Actions artifacts; numeric version branches build and publish releases; numeric `-demo` branches run the full build, artifact upload and eight-package SHA-256 verification without creating tags or releases. Every other branch runs automated tests on Windows, macOS and Linux. Pull requests follow their source branch and never publish.
-- Group npm build commands by Windows, macOS and Linux, add explicit architecture commands, and use them in the CI build matrix while retaining existing commands.
-- Define the replacement CI flow, release boundary, platform commands and acceptance checks in [build and release requirements](requirements/common/build-and-release.md).
-- Documented the agreed 1.3 scope and acceptance criteria in the shared and platform requirements, including compact weekly countdowns and the distinction between runtime independence and future account-storage isolation.
 
 ## 1.3.0
-
-Six focused pull requests target `1.3-demo`; the release pull request targets `main`.
 
 - Include the native connection component in Linux and macOS packages; a separate Codex installation or open Codex window is no longer required.
 - Open Linux browser sign-in with the desktop environment preserved and AppImage runtime paths removed.
@@ -67,24 +83,13 @@ Six focused pull requests target `1.3-demo`; the release pull request targets `m
 
 ### New features
 
-- Check stable GitHub releases at startup, every six hours and after an overdue wake-up, with all update behavior shared in `src/common` across Windows, macOS and Linux.
+- Check stable GitHub releases at startup, every six hours and after an overdue wake-up on Windows, macOS and Linux.
 - A Russian and English Updates section in Settings shows the installed version, last check result and a manual check button. New-version offers remember dismissal; Update opens the specific GitHub release for manual download and installation.
 - Update checks run without blocking startup or usage monitoring, share concurrent requests and handle network timeouts and GitHub errors. Demo mode previews update states without network or browser access.
 
 ### Bug fixes
 
 - Keep one pending update dialog across repeated six-hour checks, including while the details window is hidden. Newer release information updates the existing offer without opening another dialog or bringing the window forward again.
-
-### Development
-
-- Version 1.2 development targets `1.3-demo`, based on 1.1.1, before creating the numeric `1.2` release branch. Pushes and pull requests into the demo branch run tests on Windows, macOS and Linux without publishing releases.
-
-### Documentation
-
-- Added the agreed requirements for version 1.2: shared GitHub release checks at startup, every six hours and after overdue wake-up, plus a manual check in Settings.
-- Defined stable-version comparison, Russian and English update states, a new-version offer without repeated automatic prompts, and an “Update” action that opens the release on GitHub for manual download and installation.
-- Specified non-blocking error handling, shared concurrent checks, simulated demo/smoke responses and validation for the update feature.
-- Added a macOS first-launch guide in both README languages for allowing Limits through System Settings when the developer cannot be verified. Explained that the maintainer currently cannot afford Apple Developer Program membership, so current macOS downloads lack Developer ID signing and Apple notarization.
 
 ## 1.1.0
 
@@ -106,16 +111,7 @@ Six focused pull requests target `1.3-demo`; the release pull request targets `m
 - Keep the macOS notch panel open while choosing a background image, and close Settings when the notch panel collapses.
 - Keep text, progress indicators, notices and keyboard focus readable on custom backgrounds, and keep Settings colors independent of the panel background.
 
-### Builds and releases
-
-- `main` builds are kept in GitHub Actions artifacts without creating a release or tag. Only numeric version branches publish releases. `1.1-demo` and pull requests into it run tests on Windows, macOS and Linux without packaging or uploading builds.
-- Release verification uses the actual Linux artifact names and checks all eight packages and their SHA-256 checksums before publication.
-- Fix packaging after a fresh dependency install when Electron has not downloaded its runtime yet.
-- Automated Windows and macOS builds can run without signing certificates. Configured certificates still require successful signing and verification.
-
 ## 1.0.0
-
-The initial feature set prepared for the 1.0 release. This entry describes the version's contents; it does not imply that packages have already been published.
 
 ### Usage monitoring
 
@@ -124,6 +120,7 @@ The initial feature set prepared for the 1.0 release. This entry describes the v
 - Retry backoff up to five minutes after errors, distinct stale and unknown states, and color highlighting for low remaining usage.
 - A five-hour countdown calculated from the server reset timestamp; usage percentages change only when confirmed by the service.
 - English and Russian interfaces with saved language and display preferences.
+- Demo mode and connection diagnostics.
 
 ### Accounts
 
@@ -156,20 +153,3 @@ The initial feature set prepared for the 1.0 release. This entry describes the v
 - Account and reset tooltips where supported by the desktop environment.
 - Details window sized to its contents, with scrolling for long account lists.
 - AppImage and DEB packaging for x64; documented testing on Linux Mint 22.2 Zara with XFCE/X11.
-
-### Development and distribution
-
-- Demo mode, connection diagnostics, automated unit tests, and platform UI smoke checks.
-- Automated tests and package builds for Windows x64, macOS arm64 / x64, and Linux x64.
-- GitHub Releases publication for `main` and numeric version branches, with SHA-256 package checksums.
-- English and Russian repository documentation, platform screenshots, contribution instructions, and issue / PR templates.
-
-### Known limitations
-
-- Monitoring covers Codex subscription limits; API keys and general ChatGPT model message limits are not supported.
-- Missing service-side usage windows remain unknown. Polling does not guarantee instant updates from other Codex processes.
-- macOS and Linux require an installed native Codex; Windows packages include the connection component.
-- The Windows widget overlays a horizontal taskbar and does not reserve space among app buttons. Windows packages are unsigned.
-- macOS Developer ID signing and notarization require separate setup.
-- Linux autostart is not implemented; desktops beyond the documented XFCE/X11 environment need testing.
-- Claude Code, DeepSeek, and configurable notifications are roadmap items and are not included in this release.

@@ -52,8 +52,8 @@ app.whenReady().then(async () => {
       assert.equal(await run('document.getElementById("updates-open").hidden'), false);
       await run('window.limitsSettings.dialog.close()');
       await waitFor(() => run('document.getElementById("updates-dialog").open'), 'deferred offer');
-      await waitFor(() => run('window.limits.get().then(next => next.updates.installation?.status === "ready")'), 'verified package ready');
-      assert.equal(await run('document.getElementById("updates-install").textContent'), language === 'ru' ? 'Установить и перезапустить' : 'Install and restart');
+      assert.equal(await run('window.limits.get().then(next => next.updates.installation?.status)'), 'idle');
+      assert.equal(await run('document.getElementById("updates-install").textContent'), language === 'ru' ? 'Скачать обновление' : 'Download update');
       await pause(); await pause();
       fs.writeFileSync(path.join(root, `offer-${language}.png`), (await panel.webContents.capturePage()).toPNG());
       // Background checks must retain the same open modal in a hidden host.
@@ -62,6 +62,7 @@ app.whenReady().then(async () => {
       await waitFor(() => run('document.hidden'), 'hidden details window');
       for (let cycle = 0; cycle < 4; cycle++) {
         await run('window.limits.checkUpdates()');
+        assert.equal(await run('window.limits.get().then(next => next.updates.installation?.status)'), 'idle', 'Background checks must not download');
         assert.equal(panel.isVisible(), false, 'Polling must not reopen the hidden host');
         assert.deepEqual(await run('({open:document.getElementById("updates-dialog").open,count:document.querySelectorAll("#updates-dialog").length,...window.updateModalChecks})'), { open: true, count: 1, shows: 0, closes: 0 });
       }
@@ -81,7 +82,14 @@ app.whenReady().then(async () => {
       await waitFor(() => run('document.getElementById("updates-check").disabled'), 'manual checking state');
       await waitFor(() => run('!document.getElementById("updates-check").disabled'), 'manual check completion');
       assert.equal(await run('document.getElementById("updates-dialog").open'), false);
+      assert.equal(await run('window.limits.get().then(next => next.updates.installation?.status)'), 'idle', 'Postponing must not download');
       await run('window.limitsSettings.open(); document.getElementById("updates-open").click()');
+      await waitFor(() => run('window.limits.get().then(next => next.updates.installation?.status === "ready")'), 'download after explicit action');
+      await waitFor(() => run('!document.getElementById("updates-open").disabled'), 'download action completion');
+      assert.equal(await run('document.getElementById("updates-open").textContent'), language === 'ru' ? 'Установить и перезапустить' : 'Install and restart');
+      await run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+      fs.writeFileSync(path.join(root, `ready-${language}.png`), (await panel.webContents.capturePage()).toPNG());
+      await run('document.getElementById("updates-open").click()');
       await waitFor(() => run('document.querySelector(".updates-section").textContent.includes(' + JSON.stringify(language === 'ru' ? 'без запуска браузера' : 'without opening a browser') + ')'), 'simulated release opening');
       await run('window.limits.demoUpdate("error")');
       assert.equal(await run('document.getElementById("updates-result").classList.contains("warning")'), true);
@@ -89,7 +97,7 @@ app.whenReady().then(async () => {
       await run('window.limits.demoUpdate("current")');
       assert.equal(await run('document.getElementById("updates-open").hidden'), true);
       await run('window.limitsSettings.dialog.close()');
-      languages.push({ language, ...labels, offerDeferred: true, backgroundChecks: 4, modalRetained: true, dismissed: true, browserSimulated: true, failureShown: true });
+      languages.push({ language, ...labels, offerDeferred: true, backgroundChecks: 4, modalRetained: true, dismissed: true, downloadOnRequest: true, separateInstallAction: true, browserSimulated: true, failureShown: true });
     }
     // Even a window using the common preload cannot invoke commands unless trusted.
     const outsider = new BrowserWindow({ show: false, webPreferences: { preload: path.resolve(__dirname, '../src/common/preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
@@ -124,6 +132,12 @@ app.whenReady().then(async () => {
     await waitFor(() => run('document.getElementById("updates-dialog").open'), 'offer over a light background');
     assert.equal(await run('getComputedStyle(document.querySelector(".updates-dialog .warning")).color'), 'rgb(238, 238, 238)', 'Custom background must not make dialog errors unreadable');
     fs.writeFileSync(path.join(root, 'offer-light-background.png'), (await panel.webContents.capturePage()).toPNG());
+    await run('document.getElementById("updates-install").click()');
+    await waitFor(() => run('window.limits.get().then(next => next.updates.installation?.status === "ready")'), 'download from offer dialog');
+    await waitFor(() => run('!document.getElementById("updates-install").disabled'), 'offer download completion');
+    assert.equal(await run('document.getElementById("updates-install").textContent'), 'Install and restart');
+    await run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    fs.writeFileSync(path.join(root, 'offer-ready.png'), (await panel.webContents.capturePage()).toPNG());
     await run('document.getElementById("updates-later").click()');
     await waitFor(() => run('!document.getElementById("updates-dialog").open'), 'final offer dismissal');
     const report = { platform: process.platform, version: pkg.version, languages, trustedIpc: true, layout };

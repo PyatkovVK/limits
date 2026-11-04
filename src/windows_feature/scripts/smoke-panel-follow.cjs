@@ -68,6 +68,7 @@ app.whenReady().then(async () => {
     const pointIn = selector => widget.webContents.executeJavaScript(`(() => {
       if (${JSON.stringify(selector)} === 'body') return {x:2,y:2};
       const rect = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
+      if (!rect.width || !rect.height) throw new Error('Drag target must have a visible rectangle');
       return {x:Math.floor(rect.x + rect.width / 2),y:Math.floor(rect.y + rect.height / 2)};
     })()`);
     const drag = async (x, selector = '.account') => {
@@ -89,7 +90,7 @@ app.whenReady().then(async () => {
       anchor: widget.getBounds(), area: screen.getDisplayMatching(widget.getBounds()).workArea, size: panel.getSize(),
     });
     const moves = [];
-    const dragTargets = ['.account', '.period span', '#short-reset', '.quota:nth-child(2) > span', '#short-bar', '#weekly-bar', '#short-value', '#weekly-value', 'body'];
+    const dragTargets = ['.account', '.period span', '#short-reset', '[data-i18n="weeklyCompact"]', '#short-bar', '#weekly-bar', '#short-value', '#weekly-value', 'body'];
     for (const [index, selector] of dragTargets.entries()) {
       const x = Math.round(area.x + area.width * (index % 2 ? .9 : .12));
       const previousX = widget.getBounds().x;

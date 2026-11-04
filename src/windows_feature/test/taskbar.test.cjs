@@ -63,8 +63,13 @@ test('fallback geometry works on negative monitor origins and 200 DIP is the com
   assert.equal(widgetBounds(metrics).x, -1308);
 });
 
-test('a taskbar without a readable free gap hides the widget rather than covering controls', () => {
-  assert.equal(widgetBounds({ ...base, occupied: [{ x: 56, y: 1032, width: 1586, height: 48 }] }), null);
+test('a crowded taskbar keeps the widget readable above shell controls and below a top taskbar', () => {
+  const occupied = [{ x: 56, y: 1032, width: 1586, height: 48 }];
+  assert.deepEqual(widgetBounds({ ...base, occupied }), { x: 1362, y: 990, width: 280, height: 34 });
+  assert.equal(widgetBounds({ ...base, bar: { ...base.bar, y: 0 }, occupied: occupied.map(r => ({ ...r, y: 0 })) }).y, 56);
+  const monitor = { x: -1920, y: -1080, width: 1920, height: 1080 };
+  const top = { ...base, monitor, bar: { ...base.bar, x: -1920, y: -1080 }, tray: { x: -270 }, occupied: [{ x: -1920, y: -1080, width: 1920, height: 48 }] };
+  assert.deepEqual(widgetBounds(top, { xRatio: 1, width: 400 }), { x: -408, y: -1024, width: 400, height: 34 });
 });
 
 test('off-taskbar and unavailable accessibility geometry preserve the usual tray placement', () => {
@@ -75,12 +80,14 @@ test('off-taskbar and unavailable accessibility geometry preserve the usual tray
 
 function fakeWidget() {
   return {
-    bounds: { x: 0, y: 0, width: 320, height: 39 }, visible: false, aboveTaskbar: false, raises: 0,
+    bounds: { x: 0, y: 0, width: 320, height: 39 }, visible: false, aboveTaskbar: false, raises: 0, topmost: true,
     isDestroyed: () => false,
     isVisible() { return this.visible; },
     getBounds() { return { ...this.bounds }; },
     setBounds(bounds) { this.bounds = { ...bounds, height: Math.max(39, bounds.height) }; },
     showInactive() { this.visible = true; this.aboveTaskbar = false; },
+    isAlwaysOnTop() { return this.topmost; },
+    setAlwaysOnTop(value) { this.topmost = value; },
     moveTop() { assert.ok(this.visible, 'Raise the widget after showing it'); this.aboveTaskbar = true; this.raises++; },
     hide() { this.visible = false; this.aboveTaskbar = false; }
   };
@@ -130,6 +137,53 @@ test('hidden settings and unavailable taskbars do not raise the widget; restorin
   assert.equal(target.aboveTaskbar, true);
   assert.equal(target.raises, 2);
 });
+test('helper failures retain placement, including when explicitly hidden and then restored', () => {
+  const target = fakeWidget(), placement = new WidgetPlacement(target);
+  placement.apply(base, { visible: true });
+  for (let i = 0; i < 100; i++) placement.apply({ available: false }, { visible: true });
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 1, hides: 0 });
+  placement.apply({ available: false }, { visible: false });
+  assert.equal(target.isVisible(), false);
+  placement.apply({ available: false }, { visible: true });
+  assert.equal(target.isVisible(), true);
+  placement.apply(base, { visible: true });
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 2, hides: 1 });
+  placement.apply({ ...base, fullscreen: true }, { visible: true });
+  placement.apply({ available: false }, { visible: true });
+  assert.equal(target.isVisible(), false, 'An outage must not undo intentional fullscreen hiding');
+});
+test('native loss of topmost or taskbar order is repaired without resizing or taking focus', () => {
+  const target = fakeWidget(), placement = new WidgetPlacement(target);
+  placement.apply(base, { visible: true });
+  for (const loss of [{ topmost: false }, { aboveTaskbar: false }]) {
+    const metrics = { ...base, ...loss };
+    target.topmost = false;
+    target.aboveTaskbar = false;
+    placement.apply(metrics, { visible: true });
+    assert.equal(target.topmost, true);
+    assert.equal(target.aboveTaskbar, true);
+    const raises = target.raises;
+    for (let i = 0; i < 100; i++) placement.apply(metrics, { visible: true });
+    assert.equal(target.raises, raises, 'The same observation must not cause repeated repairs');
+  }
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 1, hides: 0 });
+  assert.equal(target.raises, 3);
+  target.visible = false;
+  placement.apply({ ...base, topmost: true, aboveTaskbar: true }, { visible: true });
+  assert.equal(target.isVisible(), true, 'An unexpectedly hidden window is restored');
+});
+test('native hiding is repaired even if Electron still reports the window visible', () => {
+  const target = fakeWidget(), placement = new WidgetPlacement(target);
+  placement.apply(base, { visible: true });
+  const observation = { ...base, widgetVisible: false };
+  placement.apply(observation, { visible: true });
+  for (let i = 0; i < 100; i++) placement.apply(observation, { visible: true });
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 2, hides: 0 });
+  placement.apply({ ...base, widgetVisible: false, fullscreen: true }, { visible: true });
+  assert.equal(target.isVisible(), false, 'Fullscreen hiding must not be repaired');
+  placement.apply({ ...base, widgetVisible: false }, { visible: false });
+  assert.equal(target.isVisible(), false, 'User hiding must not be repaired');
+});
 test('actual geometry changes still update widget position and width', () => {
   const placement = new WidgetPlacement(fakeWidget());
   placement.apply(base, { visible: true });
@@ -138,6 +192,52 @@ test('actual geometry changes still update widget position and width', () => {
   placement.apply(moved, { visible: true, width: 400 });
   assert.deepEqual(placement.changes, { bounds: 3, shows: 1, hides: 0 });
   assert.equal(placement.window.bounds.y, 907);
+});
+test('shell flyout animations preserve layout and the chosen horizontal position', () => {
+  const placement = new WidgetPlacement(fakeWidget());
+  const settings = { visible: true, xRatio: .25 };
+  placement.apply(base, settings);
+  const original = placement.window.getBounds();
+  const animation = { ...base, shellFlyout: true, tray: { ...base.tray, x: 1550 }, occupied: [base.bar] };
+  for (let i = 0; i < 20; i++) placement.apply({ ...animation }, settings);
+  assert.deepEqual(placement.window.getBounds(), original, 'Transient shell rectangles must not move the bar');
+  placement.apply({ ...base, shellFlyout: false }, settings);
+  assert.deepEqual(placement.window.getBounds(), original);
+  placement.apply({ ...base, tray: null, occupied: null }, settings);
+  assert.deepEqual(placement.window.getBounds(), original, 'Closing animation must not substitute the 300px tray fallback');
+  assert.deepEqual(placement.changes, { bounds: 1, shows: 1, hides: 0 });
+  placement.apply(animation, { ...settings, xRatio: .4 });
+  assert.equal(placement.window.getBounds().x, 768, 'Explicit dragging still changes position');
+  placement.apply({ ...animation, bar: { ...base.bar, y: 900 } }, settings);
+  assert.notEqual(placement.window.getBounds().y, original.y, 'Real display/taskbar geometry changes still apply');
+});
+test('child placement uses taskbar coordinates and waits for parent changes before moving outside it', () => {
+  const target = fakeWidget(), commands = [];
+  let parented = true, sent;
+  target.setBounds = bounds => {
+    sent = bounds;
+    target.bounds = { ...bounds, x: bounds.x + (parented ? base.bar.x : 0), y: bounds.y + (parented ? base.bar.y : 0) };
+  };
+  const placement = new WidgetPlacement(target, { setParented(value, bounds) { commands.push({ value, bounds }); } });
+  const metrics = { ...base, parented: true }, settings = { visible: true };
+  placement.apply(metrics, settings);
+  assert.equal(sent.y, 7);
+  assert.equal(target.bounds.y, 1039);
+  assert.equal(target.raises, 0, 'The child must not fight Explorer with top-level raises');
+  const crowded = { ...metrics, occupied: [base.bar] };
+  for (let i = 0; i < 10; i++) placement.apply(crowded, settings);
+  assert.equal(commands.length, 1);
+  assert.equal(commands[0].value, false);
+  assert.equal(target.bounds.y, 1039, 'Keep the old visible placement until native detachment completes');
+  parented = false;
+  placement.apply({ ...crowded, parented: false }, settings);
+  assert.equal(sent.y, 990);
+  placement.apply({ ...base, parented: false }, settings);
+  assert.equal(commands[1].value, true);
+  parented = true;
+  placement.apply(metrics, settings);
+  assert.equal(sent.y, 7);
+  assert.equal(target.bounds.y, 1039);
 });
 
 function probe(t, options = {}) {
@@ -164,6 +264,16 @@ test('geometry helper retries after a startup timeout reports unavailable', { ti
   t.mock.timers.tick(value.retryDelay);
   assert.equal((await restored).available, true);
   assert.notEqual(value.child.pid, oldChild.pid);
+});
+
+test('mouse input never satisfies a pending geometry query or cancels its timeout', { timeout: 5000 }, async t => {
+  const value = probe(t, { args: [path.join(__dirname, 'fixtures/taskbar.cjs'), '--input-only'] });
+  const received = once(value, 'input');
+  const started = value.start();
+  assert.deepEqual((await received)[0], { type: 'mouseDown', button: 'left', x: 240, y: 1040 });
+  t.mock.timers.tick(value.timeout);
+  assert.deepEqual(await started, { available: false });
+  assert.equal(value.child, null, 'Input traffic must not keep a stalled geometry helper alive');
 });
 
 test('geometry helper restarts after exiting and continues reporting', { timeout: 5000 }, async t => {

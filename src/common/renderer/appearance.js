@@ -5,7 +5,7 @@
     en: { title: 'Background', default: 'Default', color: 'Color', image: 'Image', choose: 'Choose image…', reset: 'Use default background', hint: 'PNG or JPG, up to 10 MB. The app keeps its own copy.', invalidImage: 'Could not read this image. Choose a PNG or JPG.', imageTooLarge: 'This image is too large. Choose a smaller file.', appearanceFailed: 'Could not change the background. Try again.' },
   };
   let language = 'en', value, generation = 0, imageId, imageData;
-  const target = document.querySelector('.apple-shell') || document.body;
+  const target = document.querySelector('[data-background-target]') || document.body;
   const main = document.querySelector('main');
   let controls;
   const create = (tag, parent, className = '') => { const node = document.createElement(tag); node.className = className; parent?.append(node); return node; };

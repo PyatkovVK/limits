@@ -28,9 +28,9 @@ app.whenReady().then(async () => {
       await run(`window.limits.language('${language}')`); await pause();
       for (const mode of ['all', 'connected', 'active']) {
         await run(`(async () => { const select = document.getElementById('subscription-mode'); select.value = '${mode}'; await select.onchange(); })()`);
-        const view = await run(`({ count: [...document.querySelectorAll('.profile-card')].filter(c => !c.hidden).length, readonly: document.querySelector('[data-profile-id="default"] .profile-edit').hidden, mode: document.getElementById('subscription-mode').value, sourceDisabled: document.getElementById('subscription-add-source').disabled })`);
+        const view = await run(`({ count: [...document.querySelectorAll('.profile-card')].filter(c => !c.hidden).length, readonly: document.querySelector('[data-profile-id="default"] .profile-edit').hidden, mode: document.getElementById('subscription-mode').value, controls: [...document.querySelector('.subscription-controls').children].map(node => node.id), addSourceApi: typeof window.limits.addSubscriptionSource })`);
         assert.equal(view.count, mode === 'all' ? 2 : 1); assert.equal(view.mode, mode);
-        assert.equal(view.readonly, true); assert.equal(view.sourceDisabled, true);
+        assert.equal(view.readonly, true); assert.deepEqual(view.controls, ['subscription-mode', 'account-provider', 'add-account']); assert.equal(view.addSourceApi, 'undefined');
       }
       await run(`window.limits.subscriptionMode('all')`); await pause();
       await run('document.querySelector(".accounts-section").scrollIntoView({block:"center"})');

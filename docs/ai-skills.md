@@ -18,7 +18,11 @@ The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, mac
 
 The bundled `focused-pull-requests` skill keeps independent bugs, features and other tasks in separate `limits/<description>` branches and MR/PRs. The existing `npm run setup:skills` script in `package.json` generates `skills/focused-pull-requests/SKILL.md` together with the other defaults.
 
-The bundled `changelog` skill records user-visible fixes and features directly under their target release version in `CHANGELOG.md`, as part of the same focused change. For example, changes targeting `1.6-demo` go under `1.6.0`, without an `Unreleased` placeholder. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
+The bundled [version-branches-from-main](skill-templates/version-branches-from-main/SKILL.md) skill creates new numeric version branches and their `-demo` variants from the current `main`, never from the previous version/demo or an unrelated task branch. Existing version branches are preserved unless the user explicitly asks to correct their base.
+
+The bundled `changelog` skill records user-visible fixes and features directly under their target release version in `CHANGELOG.md`, as part of the same focused change, without an `Unreleased` placeholder. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
+
+The bundled [versionless-documentation](skill-templates/versionless-documentation/SKILL.md) skill keeps concrete Limits release numbers only in `CHANGELOG.md`, unless the user explicitly requests a specific occurrence elsewhere. README files, documentation, requirements, comments and skill examples describe current behavior without release labels and use placeholders for branch/tag examples. Machine-readable version metadata and update logic retain their technical values.
 
 The bundled [test-failure-analysis](skill-templates/test-failure-analysis/SKILL.md) skill traces a failing test or CI check to its introducing commit, explains the affected platform behavior, proposes a systemic repair, and audits which tests and builds actually ran before applying a minimal authorized fix.
 

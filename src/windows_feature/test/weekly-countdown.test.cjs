@@ -25,6 +25,7 @@ test('weekly widget countdown updates between samples and switches selected buck
   const sample = { language: 'ru', buckets: [bucket], updatedAt: now };
   const context = { document: { getElementById: node, body: { classList: { toggle() {} }, addEventListener() {} } },
     window: { limitsI18n: { ...i18n, apply() {} }, limitsWindowsI18n: windowsI18n,
+      limitsWindows: { onWidgetClick() {} },
       limitsWindowsResetClock: { render(el, reset, language, time = Date.now(), options) { el.textContent = countdown.format(reset, language, time); el.language = language; } },
       limits: { subscribe(fn) { listener = fn; }, get: async () => sample } }, setInterval(fn) { tick = fn; }, Date };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../renderer/widget.js'), 'utf8'), context);

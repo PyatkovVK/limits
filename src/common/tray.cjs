@@ -4,9 +4,11 @@ const { icon: macIcon } = require('../apple_feature/tray-icon.cjs');
 const { icon: linuxIcon } = require('../linux_feature/tray-icon.cjs');
 const { t } = require('./renderer/i18n.js');
 const { format } = require('./renderer/countdown.js');
+const { view } = require('./renderer/metrics.js');
+const { icon: metricIcon } = require('./metric-icon.cjs');
 
 // Stable GUIDs let Windows keep icon visibility preferences across mode switches.
-const ids = { app: 'd46fa280-e375-4eaf-ae9e-e645c94ff7cb', short: 'b577427c-28cc-493a-8f24-a76e440ff62c', weekly: '1c682035-fb71-4ffd-99f1-a088946a6b35' };
+const ids = { app: 'd46fa280-e375-4eaf-ae9e-e645c94ff7cb', short: 'b577427c-28cc-493a-8f24-a76e440ff62c', weekly: '1c682035-fb71-4ffd-99f1-a088946a6b35', metric: '3594d852-a166-49f9-a025-19fa7b1710a9' };
 function tooltip(kind, { bucket, account, displayName, language = 'ru', stale, demo }, now = Date.now()) {
   const quota = bucket?.[kind];
   const value = percentage(quota?.remaining);
@@ -29,12 +31,15 @@ class TrayPresentation {
     this.mode = null;
     this.entries = [];
   }
-  update({ mode, linuxTrayStyle = 'classic', bucket, stale, dark = true, account, displayName, language, demo, menu }) {
+  update({ mode, linuxTrayStyle = 'classic', bucket, stale, dark = true, account, displayName, language, demo, menu, metricsState }) {
+    const generic = metricsState?.displaySchema?.layout === 'metrics';
+    const primary = generic ? view(metricsState, language).primary : null;
+    if (generic && mode === 'tray') mode = 'metric';
     if (this.mode !== mode) {
       const old = this.entries;
-      this.entries = (mode === 'tray' ? ['short', 'weekly'] : ['app']).map(kind => {
-        const image = kind === 'app' ? this.appIcon : this.quotaIcon(this.nativeImage, { kind, style: linuxTrayStyle, language, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
-        const tray = this.platform === 'linux' ? new this.Tray(image) : new this.Tray(image, ids[kind]);
+      this.entries = (mode === 'tray' ? ['short', 'weekly'] : mode === 'metric' ? ['metric'] : ['app']).map(kind => {
+        const image = kind === 'app' ? this.appIcon : kind === 'metric' ? metricIcon(this.nativeImage, primary, { stale, dark }) : this.quotaIcon(this.nativeImage, { kind, style: linuxTrayStyle, language, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
+        const tray = this.platform === 'linux' ? new this.Tray(image) : new this.Tray(image, ids[kind] || ids.app);
         tray.on('click', () => this.onClick(tray, kind));
         const entry = { kind, tray, image };
         if (this.platform === 'darwin') tray.on('right-click', () => tray.popUpContextMenu(entry.contextMenu));
@@ -47,13 +52,14 @@ class TrayPresentation {
     for (const entry of this.entries) {
       const { kind, tray } = entry;
       const signature = JSON.stringify([percentage(bucket?.[kind]?.remaining), stale, dark, this.platform === 'darwin' && kind === 'short' ? format(bucket?.short?.resetsAt) : null,
-        this.platform === 'linux' ? [linuxTrayStyle, language] : null]);
+        this.platform === 'linux' ? [linuxTrayStyle, language] : null, kind === 'metric' ? primary : null]);
       if (kind !== 'app' && signature !== entry.signature) {
-        entry.image = this.quotaIcon(this.nativeImage, { kind, style: linuxTrayStyle, language, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
+        entry.image = kind === 'metric' ? metricIcon(this.nativeImage, primary, { stale, dark }) : this.quotaIcon(this.nativeImage, { kind, style: linuxTrayStyle, language, remaining: bucket?.[kind]?.remaining, resetsAt: bucket?.[kind]?.resetsAt, stale, dark });
         tray.setImage(entry.image);
         entry.signature = signature;
       }
-      const title = kind === 'app' ? t(language, 'tooltip') : tooltip(kind, { bucket, stale, account, displayName, language, demo });
+      const title = generic ? ['Limits', displayName || account?.email, primary?.label, primary?.formatted || '—', stale ? t(language, 'stale') : null, demo ? t(language, 'demoNotice') : null].filter(Boolean).join('\n')
+        : kind === 'app' ? t(language, 'tooltip') : tooltip(kind, { bucket, stale, account, displayName, language, demo });
       if (title !== entry.tooltip) { tray.setToolTip(title); entry.tooltip = title; }
       if (menuSignature !== entry.menuSignature) {
         entry.contextMenu = this.Menu.buildFromTemplate(menu);

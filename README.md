@@ -19,7 +19,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
   <a href="README.ru.md">Русский</a>
 </p>
 
-**Limits 1.5** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
+**Limits** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
 
 <p align="center">
   <img src="docs/screenshots/windows-accounts.png" width="440" alt="Windows account panel with demo accounts and remaining usage">
@@ -33,10 +33,11 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 
 - **Two usage windows:** remaining five-hour and weekly allowances, with reset information.
 - **Multiple accounts:** subscriptions connected in Limits and current local Codex / VS Code profiles, with separate usage data, local names, filters, and a selected account for your compact indicators.
+- **DeepSeek balance:** connect an API key from Settings → Subscriptions, then monitor total, granted and topped-up funds in USD or CNY with independent refreshes.
 - **Automatic refresh:** polling about one minute after each completed request, refresh after waking from sleep, and a manual refresh button.
 - **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
 - **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons or a compact desktop widget.
-- **Application updates:** automatic package downloads, verification, and installation with restart in supported installed builds on Windows, macOS, and Linux.
+- **Application updates:** offers new versions, downloads on request, verifies packages, and installs with restart in supported installed builds on Windows, macOS, and Linux.
 - **Launch at login:** enable autostart in Settings for supported installed builds on each platform.
 - **English and Russian UI:** language and display preferences persist across launches.
 
@@ -86,6 +87,12 @@ macOS remembers this exception for the app, so subsequent launches can use a nor
 
 Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. After installing the app, enable **Settings → Launch at macOS login** to start in the background at login. This also works with local ad hoc signed builds; disabling the option removes the startup entry.
 
+**Settings → Display → Notch side panel** adds a third mode: a black panel with curved joins into the notch and persistent **5h** / **7d** values on either side. Low-allowance warnings, enabled Codex Resets alerts, and update announcements expand inside this panel. Messages queue, dismiss automatically after ten seconds when the pointer is away, and can be closed with × or Esc. Both notch modes require a physical MacBook notch.
+
+The side panel fits the free space between neighbouring menu-bar items and shortens its labels when space is limited. Only confirmed lack of space switches it to a compact notch with limits shown below the camera on hover. Unavailable menu metadata does not hide the side values, and a temporary probe failure keeps the last measured layout. The collapsed panel and hover preview always share the same width and side edges. The collapsed notch stays black; a selected background appears inside the expanded details panel. Areas outside the notch chrome remain transparent and pass clicks through. This does not request additional macOS permissions.
+
+The side panel adapts to additional metrics. Values that do not fit move into a **+N** control, which opens the complete list in the scrollable details panel.
+
 <details>
 <summary>Dark theme and MacBook notch</summary>
 
@@ -115,7 +122,7 @@ If the details panel is open, it follows the widget as you drag it along the tas
 
 The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in **Settings**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Windows widget**. Drag the details title bar to keep a preferred position across openings and restarts. The details panel fits its content and resizes when Settings opens or closes. Reset labels show the local clock time and include the date for other days; hover for the full date. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
 
-When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. The preferred width returns when more space becomes available.
+When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. If neither side has room, it stays visible just above the taskbar. The preferred width and taskbar placement return when more space becomes available.
 
 ![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows-widget-compact.png)
 
@@ -133,21 +140,25 @@ On Linux, select **Widget** in Settings for a compact floating window with two q
 
 Limits checks stable releases on GitHub in the background at startup and every six hours. After waking, it checks if the scheduled time has passed. Open **Settings → Updates → Check for updates** for a manual check, the installed version and the last check result.
 
-**macOS (1.5):** installed copies in `/Applications` or `~/Applications` automatically download the matching Apple Silicon or Intel ZIP from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
+When a new version is found, choose **Download update** in the offer or Settings to start downloading. **Later** postpones the offer without downloading. After verification, choose **Install and restart** when convenient.
 
-**Windows:** installed and portable x64 builds download their matching update automatically from Actions-published stable GitHub Releases. Packages are checked against SHA256SUMS.txt and product/version metadata; signed installations also require a valid matching publisher. Choose **Install and restart** when ready. Portable updates replace the original executable and keep a backup until relaunch. Accounts and settings are retained. The app reports download, verification and installation errors and allows retries.
+**macOS:** installed copies in `/Applications` or `~/Applications` download the matching Apple Silicon or Intel ZIP on request from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
 
-**Linux:** Linux also downloads stable update packages automatically and verifies SHA-256 before offering Install and restart. Writable AppImages update in place; installed DEBs use dpkg/pkexec and ask for system authorization only when installing. Accounts and settings remain in place. See [platform installation details](docs/in-app-updates.md). Source/unpacked builds retain manual installation.
+**Windows:** installed and portable x64 builds download their matching update on request from Actions-published stable GitHub Releases. Packages are checked against SHA256SUMS.txt and product/version metadata; signed installations also require a valid matching publisher. Choose **Install and restart** when ready. Portable updates replace the original executable and keep a backup until relaunch. Accounts and settings are retained. The app reports download, verification and installation errors and allows retries.
+
+**Linux:** Linux also downloads stable update packages on request and verifies SHA-256 before offering Install and restart. Writable AppImages update in place; installed DEBs use dpkg/pkexec and ask for system authorization only when installing. Accounts and settings remain in place. See [platform installation details](docs/in-app-updates.md). Source/unpacked builds retain manual installation.
 
 Demo mode simulates update checks without contacting GitHub or opening a browser; **Demo result** in Updates lets you preview current, available and failed states.
 
 ## Data and sign-in
 
-Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required; API-key authentication does not expose these subscription limits. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
+For Codex, Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required for Codex subscription limits; API-key authentication does not expose those allowances. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
 
-**macOS (1.5):** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Use **Add Codex profile** to select another local `CODEX_HOME` if your clients use different stores. Forgetting it stops tracking without logging it out. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
+**DeepSeek:** open Settings → Subscriptions, select DeepSeek, and choose **+ Add**. Limits opens the API-key page in your browser. Sign in, create a key, return to Limits and paste it into **Connect DeepSeek**. The profile is added after a successful balance check; cancellation leaves no empty profile. Keys are encrypted on this device using the OS credential storage through Electron; connecting fails if secure storage is unavailable. Use **Name and connection → Replace API key** to change a key, or disconnect the profile to delete its saved key locally. This does not revoke the key in DeepSeek. Balances refresh about one minute after each completed request, independently from Codex. Different currencies are kept separate. Account-wide token or spending history is not included.
 
-On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically; add another CODEX_HOME folder to track a separate local profile. External profiles reload sign-in changes on polling; sign in or out in Codex / VS Code. Removing a source only stops tracking it. Accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
+**macOS:** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Add subscriptions using the provider selector and **+ Add**. Extra local `CODEX_HOME` folders are not tracked. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
+
+On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically and reloads sign-in changes on polling; sign in or out in Codex / VS Code. Extra CODEX_HOME folders are not tracked. Add subscriptions using the provider selector and **+ Add**. Codex accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
 
 Limits has no app-level analytics or telemetry integration in its source. Codex connects to OpenAI services for sign-in and usage data; its behavior is managed by Codex. See [data storage and privacy](docs/privacy.md).
 
@@ -162,6 +173,8 @@ Use **Background** to choose the platform default, a solid color, or a local PNG
 [Report a bug or suggest a feature](https://github.com/PyatkovVK/limits/issues/new/choose). Include your OS, app version, and steps to reproduce; hide personal information in screenshots.
 
 Translations, documentation improvements, and platform testing are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and issues labeled [good first issue](https://github.com/PyatkovVK/limits/labels/good%20first%20issue). Please follow the [code of conduct](CODE_OF_CONDUCT.md).
+
+For additional AI integrations, see the [shared controller guide](docs/ai-controllers.md). Codex is the only production integration currently registered.
 
 See [CHANGELOG.md](CHANGELOG.md) for release features. Limits uses the [MIT license](LICENSE); bundled dependencies have their own [third-party notices](THIRD-PARTY-NOTICES.md).
 

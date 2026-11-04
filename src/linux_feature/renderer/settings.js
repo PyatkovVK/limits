@@ -1,8 +1,8 @@
 'use strict';
 (() => {
   const texts = {
-    ru: { classic: 'Прежние значки · проценты', bar: 'Полоски · 5ч / 7д', widget: 'Виджет на рабочем столе' },
-    en: { classic: 'Classic icons · percentages', bar: 'Bars · 5h / 7d', widget: 'Desktop widget' },
+    ru: { classic: 'Значки · проценты', bar: 'Полоски · 5ч / 7д', widget: 'Виджет на рабочем столе' },
+    en: { classic: 'Icons · percentages', bar: 'Bars · 5h / 7d', widget: 'Desktop widget' },
   };
   function render(next) {
     if (next.platform !== 'linux') return false;

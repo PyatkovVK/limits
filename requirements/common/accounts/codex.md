@@ -1,5 +1,7 @@
 # Accounts and authentication
 
+These requirements describe the Codex account workflow. The planned [AI controller infrastructure](../ai-connects.md) moves its service-specific implementation into the Codex controller while preserving these guarantees.
+
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
 | COM-ACC-001 | Provide ChatGPT browser sign-in. | Successful sign-in leads to reading actual limits; cancellation prevents a late response from opening the browser. |
@@ -21,8 +23,17 @@
 
 The following requirement describes a future change rather than an already completed implementation. It applies to Windows, macOS, and Linux.
 
-Version 1.3 satisfies runtime independence in COM-ACC-014; it does not claim the full storage/configuration isolation below. The default account may still share Codex's managed `CODEX_HOME` and credential store. Additional accounts continue to use isolated homes. Replacing the runtime prerequisite does not silently migrate or erase existing authentication data.
+Limits satisfies runtime independence in COM-ACC-014; it does not claim the full storage/configuration isolation below. The default account may still share Codex's managed `CODEX_HOME` and credential store. Additional accounts continue to use isolated homes. Replacing the runtime prerequisite does not silently migrate or erase existing authentication data.
 
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
 | COM-ACC-013 | Obtain authentication and limit data independently of external Codex and VS Code installations. | Limits provides its own account connection and stores its own authentication state. It works without installed Codex or VS Code and does not read their configuration, profiles, credentials, or extension binaries. The connection mechanism will be defined during the future implementation. |
+
+## Planned controller integration
+
+The following requirements apply to the planned controller refactor. It preserves current credential storage and does not claim to complete COM-ACC-013.
+
+| ID | Requirement | Acceptance criterion |
+| --- | --- | --- |
+| COM-ACC-016 | Associate profiles with a provider without losing existing Codex accounts. | Existing records without `providerId` resolve to `codex`; their IDs, local names, selection, connected/external source associations, and credential locations remain valid. New records identify their provider explicitly. Unknown providers remain unavailable rather than falling back to Codex. |
+| COM-ACC-017 | Route account actions through controller capabilities. | Shared account management invokes sign-in, cancellation, sign-out, and disconnect through the controller contract rather than its client/RPC internals. Codex retains the existing single-login lock and cancellation guarantees. Read-only external sources do not acquire login/logout actions; disconnecting a controller does not log out the account. |

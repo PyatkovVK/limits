@@ -4,26 +4,21 @@ const { randomUUID } = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { isStale } = require('./limits.cjs');
-// Keep this list aligned with Codex's supported host-owned auth selectors.
-const AUTH_ENV_VARIABLES = Object.freeze(['OPENAI_API_KEY', 'CODEX_API_KEY', 'CODEX_ACCESS_TOKEN',
-  'OPENAI_FEDERATION_RULE_ID', 'OPENAI_IDENTITY_TOKEN_FILE', 'OPENAI_WORKLOAD_IDENTITY_CONTEXT']);
+const { registry: defaultRegistry } = require('./ai-connects/registry.cjs');
+const { Monitor } = require('./monitor.cjs');
+const { contractError } = require('./ai-connects/contracts.cjs');
 
 const nickname = value => typeof value === 'string' ? value.replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 80) : '';
-function clientOptions(root, profile, env = process.env) {
-  if (profile.id === 'default') return { env };
-  const isolated = { ...env, CODEX_HOME: path.join(root, 'accounts', profile.id) };
-  for (const key of Object.keys(isolated)) if (AUTH_ENV_VARIABLES.includes(key.toUpperCase())) delete isolated[key];
-  return { env: isolated, args: ['-c', 'cli_auth_credentials_store="file"', 'app-server', '--listen', 'stdio://'] };
-}
-
 class Accounts extends EventEmitter {
-  constructor({ root, createMonitor, initialProfiles }) {
+  constructor({ root, createMonitor, initialProfiles, registry = defaultRegistry, controllerContext = () => ({}) }) {
     super();
-    Object.assign(this, { root, createMonitor });
+    Object.assign(this, { root, registry, controllerContext });
+    this.createMonitor = createMonitor || ((profile, options) => new Monitor(registry.create(profile.providerId, options)));
     this.file = path.join(root, 'accounts.json');
     this.monitors = new Map();
     this.loginActive = null;
     this.loginAttempt = null;
+    this.keyConnection = null;
     this.removing = new Map();
     let saved;
     if (!initialProfiles) {
@@ -34,14 +29,16 @@ class Accounts extends EventEmitter {
     this.profiles = (Array.isArray(records) ? records : []).filter(profile => {
       if (!profile || typeof profile.id !== 'string' || !/^(default|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.test(profile.id) || seen.has(profile.id)) return false;
       seen.add(profile.id); return true;
-    }).map(profile => ({ id: profile.id, nickname: nickname(profile.nickname) }));
-    if (!this.profiles.some(profile => profile.id === 'default')) this.profiles.unshift({ id: 'default', nickname: '' });
+    }).map(profile => ({ id: profile.id, nickname: nickname(profile.nickname), providerId: typeof profile.providerId === 'string' ? profile.providerId : 'codex' }));
+    if (!this.profiles.some(profile => profile.id === 'default')) this.profiles.unshift({ id: 'default', nickname: '', providerId: 'codex' });
     this.selectedProfileId = this.profiles.some(profile => profile.id === saved?.selectedProfileId) ? saved.selectedProfileId : this.profiles[0].id;
     this.profiles.forEach(profile => this.attach(profile));
   }
-  attach(profile) {
+  attach(profile, controller) {
     if (profile.id !== 'default') fs.mkdirSync(path.join(this.root, 'accounts', profile.id), { recursive: true });
-    const monitor = this.createMonitor(profile, clientOptions(this.root, profile));
+    const options = this.registry.optionsFor(profile.providerId, { root: this.root, profile, ...this.controllerContext(profile) });
+    const monitor = controller ? new Monitor(controller) : this.registry.has(profile.providerId) ? this.createMonitor(profile, options)
+      : new Monitor(this.registry.create(profile.providerId, { profileId: profile.id }));
     this.monitors.set(profile.id, monitor);
     monitor.on('state', () => this.publish());
     monitor.on('diagnostic', info => this.emit('diagnostic', { ...info, profileId: profile.id }));
@@ -51,7 +48,8 @@ class Accounts extends EventEmitter {
   snapshot() {
     const profiles = this.profiles.map(profile => {
       const state = this.monitors.get(profile.id).state;
-      return { ...state, id: profile.id, nickname: profile.nickname, displayName: profile.nickname || state.account?.email || '', stale: isStale(state) };
+      return { ...state, providerId: profile.providerId, id: profile.id, nickname: profile.nickname,
+        displayName: profile.nickname || state.account?.email || (state.account || state.capabilities?.apiKey ? this.registry.providers.get(profile.providerId)?.name || '' : ''), stale: isStale(state) };
     });
     const counts = new Map();
     for (const profile of profiles) {
@@ -62,7 +60,10 @@ class Accounts extends EventEmitter {
       if (profile.nickname && counts.get(profile.displayName.toLocaleLowerCase()) > 1 && profile.account?.email) profile.displayName += ` (${profile.account.email})`;
     }
     const selected = profiles.find(profile => profile.id === this.selectedProfileId);
-    return { ...selected, profiles, selectedProfileId: this.selectedProfileId, loginProfileId: this.loginActive };
+    const pending = this.keyConnection;
+    return { ...selected, profiles, providers: this.registry.list(), selectedProfileId: this.selectedProfileId, loginProfileId: this.loginActive,
+      keyConnection: pending ? { id: pending.id, providerId: pending.profile.providerId, profileId: pending.existing ? pending.profile.id : null,
+        name: this.registry.providers.get(pending.profile.providerId).name, phase: pending.phase } : null };
   }
   publish() { this.emit('state', this.snapshot()); }
   persist() {
@@ -89,15 +90,65 @@ class Accounts extends EventEmitter {
     if (!profile) throw new Error('Unknown profile');
     profile.nickname = nickname(value); this.persist(); this.publish();
   }
-  add() {
-    const profile = { id: randomUUID(), nickname: '' };
+  add(providerId = 'codex') {
+    if (!this.registry.has(providerId)) throw new Error('Unknown provider');
+    const profile = { id: randomUUID(), nickname: '', providerId };
     this.attach(profile); this.profiles.push(profile); this.persist(); this.publish();
     return profile.id;
+  }
+  beginKeyConnection(providerId, profileId) {
+    if (this.loginActive || this.keyConnection) throw contractError('loginBusy');
+    if (this.registry.providers.get(providerId)?.authentication !== 'api-key') throw contractError('loginUnavailable');
+    const existing = profileId !== undefined;
+    const profile = existing ? this.profiles.find(item => item.id === profileId && item.providerId === providerId) : { id: randomUUID(), nickname: '', providerId };
+    if (!profile || this.removing.has(profile.id)) throw contractError('accountActionFailed');
+    const options = this.registry.optionsFor(providerId, { root: this.root, profile, ...this.controllerContext(profile) });
+    const controller = this.registry.create(providerId, options);
+    if (!controller.state.capabilities.apiKey) { controller.disconnect(); throw contractError('loginUnavailable'); }
+    this.keyConnection = { id: randomUUID(), profile, controller, existing, phase: 'waiting' };
+    this.publish();
+    return this.snapshot().keyConnection;
+  }
+  credentialsUrl(id) {
+    return this.keyConnection?.id === id ? this.keyConnection.controller.getCredentialsUrl() : null;
+  }
+  async submitKeyConnection(id, key) {
+    const pending = this.keyConnection;
+    if (!pending || pending.id !== id) throw contractError('loginIncomplete');
+    if (pending.phase === 'checking') throw contractError('loginBusy');
+    pending.phase = 'checking'; this.publish();
+    try {
+      await pending.controller.authenticate(key);
+      if (this.keyConnection !== pending) throw contractError('loginIncomplete');
+      pending.controller.saveCredentials();
+      if (!pending.existing) {
+        this.profiles.push(pending.profile);
+        try { this.persist(); }
+        catch {
+          this.profiles = this.profiles.filter(profile => profile.id !== pending.profile.id);
+          await pending.controller.signOut();
+          throw contractError('accountActionFailed');
+        }
+      } else this.monitors.get(pending.profile.id)?.stop();
+      const monitor = this.attach(pending.profile, pending.controller);
+      this.keyConnection = null;
+      monitor.schedule(); this.publish();
+      return pending.profile.id;
+    } catch (error) {
+      if (this.keyConnection === pending) { pending.phase = 'waiting'; this.publish(); }
+      throw error;
+    }
+  }
+  cancelKeyConnection(id) {
+    if (this.keyConnection?.id !== id) return;
+    const pending = this.keyConnection;
+    this.keyConnection = null; pending.controller.disconnect(); this.publish();
   }
   async login(id = this.selectedProfileId) {
     const monitor = this.monitors.get(id);
     if (!monitor || this.removing.has(id)) throw new Error('Unknown profile');
     const busy = () => { const error = new Error('Login in progress'); error.code = 'loginBusy'; throw error; };
+    if (this.keyConnection) busy();
     if (this.loginActive && (this.loginActive !== id || this.loginAttempt?.phase !== 'active')) busy();
     if (this.loginActive === id) await this.cancelLogin(id);
     // Another profile or removal can take over while cancellation is awaiting RPC.
@@ -129,17 +180,18 @@ class Accounts extends EventEmitter {
     return removal.finally(() => this.removing.delete(id));
   }
   async removeProfile(id) {
-    if (id === 'default') throw new Error('The shared Codex account is managed by Codex');
+    if (id === 'default') throw new Error('The default source cannot be removed');
     const monitor = this.monitors.get(id);
     if (!monitor) return;
+    if (this.keyConnection?.profile.id === id) this.cancelKeyConnection(this.keyConnection.id);
     await this.cancelLogin(id);
-    await monitor.client.start();
-    await monitor.client.request('account/logout');
+    if (monitor.state.capabilities?.signOut !== false) await monitor.signOut();
     monitor.stop(); this.monitors.delete(id);
     this.profiles = this.profiles.filter(profile => profile.id !== id);
     if (this.selectedProfileId === id) this.selectedProfileId = this.profiles[0].id;
     this.persist(); this.publish();
   }
-  stop() { this.monitors.forEach(monitor => monitor.stop()); }
+  stop() { if (this.keyConnection) this.cancelKeyConnection(this.keyConnection.id); this.monitors.forEach(monitor => monitor.stop()); }
+  isSignInUrlAllowed(id, url) { return this.monitors.get(id)?.isSignInUrlAllowed(url) === true; }
 }
-module.exports = { Accounts, clientOptions, AUTH_ENV_VARIABLES };
+module.exports = { Accounts };

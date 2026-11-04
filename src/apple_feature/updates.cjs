@@ -52,7 +52,6 @@ class AppleUpdates extends Updates {
       if (this.job) { fs.rmSync(this.job, { recursive: true, force: true }); this.job = null; }
     }
     super.publish(patch);
-    if (patch.status === 'available' && this.installation?.enabled) void this.prepare(this.state.release);
   }
   installState(patch) { Object.assign(this.installation, patch); this.emit('state', this.snapshot()); }
   prepare(release) {

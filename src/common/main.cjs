@@ -1,10 +1,7 @@
 'use strict';
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog, safeStorage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
-const { findCodex } = require('./codex-path.cjs');
-const { CodexClient } = require('./codex-client.cjs');
-const { Monitor } = require('./monitor.cjs');
 const { CODEX_POLL_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
 const { Accounts } = require('./accounts.cjs');
 const { AppearanceStore } = require('./appearance.cjs');
@@ -44,10 +41,12 @@ let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', 
 const t = key => (process.platform === 'darwin' ? require('../apple_feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key, process.platform);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60, demo };
 let notified = new Set();
+const applePresentation = process.platform === 'darwin' ? require('../apple_feature/presentation.cjs') : null;
+const usesNotch = () => applePresentation?.isNotchMode(widgetSettings.displayMode);
 
 function showPanel(anchor) {
   if (!window || window.isDestroyed()) return;
-  if (widgetSettings.displayMode === 'notch') return appleNotch?.expand();
+  if (usesNotch()) return appleNotch?.expand();
   if (macPanel) return macPanel.show(anchor);
   if (linuxPanel) return linuxPanel.show(anchor);
   if (windowsPanel) return windowsPanel.show(anchor);
@@ -61,7 +60,7 @@ function showPanel(anchor) {
   window.show(); window.focus();
 }
 
-const displayModes = () => taskbarSupported ? ['widget', 'tray'] : process.platform === 'darwin' && appleNotch?.available ? ['tray', 'notch'] : linuxWidgetSupported ? ['tray', 'widget'] : ['tray'];
+const displayModes = () => taskbarSupported ? ['widget', 'tray'] : applePresentation ? applePresentation.displayModes(appleNotch?.available) : linuxWidgetSupported ? ['tray', 'widget'] : ['tray'];
 function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, reducedMotion: nativeTheme.prefersReducedMotion, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: displayModes(), appleNotch: appleNotch?.snapshot() || null, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null,
   updates: updates?.snapshot(),
   resetNotifications: resetNotifications?.snapshot(),
@@ -96,25 +95,25 @@ function setDisplayMode(mode) {
     widgetSettings.linuxTrayStyle = mode;
     mode = 'tray';
   }
-  if (!['widget', 'tray', 'notch'].includes(mode)) return publicState();
+  if (!['widget', 'tray'].includes(mode) && !applePresentation?.isNotchMode(mode)) return publicState();
   if (mode === 'widget' && !taskbarSupported && !linuxWidgetSupported) mode = 'tray';
   if (!displayModes().includes(mode)) return publicState();
   const previous = widgetSettings.displayMode;
   widgetSettings.displayMode = mode;
   if (mode === 'widget') widgetSettings.visible = true;
-  if (mode === 'notch') {
+  if (usesNotch()) {
     window.hide();
-    void appleNotch.enable().then(() => {
-      if (!quitting && widgetSettings.displayMode === 'notch') appleNotch.expand();
-    }).catch(error => { console.error('Apple notch:', error.message); if (!quitting) setDisplayMode('tray'); });
+    void appleNotch.enable(mode).then(() => {
+      if (!quitting && widgetSettings.displayMode === mode) appleNotch.expand();
+    }).catch(error => { console.error('Apple notch:', error.message); if (!quitting && widgetSettings.displayMode === mode) setDisplayMode('tray'); });
   } else appleNotch?.disable();
   saveWidgetSettings(); placeWidget(); update();
-  if (previous === 'notch' && mode === 'tray') void showPanel();
+  if (applePresentation?.isNotchMode(previous) && mode === 'tray') void showPanel();
   return publicState();
 }
 async function showSettings() {
   await showPanel();
-  const target = widgetSettings.displayMode === 'notch' ? appleNotch?.window : window;
+  const target = usesNotch() ? appleNotch?.window : window;
   if (target && !target.isDestroyed()) target.webContents.send('limits:open-settings');
 }
 
@@ -131,17 +130,20 @@ function update() {
   if (quitting || !window || window.isDestroyed()) return;
   const bucket = selectedBucket(state);
   const stale = isStale(state);
-  if (widgetSettings.displayMode === 'notch') trayPresentation?.destroy();
-  else trayPresentation?.update({ mode: widgetSettings.displayMode, linuxTrayStyle: widgetSettings.linuxTrayStyle, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: presentationMenu() });
+  if (usesNotch()) trayPresentation?.destroy();
+  else trayPresentation?.update({ mode: widgetSettings.displayMode, linuxTrayStyle: widgetSettings.linuxTrayStyle, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: presentationMenu(), metricsState: state });
   for (const kind of ['short', 'weekly']) {
     const value = bucket?.[kind]?.remaining ?? null;
     const label = t(kind === 'short' ? 'shortCompact' : 'weeklyCompact');
     if (!demo && !smoke && !stale && value !== null && value <= 10) {
       const key = `${state.selectedProfileId}:${bucket.id}:${kind}:${bucket[kind].resetsAt}`;
       if (!notified.has(key)) {
+        const notification = { title: t('lowTitle'), body: `${label}: ${value}%.` };
+        const delivered = applePresentation?.notify(widgetSettings.displayMode, appleNotch, notification);
+        if (delivered === false) continue;
+        if (delivered == null && Notification.isSupported()) new Notification(notification).show();
         notified.add(key);
         if (notified.size > 100) notified = new Set([key]);
-        if (Notification.isSupported()) new Notification({ title: t('lowTitle'), body: `${label}: ${value}%.` }).show();
       }
     }
   }
@@ -153,8 +155,12 @@ function trusted(event) { return [window, widget, appleNotch?.window].some(targe
 function handle(channel, fn) { ipcMain.handle(channel, (event, ...args) => { if (!trusted(event)) throw new Error('Unauthorized'); return fn(...args); }); }
 
 function showResetNotification(event) {
-  if (quitting || !Notification.isSupported()) return false;
-  const notification = new Notification({ title: 'Limits · Codex Resets', body: `${resetEventText(event, widgetSettings.language)}\n${(resetWords[widgetSettings.language] || resetWords.en).source}codex-resets.com` });
+  if (quitting) return false;
+  const message = { title: 'Limits · Codex Resets', body: `${resetEventText(event, widgetSettings.language)}\n${(resetWords[widgetSettings.language] || resetWords.en).source}codex-resets.com` };
+  const delivered = applePresentation?.notify(widgetSettings.displayMode, appleNotch, { ...message, action: 'resets' });
+  if (delivered != null) return delivered;
+  if (!Notification.isSupported()) return false;
+  const notification = new Notification(message);
   // Retain native objects so click/failure events survive garbage collection.
   resetToasts.add(notification);
   while (resetToasts.size > 8) resetToasts.delete(resetToasts.values().next().value);
@@ -182,7 +188,7 @@ async function captureSmokePanel() {
   return (await window.webContents.capturePage()).toPNG();
 }
 async function createWidget() {
-  widgetHost = new TaskbarWidget({ BrowserWindow, Menu, webPreferences, restrictWindow, getSettings: () => widgetSettings, resourcesPath: app.isPackaged ? process.resourcesPath : null, onMove: bounds => {
+  widgetHost = new TaskbarWidget({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings: () => widgetSettings, resourcesPath: app.isPackaged ? process.resourcesPath : null, onMove: bounds => {
     if (!taskbarMetrics?.bar) return;
     widgetSettings.xRatio = (bounds.x - taskbarMetrics.bar.x) / taskbarMetrics.bar.width;
     saveWidgetSettings(); placeWidget();
@@ -207,6 +213,7 @@ async function createWidget() {
       ...metrics,
       bar: screen.screenToDipRect(null, metrics.bar),
       tray: metrics.tray ? screen.screenToDipRect(null, metrics.tray) : null,
+      monitor: metrics.monitor ? screen.screenToDipRect(null, metrics.monitor) : null,
       occupied: Array.isArray(metrics.occupied) ? metrics.occupied.map(rect => screen.screenToDipRect(null, rect)) : null,
     };
     placeWidget();
@@ -220,7 +227,7 @@ async function setup() {
   try {
     const saved = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget-settings.json'), 'utf8'));
     const width = saved.layoutVersion !== 1 && saved.width === 320 ? 280 : saved.width;
-    widgetSettings = { visible: saved.visible !== false, width: [240, 280, 320, 400].includes(width) ? width : 280, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language, layoutVersion: 1, displayMode: (process.platform === 'darwin' && saved.displayMode === 'notch') || displayModes().includes(saved.displayMode) ? saved.displayMode : displayModes()[0] };
+    widgetSettings = { visible: saved.visible !== false, width: [240, 280, 320, 400].includes(width) ? width : 280, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language, layoutVersion: 1, displayMode: (process.platform === 'darwin' && ['notch', 'island'].includes(saved.displayMode)) || displayModes().includes(saved.displayMode) ? saved.displayMode : displayModes()[0] };
     if (process.platform === 'linux') widgetSettings.linuxTrayStyle = require('../linux_feature/preferences.cjs').trayStyle(saved.linuxTrayStyle);
   } catch { /* Defaults on first launch. */ }
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
@@ -270,9 +277,9 @@ async function setup() {
   handle('limits:appearance-image', () => appearance.imageData());
   handle('limits:appearance-set', value => appearanceResult(() => appearance.set(value)));
   handle('limits:appearance-choose', async () => {
-    const parent = widgetSettings.displayMode === 'notch' ? appleNotch?.window : window;
+    const parent = usesNotch() ? appleNotch?.window : window;
     const choose = () => dialog.showOpenDialog(parent, { properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] });
-    const result = widgetSettings.displayMode === 'notch' ? await appleNotch.withModal(choose) : windowsPanel ? await windowsPanel.withModal(choose) : await choose();
+    const result = usesNotch() ? await appleNotch.withModal(choose) : windowsPanel ? await windowsPanel.withModal(choose) : await choose();
     if (result.canceled || !result.filePaths.length) return appearance.state();
     return appearanceResult(() => appearance.importImage(result.filePaths[0], nativeImage));
   });
@@ -282,6 +289,12 @@ async function setup() {
   handle('limits:select', id => { if (typeof id === 'string') monitor?.select(id); });
   handle('limits:language', setLanguage);
   handle('limits:display-mode', setDisplayMode);
+  handle('limits:notification-dismiss', id => appleNotch?.dismissNotification(id) || false);
+  handle('limits:notification-open', async id => {
+    const action = appleNotch?.activateNotification(id);
+    if (action === 'resets') return resetNotifications.openLink('site');
+    if (action === 'updates') return showPanel();
+  });
   handle('limits:preference', (key, value) => {
     const changed = changePreference(key, value, { app, settings: widgetSettings, platform: process.platform,
       taskbarSupported: taskbarSupported || linuxWidgetSupported, demo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget });
@@ -293,13 +306,15 @@ async function setup() {
     if (event.sender !== window.webContents) return false;
     return (macPanel || linuxPanel)?.resize(height) || false;
   });
-  handle('limits:hide', () => widgetSettings.displayMode === 'notch' ? appleNotch?.collapse() : window.hide());
+  handle('limits:hide', () => usesNotch() ? appleNotch?.collapse() : window.hide());
   handle('limits:quit', () => app.quit());
   async function openLogin(id) {
     if (!monitor || demo) return { error: 'loginUnavailable' };
     let profileId = id === undefined ? monitor.selectedProfileId : id;
     let attempt;
     try {
+      const profile = monitor.snapshot().profiles.find(item => item.id === profileId);
+      if (profile?.capabilities.apiKey) return await openKeyConnection(profile.providerId, profileId);
       if (monitor.isExternal?.(profileId)) {
         if (monitor.loginActive) return { error: 'loginBusy' };
         profileId = monitor.add(); monitor.selectProfile(profileId);
@@ -307,10 +322,10 @@ async function setup() {
       const authUrl = await monitor.login(profileId);
       if (!authUrl) return {}; // Cancelled or completed while the start request was pending.
       attempt = monitor.loginAttempt;
-      if (widgetSettings.displayMode === 'notch') await appleNotch?.beforeBrowserLogin();
+      if (usesNotch()) await appleNotch?.beforeBrowserLogin();
       if (monitor.loginAttempt !== attempt || attempt?.cancelled) return {};
       const url = new URL(authUrl);
-      if (url.protocol !== 'https:' || !['auth.openai.com', 'auth.chatgpt.com', 'chatgpt.com'].includes(url.hostname)) throw new Error('Unexpected login URL');
+      if (!monitor.isSignInUrlAllowed(profileId, url.href)) throw new Error('Unexpected login URL');
       if (process.platform === 'linux') await require('../linux_feature/browser.cjs').openBrowser(url.href);
       else await shell.openExternal(url.href);
       return {};
@@ -319,12 +334,40 @@ async function setup() {
       return { error: error.code === 'loginBusy' ? 'loginBusy' : 'loginFailed' };
     }
   }
+  async function openCredentials(id) {
+    const url = monitor?.credentialsUrl(id);
+    if (!url || demo) return { error: 'loginUnavailable' };
+    try {
+      if (usesNotch()) await appleNotch?.beforeBrowserLogin();
+      if (monitor.credentialsUrl(id) !== url) return {};
+      if (process.platform === 'linux') await require('../linux_feature/browser.cjs').openBrowser(url);
+      else await shell.openExternal(url);
+      return {};
+    } catch { return { error: 'browserOpenFailed' }; }
+  }
+  async function openKeyConnection(providerId, profileId) {
+    const connection = monitor.beginKeyConnection(providerId, profileId);
+    return { connection, ...await openCredentials(connection.id) };
+  }
   handle('limits:login', openLogin);
-  handle('limits:profile-add', async () => {
+  handle('limits:profile-add', async providerId => {
     if (!monitor || demo) return { error: 'loginUnavailable' };
-    if (monitor.loginActive) return { error: 'loginBusy' };
-    try { return await openLogin(monitor.add()); } catch { return { error: 'accountActionFailed' }; }
+    if (monitor.loginActive || monitor.keyConnection) return { error: 'loginBusy' };
+    try {
+      if (monitor.registry.list().find(provider => provider.id === providerId)?.authentication === 'api-key') return await openKeyConnection(providerId);
+      const id = monitor.add(providerId);
+      const profile = monitor.snapshot().profiles.find(item => item.id === id);
+      if (profile?.capabilities?.signIn === false) { void monitor.refresh(); return {}; }
+      return await openLogin(id);
+    } catch { return { error: 'accountActionFailed' }; }
   });
+  handle('limits:key-submit', async (id, key) => {
+    if (!monitor || demo || typeof id !== 'string') return { error: 'loginUnavailable' };
+    try { return { profileId: await monitor.submitKeyConnection(id, key) }; }
+    catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
+  });
+  handle('limits:key-cancel', id => { if (typeof id === 'string') monitor?.cancelKeyConnection(id); return {}; });
+  handle('limits:key-browser', id => typeof id === 'string' ? openCredentials(id) : { error: 'loginUnavailable' });
   handle('limits:profile-action', async (action, id, value) => {
     if (!monitor || typeof id !== 'string') return { error: 'accountActionFailed' };
     try {
@@ -340,16 +383,6 @@ async function setup() {
     if (!monitor?.setMode) return { error: 'accountActionFailed' };
     try { monitor.setMode(mode); return {}; } catch { return { error: 'accountActionFailed' }; }
   });
-  handle('limits:subscriptions-add-source', async () => {
-    if (!monitor?.addSource || demo) return { error: 'accountActionFailed' };
-    try {
-      const parent = widgetSettings.displayMode === 'notch' ? appleNotch?.window : window;
-      const choose = () => dialog.showOpenDialog(parent, { properties: ['openDirectory', 'showHiddenFiles'] });
-      const result = widgetSettings.displayMode === 'notch' ? await appleNotch.withModal(choose) : windowsPanel ? await windowsPanel.withModal(choose) : await choose();
-      if (!result.canceled && result.filePaths.length === 1) monitor.addSource(result.filePaths[0]);
-      return {};
-    } catch { return { error: 'accountActionFailed' }; }
-  });
   await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   if (linuxPanel) await window.webContents.executeJavaScript('window.limitsLinuxPanelReady');
   if (macPanel) await window.webContents.executeJavaScript('window.limitsMacPanelReady');
@@ -359,8 +392,8 @@ async function setup() {
     await appleNotch.discover();
     if (appleNotch.available) await appleNotch.prepare();
     if (!displayModes().includes(widgetSettings.displayMode)) widgetSettings.displayMode = 'tray';
-    if (widgetSettings.displayMode === 'notch') {
-      try { await appleNotch.enable(); }
+    if (usesNotch()) {
+      try { await appleNotch.enable(widgetSettings.displayMode); }
       catch (error) { console.error('Apple notch:', error.message); widgetSettings.displayMode = 'tray'; }
     }
   }
@@ -377,9 +410,8 @@ async function setup() {
         const { DemoMonitor } = require('./demo-monitor.cjs');
         monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
       } else {
-        const binary = findCodex({ resourcesPath: app.isPackaged ? process.resourcesPath : null });
-        monitor = new AccountService({ root, createMonitor: (_profile, options) => new Monitor(new CodexClient(binary, options),
-          { refreshCredentials: !options.readOnly, reloadOnPoll: Boolean(options.readOnly), preserveStartupSample: process.platform === 'linux' }) });
+        monitor = new AccountService({ root, controllerContext: () => ({ safeStorage, resourcesPath: app.isPackaged ? process.resourcesPath : null,
+          preserveStartupSample: process.platform === 'linux' }) });
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
       monitor.on('state', next => { state = { ...next, demo }; update(); });
@@ -401,11 +433,15 @@ async function setup() {
   const openedAtLogin = process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin;
   if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden') && !openedAtLogin)) await showPanel();
   updates.on('state', update);
-  updates.on('offer', () => {
-    if (!quitting) void Promise.resolve(showPanel()).catch(() => {});
+  updates.on('offer', offer => {
+    if (quitting) return;
+    if (!applePresentation?.offerUpdate(widgetSettings.displayMode, appleNotch, offer, t)) void Promise.resolve(showPanel()).catch(() => {});
   });
   void updates.start();
   resetNotifications.on('state', update);
+  resetNotifications.on('notification', event => {
+    if (demo && widgetSettings.displayMode === 'island') showResetNotification(event);
+  });
   void resetNotifications.start();
   if (smoke && !taskbarSupported) {
     try {
@@ -429,7 +465,7 @@ async function setup() {
         monitor.selectProfile('default');
       }
       fs.mkdirSync(artifactRoot, { recursive: true });
-      const mac = process.platform === 'darwin' ? { ...await require('../apple_feature/smoke.cjs').verifyMacPanel({ window, trayPresentation, artifactRoot, demo }), firstPlacement, apple: await require('../apple_feature/smoke.cjs').verifyAppleNotch({ appleNotch, window, trayPresentation, setDisplayMode, artifactRoot, demo, monitor }) } : null;
+      const mac = process.platform === 'darwin' ? { ...await require('../apple_feature/smoke.cjs').verifyMacPanel({ window, trayPresentation, artifactRoot, demo }), firstPlacement, apple: await require('../apple_feature/smoke.cjs').verifyAppleNotch({ appleNotch, window, trayPresentation, setDisplayMode, artifactRoot, demo, monitor, showResetNotification }) } : null;
       const linux = process.platform === 'linux' ? await require('../linux_feature/smoke.cjs').verifyTrayStyles({ window, trayPresentation, artifactRoot, settingsPath: path.join(app.getPath('userData'), 'widget-settings.json') }) : null;
       fs.writeFileSync(path.join(artifactRoot, 'tray-only-smoke.json'), JSON.stringify({ ...report, icons: 2, accountSwitch: demo, taskbarStarted: false, ...(mac ? { mac } : {}), ...(linux ? { linux } : {}) }, null, 2));
       console.log('SMOKE_TRAY_OK', JSON.stringify(report)); app.quit();

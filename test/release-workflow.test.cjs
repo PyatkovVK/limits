@@ -4,148 +4,150 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const yaml = require('js-yaml');
+const { packageNames } = require('../scripts/ci/packages.cjs');
+const updateTag = require('../scripts/ci/tag.cjs');
 
-const workflow = yaml.load(fs.readFileSync(path.join(__dirname, '../.github/workflows/release.yml'), 'utf8'));
+const root = path.resolve(__dirname, '..');
+const load = name => yaml.load(fs.readFileSync(path.join(root, '.github/workflows', name), 'utf8'));
+const workflow = load('release.yml');
+const checks = load('ci-tests.yml');
+const builds = load('ci-build.yml');
+const verification = load('ci-verify.yml');
+const publication = load('ci-publish.yml');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-const gate = new AsyncFunction('context', 'core', workflow.jobs['check-branch'].steps[0].with.script);
+const gate = new AsyncFunction('require', 'context', 'core',
+  workflow.jobs['check-branch'].steps.find(step => step.id === 'branch').with.script);
 
 async function checkBranch(ref, payload = {}, eventName = 'push') {
   const outputs = {};
-  await gate({ ref, payload, eventName }, {
-    setOutput: (key, value) => { outputs[key] = value; },
-    info: () => {},
+  await gate(name => require(path.join(root, name)), { ref, payload, eventName }, {
+    setOutput: (key, value) => { outputs[key] = value; }, info: () => {},
   });
   return outputs;
 }
 
-test('main builds and verifies packages without creating a release or tag', async () => {
-  for (const event of ['push', 'workflow_dispatch']) {
-    assert.deepEqual(await checkBranch('refs/heads/main', {}, event), {
-      build: 'true', publish: 'false', check: 'false', branch: 'main', version: '', tag: '', prerelease: 'false',
-    });
-  }
-});
-
-test('release gate publishes exact numeric version branches', async () => {
-  for (const [branch, version] of [['1.4', '1.4.0'], ['2.1', '2.1.0'], ['3.0', '3.0.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
+test('main and exact demo branches run only tests on pushes and manual runs', async () => {
+  for (const branch of ['main', 'demo', '1.1-demo', '1.2-demo', '1.3-demo', '1.4-demo', '2.0-demo', '3.10.2-demo']) {
     for (const event of ['push', 'workflow_dispatch']) {
       assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), {
-        build: 'true', publish: 'true', check: 'false', branch, version, tag: `v${branch}`, prerelease: 'false',
+        check: 'true', build: 'false', publish: 'false', branch, version: '', tag: '',
       });
     }
   }
 });
 
-test('all version-demo branches run the full package pipeline without publication', async () => {
-  for (const [branch, version] of [['1.1-demo', '1.1.0'], ['1.3-demo', '1.3.0'], ['1.4-demo', '1.4.0'], ['2.0-demo', '2.0.0'], ['3.10.2-demo', '3.10.2']]) {
-    const expected = { build: 'true', publish: 'false', check: 'false', branch, version, tag: '', prerelease: 'false' };
+test('exact numeric branches retain builds and release publication for every version', async () => {
+  for (const [branch, version] of [['1.1', '1.1.0'], ['1.2', '1.2.0'], ['1.3', '1.3.0'], ['1.4', '1.4.0'], ['2.1', '2.1.0'], ['3.0', '3.0.0'], ['2.1.3', '2.1.3'], ['0.6', '0.6.0'], ['10.20.30', '10.20.30']]) {
     for (const event of ['push', 'workflow_dispatch']) {
-      assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), expected);
-    }
-    const payload = { pull_request: { base: { ref: 'main' }, head: { ref: branch } } };
-    assert.deepEqual(await checkBranch('refs/pull/10/merge', payload, 'pull_request'), expected);
-  }
-});
-
-test('ordinary branches run portable tests on every OS without packaging or uploads', () => {
-  assert.equal(workflow.jobs.check.needs, 'check-branch');
-  assert.equal(workflow.jobs.check.if, "needs.check-branch.outputs.check == 'true'");
-  assert.deepEqual(workflow.jobs.check.strategy.matrix.os, ['windows-latest', 'macos-15', 'ubuntu-24.04']);
-  assert.ok(workflow.jobs.check.steps.some(step => step.run === 'npm test'));
-  assert.ok(workflow.jobs.check.steps.every(step => !/upload-artifact|release|build:/.test(step.uses || step.run || '')));
-  assert.equal(workflow.jobs['check-branch'].outputs.check, '${{ steps.branch.outputs.check }}');
-});
-
-test('pull requests use the source branch and cannot publish, including numeric sources', async () => {
-  for (const base of ['main', '1.4-demo', '2.0', 'develop']) {
-    for (const [branch, build, version] of [['codex/feature', false, ''], ['1.0-fix', false, ''], ['main', true, ''], ['1.4', true, '1.4.0'], ['2.0.1-demo', true, '2.0.1']]) {
-      const payload = { pull_request: { base: { ref: base }, head: { ref: branch } } };
-      assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'pull_request'), {
-        build: String(build), publish: 'false', check: String(!build), branch, version, tag: '', prerelease: 'false',
+      assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), {
+        check: 'false', build: 'true', publish: 'true', branch, version, tag: `v${branch}`,
       });
     }
   }
 });
 
-test('every other branch runs tests, with no legacy or partial-name build exceptions', async () => {
-  for (const branch of ['create-mvp', 'develop', 'feature/2.1', 'release/2.1', 'fix-1.0', '1.0-fix', '1.0-fix/feature', '1.0-fix\n', 'v2.1', '2', '2.1-beta', '2.1.3.4', '02.1', '1.04-demo', 'main/feature', '2.1\n', '1.4-demo\n', '1.4-demo-feature', 'feature/1.4-demo', '1.x', '1.x-demo']) {
+test('all other branch names build every platform without publication', async () => {
+  for (const branch of ['limits/rework-ci', 'create-mvp', 'develop', 'feature/2.1', 'release/2.1', 'fix-1.0', '1.0-fix', '1.0-fix/feature', 'v2.1', '2', '2.1-beta', '2.1.3.4', '02.1', '1.04-demo', 'main/feature', '2.1\n', '2.1\r', '1.4-demo\n', '1.4-demo-feature', 'feature/1.4-demo', '1.x', '1.x-demo', 'demo/feature', 'demo-feature']) {
     for (const event of ['push', 'workflow_dispatch']) {
       assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, event), {
-        build: 'false', publish: 'false', check: 'true', branch, version: '', tag: '', prerelease: 'false',
+        check: 'false', build: 'true', publish: 'false', branch, version: '', tag: '',
       }, branch);
     }
   }
 });
 
-test('tags, deleted branches and unsupported events do not test, build or publish', async () => {
-  const inactive = { build: 'false', publish: 'false', check: 'false', version: '', tag: '', prerelease: 'false' };
-  for (const ref of ['refs/tags/2.1', 'refs/tags/main', 'refs/pull/2/merge']) {
-    assert.deepEqual(await checkBranch(ref), { ...inactive, branch: '' });
-    assert.deepEqual(await checkBranch(ref, {}, 'workflow_dispatch'), { ...inactive, branch: '' });
+test('PR source names select the pipeline independently of the target and never publish', async () => {
+  for (const base of ['main', 'demo', '1.4-demo', '2.0', 'develop']) {
+    for (const [branch, build, version] of [['limits/feature', true, ''], ['main', false, ''], ['demo', false, ''], ['1.4', true, '1.4.0'], ['2.0.1-demo', false, '']]) {
+      const payload = { pull_request: { base: { ref: base }, head: { ref: branch } } };
+      assert.deepEqual(await checkBranch('refs/pull/2/merge', payload, 'pull_request'), {
+        check: String(!build), build: String(build), publish: 'false', branch, version, tag: '',
+      });
+    }
   }
-  for (const branch of ['main', '1.4', '1.4-demo', 'codex/feature']) {
+});
+
+test('tags, deleted branches and unsupported events cannot start any pipeline', async () => {
+  const inactive = { check: 'false', build: 'false', publish: 'false', version: '', tag: '' };
+  for (const ref of ['refs/tags/2.1', 'refs/tags/main', 'refs/pull/2/merge']) {
+    for (const event of ['push', 'workflow_dispatch']) {
+      assert.deepEqual(await checkBranch(ref, {}, event), { ...inactive, branch: '' });
+    }
+  }
+  for (const branch of ['main', 'demo', '1.4', '1.4-demo', 'limits/feature']) {
     assert.deepEqual(await checkBranch(`refs/heads/${branch}`, { deleted: true }), { ...inactive, branch });
+    assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, 'schedule'), { ...inactive, branch });
     assert.deepEqual(await checkBranch(`refs/heads/${branch}`, {}, 'pull_request_target'), { ...inactive, branch });
   }
   assert.deepEqual(await checkBranch('refs/pull/2/merge', {}, 'pull_request'), { ...inactive, branch: '' });
 });
 
-test('all push branches reach the gate, and builds and publication require its approval', () => {
-  assert.deepEqual(workflow.on.push.branches, ['**']);
-  assert.ok(Object.hasOwn(workflow.on, 'workflow_dispatch'));
-  assert.ok(Object.hasOwn(workflow.on, 'pull_request'));
-  assert.equal(workflow.on.pull_request, null);
-  assert.equal(workflow.jobs.build.needs, 'check-branch');
-  assert.equal(workflow.jobs.build.if, "needs.check-branch.outputs.build == 'true'");
+test('entrypoint gates reusable workflows and failed builds block verification and publication', () => {
+  assert.deepEqual(workflow.on, { push: { branches: ['**'] }, workflow_dispatch: null, pull_request: null });
+  assert.deepEqual(workflow.concurrency, { group: '${{ github.workflow }}-${{ github.ref }}', 'cancel-in-progress': false });
+  for (const job of ['check', 'build']) {
+    assert.equal(workflow.jobs[job].needs, 'check-branch');
+    assert.equal(workflow.jobs[job].if, `needs.check-branch.outputs.${job} == 'true'`);
+  }
   assert.deepEqual(workflow.jobs.verify.needs, ['check-branch', 'build']);
-  assert.equal(workflow.jobs.verify.if, "needs.check-branch.outputs.build == 'true'");
+  assert.equal(workflow.jobs.verify.if, undefined);
   assert.deepEqual(workflow.jobs.publish.needs, ['check-branch', 'verify']);
   assert.equal(workflow.jobs.publish.if, "needs.check-branch.outputs.publish == 'true'");
-  assert.deepEqual(workflow.permissions, { contents: 'read' });
-  for (const job of ['check-branch', 'check', 'build', 'verify']) assert.equal(workflow.jobs[job].permissions, undefined);
+  for (const [job, name] of [['check', 'ci-tests.yml'], ['build', 'ci-build.yml'], ['verify', 'ci-verify.yml'], ['publish', 'ci-publish.yml']]) {
+    assert.equal(workflow.jobs[job].uses, `./.github/workflows/${name}`);
+    assert.deepEqual(Object.keys(load(name).on), ['workflow_call']);
+  }
+  for (const doc of [workflow, checks, builds, verification]) assert.deepEqual(doc.permissions, { contents: 'read' });
   assert.deepEqual(workflow.jobs.publish.permissions, { contents: 'write' });
-  assert.equal(workflow.jobs['check-branch'].outputs.publish, '${{ steps.branch.outputs.publish }}');
-  const save = workflow.jobs.verify.steps.find(step => step.name === 'Save checksums');
-  assert.equal(save.with.name, 'packages-checksums');
-  assert.equal(save.with.path, 'release/SHA256SUMS.txt');
-  assert.equal(save.with['retention-days'], 7);
-  const download = workflow.jobs.publish.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
-  assert.equal(download.with.pattern, 'packages-*');
-  assert.equal(download.with['merge-multiple'], true);
+  assert.deepEqual(publication.permissions, { contents: 'write' });
 });
 
-test('every release OS runs the full portable test suite', () => {
-  const runTests = workflow.jobs.build.steps.find(step => step.name === 'Run tests');
-  assert.equal(runTests.run, 'npm test');
-  assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'win'));
-  assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'mac'));
-  assert.ok(workflow.jobs.build.strategy.matrix.include.some(target => target.target === 'linux'));
+test('test-only pipeline runs npm test on all three OSes without packages or uploads', () => {
+  assert.deepEqual(checks.jobs.test.strategy.matrix.os, ['windows-latest', 'macos-15', 'ubuntu-24.04']);
+  assert.ok(checks.jobs.test.steps.some(step => step.run === 'npm test'));
+  assert.ok(checks.jobs.test.steps.every(step => !/upload-artifact|build:|scripts\/ci/.test(step.uses || step.run || '')));
 });
 
-test('CI uses explicit package scripts for every target and keeps local publication disabled', () => {
+test('every package target runs tests before its explicit native build command', () => {
   const pkg = require('../package.json');
   const { buildPlan } = require('../scripts/build-plan.cjs');
-  const matrix = workflow.jobs.build.strategy.matrix.include;
-  assert.deepEqual(matrix.map(target => target.script), ['build:win:x64', 'build:mac:arm64', 'build:mac:x64', 'build:linux:x64']);
+  const matrix = builds.jobs.build.strategy.matrix.include;
+  assert.deepEqual(matrix.map(target => [target.os, target.script]), [
+    ['windows-latest', 'build:win:x64'], ['macos-15', 'build:mac:arm64'],
+    ['macos-15-intel', 'build:mac:x64'], ['ubuntu-24.04', 'build:linux:x64'],
+  ]);
   for (const { target, arch, script } of matrix) {
     assert.ok(pkg.scripts[script], script);
-    if (target === 'win') {
-      assert.equal(pkg.scripts[script], 'npm run build:win');
-      continue;
-    }
-    const [command, entrypoint, platform, flag] = pkg.scripts[script].split(' ');
-    assert.equal(command, 'node');
+    if (target === 'win') { assert.equal(pkg.scripts[script], 'npm run build:win'); continue; }
+    const [, entrypoint, platform, flag] = pkg.scripts[script].split(' ');
     assert.equal(entrypoint, 'scripts/build.cjs');
     assert.equal(platform, target);
     assert.deepEqual(buildPlan(platform, [flag], { platform: target === 'mac' ? 'darwin' : 'linux' }).args,
       [`--${target}`, `--${arch}`, '--publish=never']);
   }
-  assert.equal(workflow.jobs.build.steps.find(step => step.name === 'Build packages').run, 'npm run "$BUILD_SCRIPT"');
+  const steps = builds.jobs.build.steps;
+  assert.ok(steps.findIndex(step => step.run === 'npm test') < steps.findIndex(step => step.name === 'Build packages'));
+  assert.equal(steps.find(step => step.name === 'Build packages').run, 'npm run "$BUILD_SCRIPT"');
+  assert.equal(steps.find(step => step.name === 'Set version from the branch').if, "env.RELEASE_VERSION != ''");
 });
 
-test('publication expects the filenames electron-builder generates for all eight packages', () => {
+test('artifacts include four package groups and checksums, retained for seven days', () => {
+  const save = builds.jobs.build.steps.find(step => step.name === 'Save packages');
+  assert.equal(save.with.name, 'packages-${{ matrix.target }}-${{ matrix.arch }}');
+  assert.equal(save.with['retention-days'], 7);
+  assert.equal(save.with['if-no-files-found'], 'error');
+  assert.equal(verification.jobs.verify.steps.find(step => step.name === 'Verify all packages and calculate checksums').run,
+    'node scripts/ci/packages.cjs');
+  const checksums = verification.jobs.verify.steps.find(step => step.name === 'Save checksums');
+  assert.deepEqual(checksums.with, { name: 'packages-checksums', path: 'release/SHA256SUMS.txt', 'if-no-files-found': 'error', 'retention-days': 7 });
+  for (const job of [verification.jobs.verify, publication.jobs.publish]) {
+    const download = job.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
+    assert.deepEqual(download.with, { pattern: 'packages-*', path: 'release', 'merge-multiple': true });
+  }
+});
+
+test('expected package names match electron-builder outputs for all eight packages', () => {
   const pkg = require('../package.json');
-  // Initialize the public entrypoint before loading packager classes with cyclic imports.
   require('app-builder-lib');
   const { PlatformPackager } = require('app-builder-lib/out/platformPackager');
   const { Arch } = require('builder-util');
@@ -158,55 +160,76 @@ test('publication expects the filenames electron-builder generates for all eight
   const actual = definitions.map(([platform, target, extension, arch]) => {
     const packager = Object.create(PlatformPackager.prototype);
     Object.defineProperties(packager, {
-      config: { value: pkg.build },
-      platformSpecificBuildOptions: { value: pkg.build[platform] },
+      config: { value: pkg.build }, platformSpecificBuildOptions: { value: pkg.build[platform] },
       platform: { value: { buildConfigurationKey: platform } },
       appInfo: { value: { version: pkg.version, name: pkg.name, productName: pkg.build.productName, sanitizedProductName: pkg.build.productName } },
     });
     return packager.expandArtifactNamePattern(pkg.build[target], extension, arch);
   });
-  const script = workflow.jobs.verify.steps.find(step => step.name === 'Verify all packages and calculate checksums').run;
-  const list = /packages=\(([\s\S]*?)\)/.exec(script)[1];
-  const expected = [...list.matchAll(/"([^"]+)"/g)].map(match => match[1].replaceAll('$version', pkg.version));
-  assert.deepEqual(expected.sort(), actual.sort());
+  assert.deepEqual(packageNames(pkg.version).sort(), actual.sort());
 });
 
-test('release builds allow absent certificates and receive signing secrets only in the packaging step', () => {
-  const step = workflow.jobs.build.steps.find(item => item.name === 'Build packages');
+test('only numeric publication builds can expose signing secrets during packaging', () => {
+  assert.equal(workflow.jobs.build.with.sign, "${{ needs.check-branch.outputs.publish == 'true' }}");
+  assert.equal(builds.on.workflow_call.inputs.sign.default, false);
+  const step = builds.jobs.build.steps.find(item => item.name === 'Build packages');
   assert.equal(step.env.CODEX_LIMITS_RELEASE, '1');
   assert.equal(step.env.CODEX_LIMITS_ALLOW_UNSIGNED, '1');
-  assert.ok(step.env.WIN_CSC_LINK.includes('secrets.WIN_CSC_LINK'));
-  assert.ok(step.env.CSC_LINK.includes('secrets.MAC_CSC_LINK'));
-  for (const key of ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID']) assert.ok(step.env[key].includes(`secrets.${key}`));
-  for (const value of Object.values(step.env).filter(value => value.includes('secrets.'))) {
+  const secrets = Object.values(step.env).filter(value => value.includes('secrets.'));
+  assert.equal(secrets.length, 7);
+  for (const value of secrets) {
+    assert.ok(value.includes('inputs.sign &&'));
     assert.ok(value.includes("github.event_name != 'pull_request'"));
   }
-  assert.equal(workflow.jobs.build.env.CSC_LINK, undefined);
-  assert.equal(workflow.jobs.build.env.CODEX_LIMITS_ALLOW_UNSIGNED, undefined);
+  assert.equal(builds.jobs.build.env.CSC_LINK, undefined);
+  for (const job of Object.values(builds.jobs)) {
+    for (const other of job.steps.filter(item => item !== step)) assert.ok(!JSON.stringify(other).includes('secrets.'));
+  }
 });
 
-test('release tag points to the built commit on both initial and repeated publication', async () => {
-  const tagStep = workflow.jobs.publish.steps.find(step => step.name === 'Point the release tag at the built commit');
-  const updateTag = new AsyncFunction('context', 'github', 'process', tagStep.with.script);
-  const context = { repo: { owner: 'owner', repo: 'limits' }, sha: 'built-commit' };
-  for (const tag of ['v1.0', 'v2.1']) {
-    for (const exists of [true, false]) {
-      const calls = [];
-      const github = { rest: { git: {
-        getRef: async args => {
-          calls.push(['get', args]);
-          if (!exists) throw Object.assign(new Error('Not found'), { status: 404 });
-        },
-        createRef: async args => { calls.push(['create', args]); },
-        updateRef: async args => { calls.push(['update', args]); },
-      } } };
-      await updateTag(context, github, { env: { RELEASE_TAG: tag } });
-      assert.deepEqual(calls[1], exists
-        ? ['update', { ...context.repo, ref: `tags/${tag}`, sha: context.sha, force: true }]
-        : ['create', { ...context.repo, ref: `refs/tags/${tag}`, sha: context.sha }]);
+test('release tags follow the built commit and forbidden events cannot update refs', async () => {
+  for (const branch of ['1.0', '2.1']) {
+    for (const eventName of ['push', 'workflow_dispatch']) {
+      for (const exists of [true, false]) {
+        const context = { repo: { owner: 'owner', repo: 'limits' }, sha: 'built-commit', eventName, ref: `refs/heads/${branch}` };
+        const calls = [];
+        const github = { rest: { git: {
+          getRef: async args => { calls.push(['get', args]); if (!exists) throw Object.assign(new Error('Not found'), { status: 404 }); },
+          createRef: async args => { calls.push(['create', args]); }, updateRef: async args => { calls.push(['update', args]); },
+        } } };
+        await updateTag({ context, github });
+        assert.deepEqual(calls[1], exists
+          ? ['update', { ...context.repo, ref: `tags/v${branch}`, sha: context.sha, force: true }]
+          : ['create', { ...context.repo, ref: `refs/tags/v${branch}`, sha: context.sha }]);
+      }
     }
   }
-  await assert.rejects(updateTag(context, { rest: { git: {
+  for (const branch of ['main', 'demo', '1.4-demo', 'limits/feature']) {
+    await assert.rejects(updateTag({ context: { eventName: 'push', ref: `refs/heads/${branch}` } }), /Only numeric/);
+  }
+  await assert.rejects(updateTag({ context: { eventName: 'pull_request', payload: { pull_request: { head: { ref: '1.4' } } } } }), /Only numeric/);
+  await assert.rejects(updateTag({ context: { eventName: 'push', ref: 'refs/heads/1.4' }, github: { rest: { git: {
     getRef: async () => { throw Object.assign(new Error('Forbidden'), { status: 403 }); },
-  } } }, { env: { RELEASE_TAG: 'v1.0' } }), /Forbidden/);
+  } } } }), /Forbidden/);
+});
+
+test('workflow and action files remain small with orchestration rather than embedded programs', () => {
+  const github = path.join(root, '.github');
+  for (const file of fs.readdirSync(github, { recursive: true }).filter(file => /\.ya?ml$/.test(file))) {
+    const text = fs.readFileSync(path.join(github, file), 'utf8');
+    assert.ok(text.trimEnd().split('\n').length <= 100, `${file} exceeds 100 lines`);
+  }
+  const files = ['release.yml', 'ci-tests.yml', 'ci-build.yml', 'ci-verify.yml', 'ci-publish.yml'];
+  for (const file of files) {
+    for (const job of Object.values(load(file).jobs)) {
+      for (const step of job.steps || []) {
+        for (const script of [step.run, step.with?.script].filter(Boolean)) assert.ok(!script.includes('\n'), `${file} embeds a program`);
+        if (step.uses?.startsWith('actions/checkout@')) assert.equal(step.with['persist-credentials'], false);
+      }
+    }
+  }
+  const setup = yaml.load(fs.readFileSync(path.join(root, '.github/actions/setup/action.yml'), 'utf8'));
+  assert.equal(setup.runs.steps[0].with['node-version'], '22');
+  assert.equal(setup.runs.steps[0].with['package-manager-cache'], false);
+  assert.equal(setup.runs.steps[1].run, 'npm install --no-audit --no-fund');
 });

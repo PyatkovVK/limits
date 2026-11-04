@@ -49,13 +49,13 @@ function fixture(t, { tampered = false, signed = false, badTeam = false, arch = 
   return { root, updater, commands, requests, counts: () => ({ quit, spawns }) };
 }
 
-test('macOS prepares the correct verified ZIP, coalesces downloads and installs only on request', async t => {
+test('macOS downloads the correct verified ZIP on request and waits for a separate installation action', async t => {
   for (const arch of ['arm64', 'x64']) {
     const { updater, commands, requests, counts } = fixture(t, { arch });
-    updater.state.release = release;
-    const pending = updater.prepare(release);
+    updater.publish({ status: 'available', release });
+    const action = updater.openRelease(), pending = updater.downloadTask;
     assert.equal(updater.prepare(release), pending);
-    await pending;
+    assert.deepEqual(await action, { downloaded: true });
     assert.equal(updater.snapshot().installation.status, 'ready');
     assert.deepEqual(counts(), { quit: 0, spawns: 0 });
     assert.ok(requests.some(url => url.endsWith(`Limits-1.5.0-${arch}.zip`)));
@@ -81,13 +81,13 @@ test('damaged downloads and a changed signing team cannot be installed', async t
 test('a later current-version result clears the prepared package and permits a fresh download', async t => {
   const { updater } = fixture(t);
   updater.publish({ status: 'available', release });
-  await updater.downloadTask;
+  await updater.openRelease();
   const job = updater.job;
   assert.equal(updater.snapshot().installation.status, 'ready');
   updater.publish({ status: 'current', release: null });
   assert.equal(updater.snapshot().installation.status, 'idle');
   assert.equal(fs.existsSync(job), false);
-  updater.publish({ status: 'available', release }); await updater.downloadTask;
+  updater.publish({ status: 'available', release }); await updater.openRelease();
   assert.equal(updater.snapshot().installation.status, 'ready');
 });
 

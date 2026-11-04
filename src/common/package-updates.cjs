@@ -28,7 +28,6 @@ class PackageUpdates extends Updates {
       this.installation = { ...this.installation, status: 'idle', progress: null, error: null, version: null };
     }
     super.publish(patch);
-    if (patch.status === 'available' && this.installation?.enabled) void this.prepare(this.state.release);
   }
   prepare(release) {
     if (this.stopped || !release || !this.installation.enabled || this.installation.status === 'installing') return Promise.resolve();

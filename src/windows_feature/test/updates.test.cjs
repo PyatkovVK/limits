@@ -33,10 +33,11 @@ function fixture(t, { portable = false, tampered = false, invalidSignature = fal
   t.after(() => { updater.stop(); assert.ok(root.startsWith(os.tmpdir() + path.sep)); fs.rmSync(root, { recursive: true, force: true }); });
   return { root, target, updater, counts: () => ({ quits, spawns, verifications }), config: () => config };
 }
-for (const portable of [false, true]) test(`Windows ${portable ? 'portable' : 'NSIS'} downloads, verifies and hands off only on explicit installation`, async t => {
+for (const portable of [false, true]) test(`Windows ${portable ? 'portable' : 'NSIS'} requires separate download and installation actions`, async t => {
   const { updater, target, counts, config } = fixture(t, { portable });
   updater.publish({ status: 'available', release });
-  const first = updater.downloadTask; assert.equal(updater.prepare(release), first); await first;
+  const action = updater.openRelease(), first = updater.downloadTask;
+  assert.equal(updater.prepare(release), first); assert.deepEqual(await action, { downloaded: true });
   assert.equal(updater.snapshot().installation.status, 'ready');
   assert.deepEqual(counts(), { quits: 0, spawns: 0, verifications: 1 });
   assert.deepEqual(await updater.openRelease(), { installing: true });
@@ -47,13 +48,13 @@ for (const portable of [false, true]) test(`Windows ${portable ? 'portable' : 'N
 });
 for (const options of [{ tampered: true }, { invalidSignature: true }, { duplicate: true }]) test(`Windows rejects an unverified update: ${JSON.stringify(options)}`, async t => {
   const { updater, counts, root } = fixture(t, options);
-  updater.publish({ status: 'available', release }); await updater.downloadTask;
+  updater.publish({ status: 'available', release }); await updater.openRelease();
   assert.equal(updater.installation.error, 'invalidPackage'); assert.equal(updater.job, undefined);
   assert.equal(counts().spawns, 0); assert.equal(fs.readFileSync(path.join(root, 'Limits.exe'), 'utf8'), 'original');
 });
 test('Windows clears superseded packages and aborts pending downloads on quit', async t => {
   const { updater } = fixture(t);
-  updater.publish({ status: 'available', release }); await updater.downloadTask;
+  updater.publish({ status: 'available', release }); await updater.openRelease();
   const job = updater.job; updater.publish({ status: 'current', release: null });
   assert.equal(fs.existsSync(job), false); assert.equal(updater.installation.status, 'idle');
   updater.fetchImpl = (_url, { signal }) => new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
@@ -62,7 +63,7 @@ test('Windows clears superseded packages and aborts pending downloads on quit', 
 });
 test('Windows reports helper launch errors and allows retry without quitting', async t => {
   const { updater, counts } = fixture(t);
-  updater.publish({ status: 'available', release }); await updater.downloadTask;
+  updater.publish({ status: 'available', release }); await updater.openRelease();
   updater.spawnProcess = () => { throw new Error('blocked'); };
   assert.deepEqual(await updater.openRelease(), { error: 'installFailed' }); assert.equal(counts().quits, 0);
   await updater.prepare(release); assert.equal(updater.installation.status, 'ready');
@@ -87,7 +88,7 @@ test('Windows PowerShell helper verifies PE metadata, replaces portable EXE and 
       if (url.includes('/releases/tags/')) return Response.json({ tag_name: 'v1.5', draft: false, prerelease: false, assets: [name, 'SHA256SUMS.txt'].map(name => ({name, size: bytes.length, browser_download_url: `https://github.com/PyatkovVK/limits/releases/download/v1.5/${name}`})) });
       return url.endsWith('SHA256SUMS.txt') ? new Response(`${digest}  ${name}\n`) : new Response(bytes);
     } });
-  native.publish({ status: 'available', release }); await native.downloadTask;
+  native.publish({ status: 'available', release }); await native.openRelease();
   assert.equal(native.installation.status, 'ready', JSON.stringify(native.installation)); native.stop();
   const target = path.join(root, 'Portable app with spaces.exe');
   const helper = path.resolve(__dirname, '../install-update.ps1');

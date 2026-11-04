@@ -7,9 +7,9 @@ function taskbarHelperPath(resourcesPath) {
   return resourcesPath ? path.join(resourcesPath, 'taskbar-helper.exe') : path.join(__dirname, '..', '..', 'build', 'taskbar-helper.exe');
 }
 class TaskbarWidget extends EventEmitter {
-  constructor({ BrowserWindow, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove, resourcesPath }) {
+  constructor({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove, resourcesPath }) {
     super();
-    Object.assign(this, { BrowserWindow, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove });
+    Object.assign(this, { BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove });
     this.helperPath = taskbarHelperPath(resourcesPath);
     this.stopped = false;
   }
@@ -34,30 +34,52 @@ class TaskbarWidget extends EventEmitter {
     if (phase !== 'move') this.dragOffset = null;
     return moved;
   }
+  nativeInput(input) {
+    const target = this.window;
+    if (!target || target.isDestroyed() || !target.isVisible()) return;
+    const point = this.screen.screenToDipPoint({ x: input.x, y: input.y });
+    // Use the press/move/release snapshots directly. By the time a renderer
+    // round trip reads the cursor, a quick gesture may already have finished.
+    if (input.type === 'mouseDown') {
+      this.nativeButton = input.button;
+      if (input.button === 'left') this.drag('start', point);
+    } else if (input.type === 'mouseMove') {
+      if (this.nativeButton === 'left') this.drag('move', point);
+    } else if (input.type === 'mouseUp' && this.nativeButton === input.button) {
+      this.nativeButton = null;
+      if (input.button === 'left') {
+        if (!this.drag('end', point)) target.webContents.send('limits:windows-widget-click');
+      } else if (input.button === 'right') this.Menu.buildFromTemplate(this.getMenu()).popup({ window: target });
+    }
+  }
   async start() {
     if (this.stopped) return;
     this.window = new this.BrowserWindow({ width: this.getSettings().width, height: 34, minHeight: 28, resizable: false, frame: false, thickFrame: false, show: false, skipTaskbar: true, focusable: false, alwaysOnTop: true, backgroundColor: '#171717', hasShadow: false, webPreferences: this.webPreferences });
     const created = this.window;
     this.dragOffset = null;
-    created.on('hide', () => { this.dragOffset = null; });
+    created.on('hide', () => { this.dragOffset = null; this.nativeButton = null; });
     this.restrictWindow(created);
-    this.placement = new WidgetPlacement(created);
+    this.placement = new WidgetPlacement(created, { setParented: (parented, bounds) =>
+      this.probe?.setParented(parented, this.screen.dipToScreenRect(created, bounds)) });
     this.emit('window', created, this.placement);
     created.on('closed', () => {
       if (this.stopped || this.window !== created) return;
       this.probe?.stop();
       this.window = null; this.placement = null;
       this.emit('window', null, null);
-      // Windows destroys owned windows when Explorer recreates the taskbar.
+      // Windows destroys child windows when Explorer recreates the taskbar.
       this.retry = setTimeout(() => { if (!this.stopped) void this.start().catch(error => this.emit('failure', error)); }, 250);
     });
-    created.on('will-move', (event, bounds) => { event.preventDefault(); this.onMove(bounds); });
+    // Placement and shell transitions are not user drags. Persist only the
+    // explicit pointer gesture handled by drag(), including its grab offset.
+    created.on('will-move', event => event.preventDefault());
     created.webContents.on('context-menu', () => this.Menu.buildFromTemplate(this.getMenu()).popup({ window: created }));
     await created.loadFile(path.join(__dirname, 'renderer', 'widget.html'));
     if (created.isDestroyed() || this.stopped) return;
     const handle = created.getNativeWindowHandle();
     const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
     this.probe = new TaskbarProbe(this.helperPath, { args: [String(process.pid), id] });
+    this.probe.on('input', input => { if (this.window === created) this.nativeInput(input); });
     this.emit('probe', this.probe);
     this.probe.on('metrics', metrics => this.emit('metrics', metrics));
     await this.probe.start();

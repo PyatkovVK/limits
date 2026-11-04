@@ -11,7 +11,7 @@ function buildHelper() {
   if (fs.existsSync(target) && fs.statSync(target).mtimeMs > fs.statSync(source).mtimeMs) return;
   fs.mkdirSync(path.dirname(target), { recursive: true });
   // Universal helper: both Mac targets can use the same AppKit screen probe.
-  const result = spawnSync('xcrun', ['clang', source, '-o', target, '-arch', 'arm64', '-arch', 'x86_64', '-mmacosx-version-min=11.0', '-framework', 'AppKit', '-framework', 'CoreGraphics', '-O2'], { stdio: 'inherit' });
+  const result = spawnSync('xcrun', ['clang', source, '-o', target, '-arch', 'arm64', '-arch', 'x86_64', '-mmacosx-version-min=11.0', '-framework', 'AppKit', '-framework', 'CoreGraphics', '-framework', 'ApplicationServices', '-O2'], { stdio: 'inherit' });
   if (result.error || result.status !== 0) throw new Error('Cannot build Apple screen helper. Install Xcode Command Line Tools (xcode-select --install).');
 }
 if (require.main === module) buildHelper();

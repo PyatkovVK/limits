@@ -4,7 +4,9 @@ let state = null;
 let actionError = null;
 const profileCards = new Map();
 const removingProfiles = new Set();
-const bucketFor = profile => profile.buckets.find(item => item.id === profile.selectedId) || profile.buckets.find(item => item.id === 'codex') || profile.buckets[0];
+const providerSelect = document.createElement('select'); providerSelect.id = 'account-provider'; providerSelect.hidden = true;
+document.querySelector('.accounts-heading').insertBefore(providerSelect, $('add-account'));
+const bucketFor = profile => profile.buckets.find(item => item.id === profile.selectedId) || profile.buckets[0];
 async function accountAction(action, id, value) {
   if (action === 'remove' && removingProfiles.has(id)) return;
   if (action === 'remove') removingProfiles.add(id);
@@ -23,6 +25,16 @@ function element(tag, className, parent) {
   return node;
 }
 function renderAccounts(next, t) {
+  const providers = next.providers || [];
+  const providerSignature = JSON.stringify(providers);
+  if (providerSelect.dataset.signature !== providerSignature) {
+    const selected = providerSelect.value;
+    providerSelect.replaceChildren(...providers.map(provider => { const option = document.createElement('option'); option.value = provider.id; option.textContent = provider.name; return option; }));
+    if (providers.some(provider => provider.id === selected)) providerSelect.value = selected;
+    providerSelect.dataset.signature = providerSignature;
+  }
+  providerSelect.hidden = providers.length < 2; providerSelect.disabled = next.demo || Boolean(next.loginProfileId || next.keyConnection);
+  providerSelect.setAttribute('aria-label', t('provider'));
   const profiles = next.profiles || [];
   for (const [id, card] of profileCards) {
     if (!profiles.some(profile => profile.id === id)) { card.node.remove(); profileCards.delete(id); }
@@ -80,8 +92,15 @@ function renderAccounts(next, t) {
     card.name.title = profile.account?.email || '';
     card.select.textContent = t(selected ? 'inWidget' : 'useWidget');
     card.select.disabled = selected;
-    card.status.textContent = [profile.account?.planType, t(profile.error || (profile.status === 'ready' ? profile.stale ? 'stale' : 'online' : profile.status === 'signing-in' ? 'signingIn' : profile.status === 'signed-out' ? 'signedOut' : 'connecting'))].filter(Boolean).join(' · ');
+    card.status.textContent = [profile.account?.planType, t(profile.error || (profile.accountAvailable === false ? 'insufficientBalance' : profile.status === 'ready' ? profile.stale ? 'stale' : 'online' : profile.status === 'signing-in' ? 'signingIn' : profile.status === 'signed-out' ? 'signedOut' : 'connecting'))].filter(Boolean).join(' · ');
     card.quotas.hidden = selected;
+    const generic = Boolean(profile.displaySchema && profile.displaySchema.layout !== 'quota-windows');
+    for (const value of Object.values(card.values)) value.row.hidden = generic;
+    let metrics = card.quotas.querySelector('.profile-metrics');
+    if (generic) {
+      if (!metrics) { metrics = element('div', 'profile-metrics', card.quotas); }
+      metrics.hidden = false; window.limitsMetricElements.render(metrics, { ...profile, language: next.language, platform: next.platform }, { profile: true });
+    } else if (metrics) metrics.hidden = true;
     const bucket = bucketFor(profile);
     for (const kind of ['short', 'weekly']) {
       const quota = bucket?.[kind];
@@ -99,22 +118,24 @@ function renderAccounts(next, t) {
     card.input.placeholder = t('nickname'); card.input.setAttribute('aria-label', t('nickname'));
     if (document.activeElement !== card.input) card.input.value = profile.nickname;
     card.save.textContent = t('save');
-    card.login.textContent = t(profile.account ? 'switchAccount' : 'login');
-    card.login.disabled = next.demo || Boolean(next.loginProfileId && next.loginProfileId !== profile.id) || profile.refreshing;
+    card.login.textContent = t(profile.capabilities?.apiKey ? profile.account ? 'replaceApiKey' : 'connectApiKey' : profile.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
+    card.login.disabled = (profile.capabilities?.signIn === false && !profile.capabilities?.apiKey) || next.demo || Boolean(next.keyConnection || next.loginProfileId && next.loginProfileId !== profile.id) || profile.refreshing;
     card.cancel.textContent = t('cancelLogin'); card.cancel.hidden = next.loginProfileId !== profile.id;
     const removeLabel = `${t('removeAccount')}: ${card.name.textContent}`;
     card.remove.title = removeLabel; card.remove.setAttribute('aria-label', removeLabel);
     card.remove.hidden = profile.id === 'default'; card.remove.disabled = next.demo || removingProfiles.has(profile.id);
   }
-  $('add-account').disabled = next.demo || Boolean(next.loginProfileId) || !profiles.length;
+  $('add-account').disabled = next.demo || Boolean(next.loginProfileId || next.keyConnection) || !profiles.length;
 }
 function renderCountdown() {
   if (!state) return;
+  window.limitsMetricElements?.countdowns($('provider-metrics'), state);
   const timer = state.platform === 'win32' ? window.limitsWindowsResetClock : window.limitsCountdown;
-  const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets.find(item => item.id === 'codex') || state.buckets[0];
+  const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets[0];
   timer.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
   for (const profile of state.profiles || []) {
     const card = profileCards.get(profile.id);
+    if (card) { const metrics = card.quotas.querySelector('.profile-metrics'); if (metrics) window.limitsMetricElements.countdowns(metrics, state); }
     if (card) timer.render(card.reset, bucketFor(profile)?.short?.resetsAt, state.language || 'ru');
   }
 }
@@ -128,6 +149,7 @@ function render(next) {
   const language = next.language || 'ru';
   const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsApple?.translate(lang, key, next) : null) || (next.platform === 'win32' ? window.limitsWindowsI18n?.t(lang, key) : null) || window.limitsI18n.t(lang, key, next.platform);
   const t = key => translate(language, key);
+  const generic = Boolean(next.displaySchema && next.displaySchema.layout !== 'quota-windows');
   window.limitsI18n.apply(language, document, translate);
   $('language').value = language;
   if (!window.limitsLinuxDisplay?.render(next)) {
@@ -137,8 +159,8 @@ function render(next) {
     $('display-mode').closest('.display-settings').hidden = modes.length < 2;
   }
   $('display-hint').textContent = t(next.displayMode === 'notch' ? 'notchFootnote' : next.displayMode === 'tray' ? 'trayFootnote' : 'footnote');
-  const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > 90000;
-  const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets.find(item => item.id === 'codex') || next.buckets[0];
+  const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > (next.staleAfterMs || 90000);
+  const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets[0];
   document.body.classList.toggle('stale', Boolean(stale));
   $('demo').hidden = !next.demo;
   $('connection').textContent = t(next.demo ? 'demo' : next.status === 'signing-in' ? 'signingIn' : next.status === 'signed-out' ? 'signedOut' : next.status === 'connecting' ? 'connecting' : stale ? 'stale' : 'online');
@@ -147,19 +169,23 @@ function render(next) {
   $('account').title = next.account?.email || '';
   $('plan').hidden = !next.account?.planType;
   $('plan').textContent = next.account?.planType || '';
-  const messageKey = actionError || next.error || next.widgetError || (next.status === 'unsupported' ? 'unsupported' : next.status === 'ready' && !bucket ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
+  const messageKey = actionError || next.error || next.widgetError || (next.accountAvailable === false ? 'insufficientBalance' : next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
   const message = messageKey ? t(messageKey) : null;
   $('error').hidden = !message;
   $('error').textContent = message || '';
-  $('bucket-row').hidden = next.buckets.length < 2;
-  const signature = JSON.stringify(next.buckets.map(item => [item.id, item.name]));
+  const groups = next.groups || next.buckets;
+  for (const kind of ['short', 'weekly']) $(`${kind}-bar`).closest('.quota-card').hidden = generic;
+  $('provider-metrics').hidden = !generic;
+  if (generic) window.limitsMetricElements.render($('provider-metrics'), next);
+  $('bucket-row').hidden = groups.length < 2;
+  const signature = JSON.stringify(groups.map(item => [item.id, item.name]));
   if ($('bucket').dataset.signature !== signature) {
-    $('bucket').replaceChildren(...next.buckets.map(item => {
+    $('bucket').replaceChildren(...groups.map(item => {
       const option = document.createElement('option'); option.value = item.id; option.textContent = item.name; return option;
     }));
     $('bucket').dataset.signature = signature;
   }
-  if (bucket) $('bucket').value = bucket.id;
+  if (groups.length) $('bucket').value = window.limitsMetrics.view(next).group?.id || bucket?.id;
   for (const kind of ['short', 'weekly']) {
     const value = bucket?.[kind];
     const remaining = value?.remaining ?? null;
@@ -173,8 +199,8 @@ function render(next) {
   $('other').hidden = !bucket?.other?.length;
   $('other').textContent = bucket?.other?.map(item => `${item.duration ?? '?'} ${t('minutes')}: ${item.remaining === null ? t('noData') : `${item.remaining}%`}`).join(' · ') || '';
   $('refresh').disabled = next.refreshing || next.demo;
-  $('login').disabled = next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId);
-  $('login').textContent = t(next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : 'login');
+  $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
+  $('login').textContent = t(next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
   $('updated').textContent = next.updatedAt ? `${t('updated')} ${new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('waiting');
   renderAccounts(next, t);
   renderCountdown();
@@ -186,14 +212,16 @@ $('refresh').addEventListener('click', async () => { actionError = null; render(
 async function beginLogin(id) {
   actionError = null; $('login').disabled = true;
   const result = await window.limits.login(id);
-  actionError = result.error || null;
+  window.limitsKeyConnection?.open(result);
+  actionError = result.connection ? null : result.error || null;
   render(await window.limits.get());
 }
 $('login').addEventListener('click', () => beginLogin());
 $('add-account').addEventListener('click', async () => {
   actionError = null; $('add-account').disabled = true;
-  const result = await window.limits.addAccount();
-  actionError = result.error || null;
+  const result = await window.limits.addAccount(providerSelect.value || undefined);
+  window.limitsKeyConnection?.open(result);
+  actionError = result.connection ? null : result.error || null;
   render(await window.limits.get());
 });
 $('bucket').addEventListener('change', () => window.limits.select($('bucket').value));

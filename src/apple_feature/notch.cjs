@@ -1,11 +1,12 @@
 'use strict';
 const path = require('node:path');
-const { chooseDisplay, notchLayout, hitBounds, contains } = require('./geometry.cjs');
+const { chooseDisplay, notchLayout, fitMenuBar, hitBounds, contains } = require('./geometry.cjs');
 const { readScreens } = require('./screens.cjs');
 
 class AppleNotch {
-  constructor({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, resourcesPath, getState, getMenu, onChange, onUnavailable, readNativeScreens = () => readScreens(resourcesPath), now = Date.now }) {
-    Object.assign(this, { BrowserWindow, screen, Menu, webPreferences, restrictWindow, getState, getMenu, onChange, onUnavailable, readNativeScreens, now });
+  constructor({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, resourcesPath, getState, getMenu, onChange, onUnavailable, readNativeScreens = () => readScreens(resourcesPath), now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, menuBarGrowDelay = 1000 }) {
+    Object.assign(this, { BrowserWindow, screen, Menu, webPreferences, restrictWindow, getState, getMenu, onChange, onUnavailable, readNativeScreens, now, setTimer, clearTimer, menuBarGrowDelay });
+    this.mode = 'notch'; this.notifications = []; this.notificationSequence = 0;
     this.phase = 'closed'; this.enabled = false; this.available = false; this.revision = 0; this.activation = 0;
     this.onDisplays = () => { void this.discover().then(() => {
       if (this.enabled && !this.available) { this.disable(); this.onUnavailable(); }
@@ -51,13 +52,45 @@ class AppleNotch {
     if (revision !== this.revision) return;
     const display = chooseDisplay(this.screen.getAllDisplays(), screens, this.screen.getPrimaryDisplay());
     this.available = Boolean(display);
-    this.layout = display ? notchLayout(display, screens.find(info => info.id === display.id)) : null;
+    this.display = display; this.screenInfo = screens.find(info => info.id === display?.id);
+    this.layoutScreenInfo = this.screenInfo;
+    this.layout = display ? notchLayout(display, this.screenInfo, this.mode) : null;
     this.fitContent();
   }
 
   fitContent() {
     if (!this.layout || !this.contentHeight) return;
-    this.layout.fullHeight = Math.min(this.layout.maxFullHeight, Math.max(this.layout.peekHeight, this.contentHeight + this.layout.capHeight));
+    this.layout.fullHeight = Math.min(this.layout.maxFullHeight, Math.max(this.layout.peekHeight, this.contentHeight + this.layout.contentTop));
+  }
+
+  async refreshMenuBar({ initial = false } = {}) {
+    if (!this.enabled || this.menuBarPending) return;
+    this.menuBarPending = true;
+    const activation = this.activation, revision = this.revision;
+    try {
+      let screens;
+      try { screens = await this.readNativeScreens(); } catch { screens = []; }
+      if (!this.enabled || activation !== this.activation || revision !== this.revision) return;
+      const info = screens.find(info => info.id === this.display?.id && info.top > 0 && info.notchWidth > 0);
+      // A probe failure is not evidence of occupied space. Keep the last measurement.
+      if (!info) { this.menuBarGrowth = null; return; }
+      this.screenInfo = { ...info };
+      for (const key of ['menuBarLeft', 'menuBarRight']) {
+        if (!Number.isFinite(this.screenInfo[key]) && Number.isFinite(this.layoutScreenInfo?.[key])) this.screenInfo[key] = this.layoutScreenInfo[key];
+      }
+      this.layoutScreenInfo = this.screenInfo;
+      const next = notchLayout(this.display, this.screenInfo, this.mode);
+      if (next.menuBarWidth === this.layout.menuBarWidth) { this.menuBarGrowth = null; return; }
+      if (!initial && next.menuBarWidth > this.layout.menuBarWidth) {
+        // Shrink on the first occupied probe; grow only after stable free space.
+        if (next.menuBarWidth - this.layout.menuBarWidth < 8) { this.menuBarGrowth = null; return; }
+        if (this.menuBarGrowth?.width !== next.menuBarWidth) this.menuBarGrowth = { width: next.menuBarWidth, since: this.now() };
+        if (this.now() - this.menuBarGrowth.since < this.menuBarGrowDelay) return;
+      }
+      this.menuBarGrowth = null;
+      this.layout.menuBarWidth = next.menuBarWidth;
+      this.update(); this.trackPointer();
+    } finally { this.menuBarPending = false; }
   }
 
   resize(height) {
@@ -77,23 +110,37 @@ class AppleNotch {
     this.update();
   }
 
-  async enable() {
-    if (this.enabled) return;
+  async enable(mode = 'notch') {
+    if (!['notch', 'island'].includes(mode)) throw new Error('Unknown notch presentation');
+    if (this.enabled && this.mode === mode) return;
+    if (this.enabled) this.disable();
     if (!this.available) throw new Error('No physical notch on connected displays');
+    this.mode = mode;
+    this.menuBarGrowth = null;
+    this.layout = notchLayout(this.display, this.screenInfo, mode); this.fitContent();
     const activation = ++this.activation;
     await this.prepare();
     if (activation !== this.activation || !this.available) return;
     this.enabled = true; this.phase = 'closed';
+    // Refresh before showing, rather than flashing an unmeasured width first.
+    await this.refreshMenuBar({ initial: true });
+    if (!this.enabled || activation !== this.activation || !this.available) return;
     this.hoverBlocked = false; this.enteredAt = this.leftAt = null;
     this.place();
     this.window.showInactive();
     this.timer = setInterval(() => this.trackPointer(), 50);
+    this.menuBarTimer = setInterval(() => { void this.refreshMenuBar(); }, 1000);
+    this.menuBarTimer.unref?.();
+    void this.refreshMenuBar();
     this.trackPointer(); this.onChange();
   }
 
   disable() {
     this.enabled = false; this.revision++; this.activation++;
+    this.menuBarGrowth = null;
     clearInterval(this.timer); this.timer = null;
+    clearInterval(this.menuBarTimer); this.menuBarTimer = null;
+    this.clearTimer(this.notificationTimer); this.notificationTimer = null; this.notifications = [];
     this.enteredAt = this.leftAt = null;
     this.phase = 'closed'; this.setInteractive(false);
     this.window?.hide();
@@ -109,7 +156,7 @@ class AppleNotch {
     if (!this.enabled || !this.layout) return;
     const inside = contains(hitBounds(this.layout, this.phase), point, this.phase === 'closed' ? 0 : 6);
     this.setInteractive(inside);
-    if (this.phase === 'expanded') return;
+    if (this.phase === 'expanded' || this.phase === 'notification') return;
     if (this.hoverBlocked) { if (!inside) this.hoverBlocked = false; else return; }
     const time = this.now();
     if (inside) {
@@ -126,6 +173,39 @@ class AppleNotch {
   setPhase(phase) {
     this.phase = phase; this.update();
   }
+  notify({ title, body, action = null }) {
+    if (!this.enabled || this.mode !== 'island' || !title || !body) return false;
+    this.notifications.push({ id: ++this.notificationSequence, title, body, action });
+    if (this.notifications.length === 1) this.showNotification();
+    else this.update();
+    return true;
+  }
+  showNotification() {
+    this.clearTimer(this.notificationTimer); this.notificationTimer = null;
+    if (this.phase !== 'expanded') this.phase = 'notification';
+    this.update();
+    this.notificationTimer = this.setTimer(() => {
+      // Keep the message readable while the pointer is over it or Settings is active.
+      if (this.interactive || this.modalOperations) this.showNotification();
+      else this.dismissNotification(this.notifications[0]?.id);
+    }, 10000);
+    this.notificationTimer?.unref?.();
+  }
+  dismissNotification(id) {
+    if (!this.notifications.length || this.notifications[0].id !== id) return false;
+    this.clearTimer(this.notificationTimer); this.notificationTimer = null;
+    this.notifications.shift();
+    if (this.notifications.length) this.showNotification();
+    else if (this.phase === 'notification') this.collapse();
+    else this.update();
+    return true;
+  }
+  activateNotification(id) {
+    const notification = this.notifications[0];
+    if (!notification || notification.id !== id) return null;
+    this.dismissNotification(id);
+    return notification.action;
+  }
   expand() {
     if (!this.enabled || !this.layout) return;
     this.setPhase('expanded'); this.window.show(); this.window.focus();
@@ -135,12 +215,20 @@ class AppleNotch {
     if (!this.enabled) return;
     this.hoverBlocked = true;
     this.enteredAt = this.now(); this.leftAt = null;
-    this.setPhase('closed'); this.setInteractive(false);
+    this.setPhase(this.notifications.length ? 'notification' : 'closed'); this.setInteractive(false);
     if (this.window.isFocused()) this.window.blur();
   }
-  snapshot() { return this.enabled && this.layout ? { phase: this.phase, browserOpening: Boolean(this.browserOpening), ...this.layout } : null; }
+  snapshot() { return this.enabled && this.layout ? { mode: this.mode, phase: this.phase, notification: this.notifications[0] || null, notificationCount: this.notifications.length, browserOpening: Boolean(this.browserOpening), ...this.layout } : null; }
   update() {
-    if (this.window && !this.window.isDestroyed()) this.window.webContents.send('limits:state', { ...this.getState(), appleNotch: this.snapshot() });
+    if (!this.window || this.window.isDestroyed()) return;
+    const state = this.getState();
+    if (this.layout) {
+      const group = state.groups?.find(group => group.id === state.selectedId) || state.groups?.[0];
+      const count = state.displaySchema?.groups?.find(schema => schema.id === group?.id)?.metrics.length || 2;
+      fitMenuBar(this.layout, this.mode, count);
+      this.fitContent();
+    }
+    this.window.webContents.send('limits:state', { ...state, appleNotch: this.snapshot() });
   }
   destroy() {
     this.disable();
