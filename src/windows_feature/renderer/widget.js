@@ -12,7 +12,7 @@ function render(next) {
   const translate = (lang, key) => window.limitsWindowsI18n.t(lang, key) || window.limitsI18n.t(lang, key, 'win32');
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);
-  setText($('[data-i18n="shortCompact"]'), language === 'ru' ? '5ч' : '5h');
+  setText(document.querySelector('[data-i18n="shortCompact"]'), language === 'ru' ? '5ч' : '5h');
   const generic = window.limitsMetricElements?.compact($('details'), next);
   const bucket = next.buckets.find(b => b.id === next.selectedId) || next.buckets.find(b => b.id === 'codex') || next.buckets[0];
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > (next.staleAfterMs || 90000);
