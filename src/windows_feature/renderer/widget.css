@@ -4,14 +4,14 @@ body { margin: 0; height: 100vh; display: grid; grid-template-columns: 100px min
 .account { display: flex; flex-direction: column; justify-content: center; min-width: 0; -webkit-app-region: no-drag; cursor: move; touch-action: none; }
 #widget-account { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 #widget-plan { margin-top: 1px; font-size: 8px; color: #aaa; text-transform: uppercase; letter-spacing: .2px; }
-.quotas { display: grid; grid-template-columns: max-content max-content minmax(20px, 1fr) 3ch; align-content: center; column-gap: 4px; row-gap: 2px; min-width: 0; border: 0; color: inherit; background: none; padding: 0; font: inherit; font-size: 9px; cursor: move; text-align: left; }
+.quotas { display: grid; grid-template-columns: max-content max-content minmax(20px, 1fr) minmax(4ch, max-content); align-content: center; column-gap: 4px; row-gap: 2px; min-width: 0; border: 0; color: inherit; background: none; padding: 0; font: inherit; font-size: 9px; cursor: move; text-align: left; }
 .quota { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; font-size: 9px; line-height: 10px; }
 .period { display: contents; }
 .period > span { white-space: nowrap; }
 #short-reset, #weekly-reset { color: #aaa; font-size: 8px; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
-body[data-reset-display="hidden"] .quotas { grid-template-columns: max-content minmax(20px, 1fr) 3ch; }
+body[data-reset-display="hidden"] .quotas { grid-template-columns: max-content minmax(20px, 1fr) minmax(4ch, max-content); }
 body[data-reset-display="hidden"] :is(#short-reset, #weekly-reset, .metric-reset) { display: none; }
-.percentage { text-align: right; font-variant-numeric: tabular-nums; }
+.percentage { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .quotas > .metric-compact { gap: 2px; }
 .quotas .metric-compact-row { line-height: 12px; }
 progress { width: 100%; height: 3px; display: block; border: 0; border-radius: 1px; background: #333; accent-color: white; }

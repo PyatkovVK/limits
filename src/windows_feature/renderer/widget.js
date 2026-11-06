@@ -27,6 +27,7 @@ function render(next) {
     const quota = bucket?.[kind];
     $(`${kind}-bar`).closest('.quota').classList.toggle('low', !stale && typeof quota?.remaining === 'number' && quota.remaining <= 10);
     setText($(`${kind}-value`), quota?.remaining == null ? '—' : String(quota.remaining));
+    $(`${kind}-unit`).hidden = quota?.remaining == null;
     if ($(`${kind}-bar`).value !== (quota?.remaining ?? 0)) $(`${kind}-bar`).value = quota?.remaining ?? 0;
     $(`${kind}-bar`).closest('.quota').classList.toggle('limit-67', quota?.remaining === 67);
   }
