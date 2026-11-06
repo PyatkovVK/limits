@@ -13,6 +13,7 @@ body:has(dialog[open]) .titlebar { -webkit-app-region: no-drag; }
 .settings-content { padding: 12px 18px 18px; max-height: calc(100vh - 100px); overflow-y: auto; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0; font-size: 12px; }
 .settings-row select { flex: none; width: 120px; }
+#settings-widget-reset-display { width: 156px; }
 .settings-row .language { width: 120px; }
 .settings-row input[type="checkbox"] { flex: none; width: 16px; height: 16px; margin: 0; accent-color: #7ecfba; }
 .settings-widget { padding: 8px 0 16px; border-bottom: 1px solid #454545; }

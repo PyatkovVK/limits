@@ -9,6 +9,8 @@ body { margin: 0; height: 100vh; display: grid; grid-template-columns: 100px min
 .period { display: contents; }
 .period > span { white-space: nowrap; }
 #short-reset, #weekly-reset { color: #aaa; font-size: 8px; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+body[data-reset-display="hidden"] .quotas { grid-template-columns: max-content minmax(20px, 1fr) 3ch; }
+body[data-reset-display="hidden"] :is(#short-reset, #weekly-reset, .metric-reset) { display: none; }
 .percentage { text-align: right; font-variant-numeric: tabular-nums; }
 .quotas > .metric-compact { gap: 2px; }
 .quotas .metric-compact-row { line-height: 12px; }

@@ -7,6 +7,21 @@
   }
   const locale = language => language === 'ru' ? 'ru-RU' : 'en-GB';
   const api = {
+    countdown(unix, now = Date.now(), weekly = false) {
+      if (!date(unix)) return '—';
+      const minutes = Math.max(0, Math.ceil((unix * 1000 - now) / 60000));
+      const hours = Math.floor(minutes / 60);
+      const time = `${weekly ? String(hours % 24).padStart(2, '0') : hours}:${String(minutes % 60).padStart(2, '0')}`;
+      return weekly ? `${Math.floor(hours / 24)}:${time}` : time;
+    },
+    renderWidget(element, unix, language, mode = 'clock', weekly = false, now = Date.now()) {
+      element.hidden = mode === 'hidden';
+      api.render(element, unix, language, now);
+      if (mode === 'countdown') {
+        const text = api.countdown(unix, now, weekly);
+        if (element.textContent !== text) element.textContent = text;
+      }
+    },
     format(unix, language = 'ru', now = Date.now()) {
       const value = date(unix);
       if (!value) return '—';

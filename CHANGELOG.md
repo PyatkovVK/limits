@@ -2,6 +2,16 @@
 
 Only user-visible features and bug fixes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
+## 1.8.0
+
+### Added
+
+- Add three reset-time display options to the Windows taskbar widget: hidden, countdown, or date and time. Hiding reset times moves the period labels next to the bars; countdowns show hours:minutes for the five-hour limit and days:hours:minutes for the weekly limit. Keep date and time as the default and remember the selected option.
+
+### Fixed
+
+- Highlight only the low quota bar in the Windows widget and tighten the five-hour period label.
+
 ## 1.7.0
 
 ### Changed

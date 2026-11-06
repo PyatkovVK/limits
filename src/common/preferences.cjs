@@ -14,7 +14,8 @@ function changePreference(key, value, { app, settings, platform, taskbarSupporte
     return changed;
   }
   if (key === 'linuxTrayStyle' && platform === 'linux') return require('../linux_feature/preferences.cjs').changeTrayStyle(value, { settings, save, update });
-  if (key === 'width' && taskbarSupported && WIDTHS.includes(value)) settings.width = value;
+  if (key === 'widgetResetDisplay' && platform === 'win32' && ['hidden', 'countdown', 'clock'].includes(value)) settings.widgetResetDisplay = value;
+  else if (key === 'width' && taskbarSupported && WIDTHS.includes(value)) settings.width = value;
   else if (key === 'visible' && taskbarSupported && typeof value === 'boolean') settings.visible = value;
   else if (key === 'resetPosition' && taskbarSupported) { resetPosition(); return true; }
   else if (key === 'startup' && typeof value === 'boolean' && startupState({ app, platform, env, demo, smoke }).available) {

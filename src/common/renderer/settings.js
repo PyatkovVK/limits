@@ -4,6 +4,10 @@
     ru: { settings: 'Настройки', close: 'Закрыть настройки', language: 'Язык', widget: 'Настройки панели', width: 'Ширина', visible: 'Показывать виджет', reset: 'Сбросить положение', startup: 'Запускать при входе в систему', installed: 'Автозапуск доступен в установленной версии.', error: 'Не удалось изменить настройку. Попробуйте ещё раз.' },
     en: { settings: 'Settings', close: 'Close settings', language: 'Language', widget: 'Panel settings', width: 'Width', visible: 'Show widget', reset: 'Reset position', startup: 'Launch at login', installed: 'Autostart is available in the installed app.', error: 'Could not change this setting. Try again.' },
   };
+  const resetTexts = {
+    ru: { label: 'Время сброса', hidden: 'Не отображать', countdown: 'Время до сброса', clock: 'Дата и время', hint: 'Отсчёт: 5ч — часы:минуты; 7д — дни:часы:минуты.' },
+    en: { label: 'Widget reset times', hidden: 'Do not show', countdown: 'Time until reset', clock: 'Date and time', hint: 'Countdown: 5h — hours:minutes; 7d — days:hours:minutes.' },
+  };
   let current;
   const make = (tag, parent, className = '') => { const node = document.createElement(tag); node.className = className; parent?.append(node); return node; };
   const button = make('button', null, 'settings-button'); button.id = 'settings-button'; button.type = 'button';
@@ -21,6 +25,10 @@
   const widthRow = make('label', widgetSection, 'settings-row'); const widthText = make('span', widthRow);
   const width = make('select', widthRow); width.id = 'settings-width';
   for (const value of [240, 280, 320, 400]) { const option = make('option', width); option.value = value; option.textContent = `${value} px`; }
+  const resetDisplayRow = make('label', widgetSection, 'settings-row'); const resetDisplayText = make('span', resetDisplayRow);
+  const resetDisplay = make('select', resetDisplayRow); resetDisplay.id = 'settings-widget-reset-display';
+  for (const value of ['hidden', 'countdown', 'clock']) { const option = make('option', resetDisplay); option.value = value; }
+  const resetDisplayHint = make('p', widgetSection, 'footnote'); resetDisplayHint.id = 'settings-widget-reset-hint'; resetDisplay.setAttribute('aria-describedby', resetDisplayHint.id);
   const visibleRow = make('label', widgetSection, 'settings-row'); const visibleText = make('span', visibleRow);
   const visible = make('input', visibleRow); visible.type = 'checkbox'; visible.id = 'settings-visible';
   const reset = make('button', widgetSection, 'refresh-button'); reset.type = 'button'; reset.id = 'settings-reset';
@@ -35,6 +43,13 @@
     current = next;
     if (dialog.open && document.body.classList.contains('apple-notch') && next.appleNotch?.phase !== 'expanded') dialog.close();
     const t = texts[next.language] || texts.en;
+    const resetT = resetTexts[next.language] || resetTexts.en;
+    resetDisplayText.textContent = resetT.label;
+    for (const option of resetDisplay.options) option.textContent = resetT[option.value];
+    resetDisplay.value = next.preferences?.widgetResetDisplay || 'clock';
+    resetDisplayRow.hidden = next.platform !== 'win32';
+    resetDisplayHint.textContent = resetT.hint;
+    resetDisplayHint.hidden = next.platform !== 'win32' || resetDisplay.value !== 'countdown';
     button.textContent = t.settings; button.title = t.settings;
     title.textContent = t.settings; close.setAttribute('aria-label', t.close);
     languageText.textContent = t.language; widgetTitle.textContent = t.widget;
@@ -70,6 +85,7 @@
     catch { error.textContent = (texts[current?.language] || texts.en).error; error.hidden = false; }
   }
   width.onchange = () => change('width', Number(width.value));
+  resetDisplay.onchange = () => change('widgetResetDisplay', resetDisplay.value);
   visible.onchange = () => change('visible', visible.checked);
   startup.onchange = () => change('startup', startup.checked);
   reset.onclick = () => change('resetPosition');

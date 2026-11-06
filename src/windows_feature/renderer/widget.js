@@ -1,14 +1,16 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let resetAt = null, weeklyResetAt = null, language = 'ru';
+let resetAt = null, weeklyResetAt = null, language = 'ru', resetDisplay = 'clock';
 const setText = (element, text) => { if (element.textContent !== text) element.textContent = text; };
 function renderCountdown() {
   window.limitsMetricElements?.countdowns($('details'));
-  window.limitsWindowsResetClock.render($('short-reset'), resetAt, language);
-  window.limitsWindowsResetClock.render($('weekly-reset'), weeklyResetAt, language);
+  window.limitsWindowsResetClock.renderWidget($('short-reset'), resetAt, language, resetDisplay);
+  window.limitsWindowsResetClock.renderWidget($('weekly-reset'), weeklyResetAt, language, resetDisplay, true);
 }
 function render(next) {
   language = next.language || 'ru';
+  resetDisplay = next.preferences?.widgetResetDisplay || 'clock';
+  document.body.dataset.resetDisplay = resetDisplay;
   const translate = (lang, key) => window.limitsWindowsI18n.t(lang, key) || window.limitsI18n.t(lang, key, 'win32');
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);

@@ -37,7 +37,7 @@ const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
 let window, windowsPanel, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
-let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray', linuxTrayStyle: 'classic' };
+let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray', linuxTrayStyle: 'classic', widgetResetDisplay: 'clock' };
 const t = key => (process.platform === 'darwin' ? require('../apple_feature/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key, process.platform);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60, demo };
 let notified = new Set();
@@ -64,7 +64,7 @@ const displayModes = () => taskbarSupported ? ['widget', 'tray'] : applePresenta
 function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, reducedMotion: nativeTheme.prefersReducedMotion, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: displayModes(), appleNotch: appleNotch?.snapshot() || null, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null,
   updates: updates?.snapshot(),
   resetNotifications: resetNotifications?.snapshot(),
-  preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported || linuxWidgetSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle,
+  preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported || linuxWidgetSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle, widgetResetDisplay: widgetSettings.widgetResetDisplay,
     startup: startupState({ app, platform: process.platform, demo, smoke }) } }; }
 function persistWidgetSettings() {
   const target = path.join(app.getPath('userData'), 'widget-settings.json');
@@ -229,6 +229,7 @@ async function setup() {
     const width = saved.layoutVersion !== 1 && saved.width === 320 ? 280 : saved.width;
     widgetSettings = { visible: saved.visible !== false, width: [240, 280, 320, 400].includes(width) ? width : 280, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language, layoutVersion: 1, displayMode: (process.platform === 'darwin' && ['notch', 'island'].includes(saved.displayMode)) || displayModes().includes(saved.displayMode) ? saved.displayMode : displayModes()[0] };
     if (process.platform === 'linux') widgetSettings.linuxTrayStyle = require('../linux_feature/preferences.cjs').trayStyle(saved.linuxTrayStyle);
+    widgetSettings.widgetResetDisplay = ['hidden', 'countdown', 'clock'].includes(saved.widgetResetDisplay) ? saved.widgetResetDisplay : 'clock';
   } catch { /* Defaults on first launch. */ }
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();

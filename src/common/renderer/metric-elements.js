@@ -54,7 +54,9 @@
     for (const row of rowsByContainer.get(container)?.values() || []) {
       if (row.metric.resetsAt === null) continue;
       const timer = state.platform === 'win32' && root.limitsWindowsResetClock ? root.limitsWindowsResetClock : root.limitsCountdown;
-      timer?.render(row.reset, row.metric.resetsAt / 1000, state.language || 'ru');
+      if (state.platform === 'win32' && container.classList.contains('metric-compact')) {
+        timer?.renderWidget(row.reset, row.metric.resetsAt / 1000, state.language || 'ru', state.preferences?.widgetResetDisplay || 'clock', row.metric.slot === 'weekly');
+      } else timer?.render(row.reset, row.metric.resetsAt / 1000, state.language || 'ru');
     }
   }
   function compact(container, state) {
