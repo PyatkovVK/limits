@@ -12,17 +12,18 @@ function render(next) {
   const translate = (lang, key) => window.limitsWindowsI18n.t(lang, key) || window.limitsI18n.t(lang, key, 'win32');
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);
+  setText($('[data-i18n="shortCompact"]'), language === 'ru' ? '5ч' : '5h');
   const generic = window.limitsMetricElements?.compact($('details'), next);
   const bucket = next.buckets.find(b => b.id === next.selectedId) || next.buckets.find(b => b.id === 'codex') || next.buckets[0];
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > (next.staleAfterMs || 90000);
   document.body.classList.toggle('stale', Boolean(stale));
   document.body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
-  document.body.classList.toggle('low', !stale && [bucket?.short?.remaining, bucket?.weekly?.remaining].some(n => typeof n === 'number' && n <= 10));
   setText($('widget-account'), next.displayName || next.account?.email || t('connectAccount'));
   $('widget-account').title = next.account?.email || t('login');
   setText($('widget-plan'), next.demo ? t('demo') : `${generic ? next.providerId || 'Limits' : 'Codex'}${next.account?.planType ? ` · ${next.account.planType}` : ''}`);
   for (const kind of generic ? [] : ['short', 'weekly']) {
     const quota = bucket?.[kind];
+    $(`${kind}-bar`).closest('.quota').classList.toggle('low', !stale && typeof quota?.remaining === 'number' && quota.remaining <= 10);
     setText($(`${kind}-value`), quota?.remaining == null ? '—' : String(quota.remaining));
     if ($(`${kind}-bar`).value !== (quota?.remaining ?? 0)) $(`${kind}-bar`).value = quota?.remaining ?? 0;
     $(`${kind}-bar`).closest('.quota').classList.toggle('limit-67', quota?.remaining === 67);
