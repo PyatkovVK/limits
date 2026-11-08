@@ -10,6 +10,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ### Fixed
 
+- On macOS, align the bottom of the collapsed side panel with the physical notch and reduce the quota font as its wings narrow so both percentages stay visible down to the minimum width.
 - Keep Windows widget quota rows on one line while connecting or waiting for data; show a dash without a percent sign for unknown values.
 - Highlight only the low quota bar in the Windows widget and tighten the five-hour period label.
 

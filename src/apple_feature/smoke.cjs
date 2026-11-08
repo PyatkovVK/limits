@@ -344,13 +344,15 @@ async function verifyCompactAppearance({ appleNotch, target, artifactRoot }) {
 }
 
 async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
-  const read = appleNotch.readNativeScreens, native = appleNotch.screenInfo, originalPhase = appleNotch.phase;
+  const read = appleNotch.readNativeScreens, getState = appleNotch.getState;
+  const native = appleNotch.screenInfo, originalPhase = appleNotch.phase;
   const { hitBounds, contains } = require('./geometry.cjs');
   const phases = ['closed', 'peek', 'expanded', 'notification'];
   const wide = { ...native, menuBarLeft: 0, menuBarRight: appleNotch.display.bounds.width };
   const cases = [
     { name: 'wide', metadata: wide, expected: 'full' },
     { name: 'values', metadata: { ...wide, menuBarLeft: native.notchX - 80 }, expected: 'values', side: 'left' },
+    { name: 'tight', metadata: { ...wide, menuBarLeft: native.notchX - 36 }, expected: 'values', side: 'left', shrinksFont: true },
     { name: 'crowded-left', metadata: { ...wide, menuBarLeft: native.notchX - 8 }, expected: 'hidden', side: 'left' },
     { name: 'crowded-right', metadata: { ...wide, menuBarRight: native.notchX + native.notchWidth + 8 }, expected: 'hidden', side: 'right' },
     { name: 'unknown-left', metadata: { ...native, menuBarLeft: null, menuBarRight: native.notchX + native.notchWidth + 64 }, expected: 'values', side: 'right' },
@@ -359,6 +361,12 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
   const checks = [];
   try {
     for (const scenario of cases) {
+      appleNotch.getState = scenario.shrinksFont ? () => {
+        const state = getState();
+        const groups = state.groups.map(group => ({ ...group, metrics: group.metrics.map(metric =>
+          metric.type === 'percentage' ? { ...metric, value: 100 } : metric) }));
+        return { ...state, groups };
+      } : getState;
       appleNotch.layoutScreenInfo = null;
       appleNotch.readNativeScreens = async () => [scenario.metadata];
       await appleNotch.refreshMenuBar();
@@ -383,17 +391,34 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
           const shell = document.querySelector('.apple-shell').getBoundingClientRect();
           const header = document.querySelector('.apple-island-meters');
           const preview = document.querySelector('.apple-preview');
-          const mini = document.querySelector('.apple-mini');
-          return { left: shell.left, right: shell.right, width: shell.width,
-            headerHidden: header.hidden, miniatureVisible: getComputedStyle(mini).display !== 'none',
+          const meters = [...header.querySelectorAll('.apple-island-meter:not([hidden]) .apple-island-value')].map(el => {
+            const rect = el.getBoundingClientRect();
+            return { text: el.textContent, left: rect.left, right: rect.right, font: parseFloat(getComputedStyle(el).fontSize) };
+          });
+          return { left: shell.left, right: shell.right, width: shell.width, bottom: shell.bottom,
+            headerHidden: header.hidden, meters,
             labelsHidden: [...header.querySelectorAll('.apple-island-label')].every(el => getComputedStyle(el).display === 'none'),
             previewOverflow: preview.scrollWidth > preview.clientWidth + 1,
             values: ['short','weekly'].map(kind => document.getElementById('apple-' + kind + '-value').textContent) };
         })()`);
         if (report.headerHidden !== (scenario.expected === 'hidden') || (scenario.expected === 'values' && !report.labelsHidden)) throw new Error('Indicators did not adapt to menu space: ' + JSON.stringify(report));
+        if (!report.headerHidden) {
+          const center = layout.bounds.width / 2;
+          const leftEdge = center - layout.capWidth / 2, rightEdge = center + layout.capWidth / 2;
+          const notchLeft = center - layout.notchWidth / 2, notchRight = center + layout.notchWidth / 2;
+          const [left, right] = report.meters;
+          const expectedValues = scenario.shrinksFont ? '100%,100%' : '72%,46%';
+          if (report.meters.map(meter => meter.text).join(',') !== expectedValues ||
+            left.left < leftEdge || left.right > notchLeft || right.left < notchRight || right.right > rightEdge ||
+            report.meters.some(meter => scenario.shrinksFont ? meter.font >= 12 : meter.font !== 12)) {
+            throw new Error('Quota values did not fit beside the notch: ' + JSON.stringify({ scenario: scenario.name, report }));
+          }
+        }
         if (phase === 'closed') {
           compact = report;
-          if (scenario.expected === 'hidden' && !report.miniatureVisible) throw new Error('Compact fallback has no visible trigger');
+          const notchHeight = Math.ceil(native.top);
+          const below = (Math.ceil(notchHeight * scale) * size.width + Math.floor(size.width / 2)) * 4;
+          if (Math.abs(report.bottom - notchHeight) > 0.5 || bitmap[below + 3] !== 0) throw new Error('Collapsed panel extends below the notch: ' + JSON.stringify({ scenario: scenario.name, report }));
         }
         if (phase === 'peek') {
           if (Math.abs(compact.left - report.left) > 0.5 || Math.abs(compact.right - report.right) > 0.5 || report.previewOverflow || report.values.join(',') !== '72%,46%') throw new Error('Hover preview widened, overflowed or lost values: ' + JSON.stringify({ scenario: scenario.name, compact, hover: report }));
@@ -408,6 +433,7 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
     }
     return { phases, cases: checks, transparent: true, clickThrough: true, alignedHover: true };
   } finally {
+    appleNotch.getState = getState;
     appleNotch.readNativeScreens = read;
     await appleNotch.refreshMenuBar();
     appleNotch.setPhase(originalPhase);

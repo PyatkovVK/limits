@@ -60,15 +60,30 @@
         node.hidden = false; left.append(node);
         return node;
       });
-      const sideWidth = Math.max(0, (width - layout.notchWidth) / 2 - (layout.indicatorMode === 'values' ? 8 : 24));
+      const compact = layout.indicatorMode === 'values';
+      const sideWidth = Math.max(0, (width - layout.notchWidth) / 2 - (compact ? 4 : 24));
       header.style.setProperty('--island-wing-width', `${sideWidth}px`);
+      header.style.removeProperty('--island-value-size');
       if (header.hidden) {
         for (const node of ordered) node.hidden = true;
         more.hidden = true;
         return;
       }
       more.hidden = false; more.textContent = `+${metrics.length}`; right.append(more);
-      const plan = fitIndicators(ordered.map(node => node.getBoundingClientRect().width), sideWidth, more.getBoundingClientRect().width);
+      const measure = () => ordered.map(node => node.getBoundingClientRect().width);
+      let widths = measure();
+      if (compact && metrics.length <= 2 && metrics.every(metric => metric.type === 'percentage')) {
+        let fontSize = parseFloat(getComputedStyle(ordered[0]).fontSize);
+        // The system font's proportions can change at small sizes.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const widest = Math.max(...widths);
+          if (widest <= sideWidth) break;
+          fontSize *= (sideWidth - 0.5) / widest;
+          header.style.setProperty('--island-value-size', `${fontSize}px`);
+          widths = measure();
+        }
+      }
+      const plan = fitIndicators(widths, sideWidth, more.getBoundingClientRect().width);
       for (const index of plan.left) left.append(ordered[index]);
       for (const index of plan.right) right.append(ordered[index]);
       for (const index of plan.hidden) ordered[index].hidden = true;

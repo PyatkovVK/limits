@@ -3,7 +3,7 @@
   const strings = {
     ru: {
       islandMode: 'Панель вокруг чёлки',
-      islandFootnote: 'Лимиты по бокам чёлки, когда в строке меню есть место. В тесной строке меню — компактная чёлка с лимитами при наведении. Нажмите для подробностей. Уведомления Limits раскрываются здесь, без системных баннеров.',
+      islandFootnote: 'Лимиты по бокам чёлки. При сжатии панели шрифт уменьшается. Если места для цифр совсем мало, лимиты видны при наведении. Нажмите для подробностей. Уведомления Limits раскрываются здесь, без системных баннеров.',
       islandDismiss: 'Закрыть уведомление', islandSource: 'Открыть источник', islandUpdateAction: 'Посмотреть обновление',
       islandUpdate: 'Доступно обновление Limits', islandVersion: 'Новая версия:',
       islandMore: 'Показать остальные показатели',
@@ -19,7 +19,7 @@
     },
     en: {
       islandMode: 'Notch side panel',
-      islandFootnote: 'Limits beside the notch when menu-bar space permits. A crowded menu bar uses a compact notch with limits on hover. Click for details. Limits notifications expand here instead of system banners.',
+      islandFootnote: 'Limits beside the notch use a smaller font as the panel narrows. If there is too little room for the values, hover to see them. Click for details. Limits notifications expand here instead of system banners.',
       islandDismiss: 'Dismiss notification', islandSource: 'Open source', islandUpdateAction: 'View update',
       islandUpdate: 'A Limits update is available', islandVersion: 'New version:',
       islandMore: 'Show more metrics',

@@ -243,26 +243,27 @@ test('confirmed occupied menu space never paints wings over neighbouring control
     const layout = notchLayout(display, native, 'island');
     assert.equal(layout.indicatorMode, 'hidden');
     assert.equal(layout.closedWidth, info.notchWidth);
-    assert.equal(layout.closedHeight, info.top + 9);
+    assert.equal(layout.closedHeight, info.top);
     assert.equal(layout.peekWidth, layout.closedWidth);
     for (const phase of ['closed', 'peek', 'expanded', 'notification']) {
       const bounds = hitBounds(layout, phase);
       for (const x of [info.notchX - 1, info.notchX + info.notchWidth + 1]) {
         assert.equal(contains(bounds, { x, y: 20 }, 6), false, phase);
       }
-      assert.equal(contains(bounds, { x: 900, y: info.top + 2 }), true, phase);
+      assert.equal(contains(bounds, { x: 900, y: info.top + 2 }), phase !== 'closed', phase);
     }
   }
 });
 
 test('the tighter side controls a centred panel and hover uses the same edges', () => {
-  for (const native of [{ ...info, menuBarLeft: 700, menuBarRight: 1500 },
-    { ...info, menuBarLeft: 300, menuBarRight: 1100 }]) {
+  for (const native of [{ ...info, menuBarLeft: info.notchX - 36, menuBarRight: 1500 },
+    { ...info, menuBarLeft: 300, menuBarRight: info.notchX + info.notchWidth + 36 }]) {
     const layout = notchLayout(display, native, 'island');
     assert.equal(layout.indicatorMode, 'values');
     const closed = hitBounds(layout, 'closed'), hover = hitBounds(layout, 'peek');
     assert.equal(closed.x, hover.x);
     assert.equal(closed.width, hover.width);
+    assert.equal(closed.width, info.notchWidth + 56);
     assert.equal(closed.x + closed.width / 2, 900);
     assert.ok(closed.x >= native.menuBarLeft + 8);
     assert.ok(closed.x + closed.width <= native.menuBarRight - 8);
@@ -274,6 +275,8 @@ test('expanded shoulders start below the entire menu bar on scaled displays', ()
   const scaled = { ...display, workArea: { ...display.workArea, y: 39 } };
   const layout = notchLayout(scaled, { ...info, menuBarLeft: 760, menuBarRight: 1500 }, 'island');
   assert.equal(layout.capHeight, 39);
+  assert.equal(layout.closedHeight, info.top);
+  assert.equal(contains(hitBounds(layout, 'closed'), { x: 900, y: 38.5 }, 6), false);
   for (const phase of ['expanded', 'notification']) {
     const bounds = hitBounds(layout, phase);
     assert.equal(contains(bounds, { x: info.notchX - 4, y: 38.5 }), false);
@@ -286,7 +289,8 @@ test('verified free space preserves menu-bar meters and negative monitor coordin
   const secondary = { ...display, bounds: { ...display.bounds, x: -1800, y: -1169 }, workArea: { ...display.workArea, x: -1800, y: -1131 } };
   const layout = notchLayout(secondary, native, 'island');
   assert.equal(layout.metersTop, 0);
-  assert.equal(layout.closedHeight, info.top + 4);
+  assert.equal(layout.closedHeight, info.top);
+  assert.equal(layout.metersHeight, layout.closedHeight);
   assert.ok(layout.menuBarWidth >= layout.fullWidth);
   for (const phase of ['closed', 'peek', 'expanded', 'notification']) {
     const bounds = hitBounds(layout, phase);
