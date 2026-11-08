@@ -361,6 +361,7 @@ test('menu space shrinks promptly, grows after stability, and ignores small widt
     await notch.enable('island'); clearInterval(notch.timer); clearInterval(notch.menuBarTimer);
     assert.equal(notch.snapshot().indicatorMode, 'hidden');
     native = { ...info, menuBarLeft: 300, menuBarRight: 1500 }; await notch.refreshMenuBar();
+    native.menuBarLeft = 300.5;
     time = 1000; await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'full');
     native = { ...info, menuBarLeft: 700, menuBarRight: 1500 };
@@ -411,6 +412,34 @@ test('passive polling measures a status item once per stable app layout', async 
     await notch.refreshMenuBar();
     assert.equal(activeReads, 2);
     assert.equal(notch.snapshot().closedWidth, 304);
+    await notch.refreshMenuBar();
+    assert.equal(activeReads, 2);
+  } finally { notch.destroy(); }
+});
+
+test('a narrow panel recovers after switching between already running apps', async () => {
+  let time = 0;
+  let foreground = 1;
+  let right = 1052;
+  let activeReads = 0;
+  const notch = await controller({ now: () => time, menuBarGrowDelay: 1000, readNativeScreens: async ({ measureStatusItems } = {}) => {
+    if (measureStatusItems) activeReads++;
+    return [{ ...info, menuBarContext: 'unchanged', menuBarForeground: foreground, menuBarRight: measureStatusItems ? right : null }];
+  } });
+  try {
+    await notch.enable('island'); clearInterval(notch.timer); clearInterval(notch.menuBarTimer);
+    assert.equal(notch.snapshot().closedWidth, 288);
+    foreground = 2; right = 1119;
+    await notch.refreshMenuBar();
+    assert.equal(activeReads, 1);
+    time = 1000; await notch.refreshMenuBar();
+    assert.equal(activeReads, 2);
+    assert.equal(notch.snapshot().closedWidth, 288);
+    time = 2000; await notch.refreshMenuBar();
+    assert.equal(notch.snapshot().indicatorMode, 'full');
+    assert.equal(notch.snapshot().closedWidth, 412);
+    foreground = 3;
+    await notch.refreshMenuBar();
     await notch.refreshMenuBar();
     assert.equal(activeReads, 2);
   } finally { notch.destroy(); }

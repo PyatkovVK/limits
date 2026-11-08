@@ -5,10 +5,8 @@
 #import <unistd.h>
 
 // Read geometry only, and never request Accessibility or screen-recording access.
-static NSArray<NSValue *> *applicationMenuRects(void) {
-    if (!AXIsProcessTrusted()) return nil;
-    pid_t pid = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
-    if (pid <= 0) return nil;
+static NSArray<NSValue *> *applicationMenuRects(pid_t pid) {
+    if (pid <= 0 || !AXIsProcessTrusted()) return nil;
     AXUIElementRef app = AXUIElementCreateApplication(pid);
     AXUIElementSetMessagingTimeout(app, 0.1);
     CFTypeRef menu = NULL, children = NULL;
@@ -88,7 +86,10 @@ int main(int argc, char **argv) {
     @autoreleasepool {
         NSMutableArray *result = [NSMutableArray array];
         NSString *context = menuBarContext();
-        NSArray *menus = applicationMenuRects();
+        NSWorkspace *workspace = NSWorkspace.sharedWorkspace;
+        NSRunningApplication *owner = workspace.menuBarOwningApplication ?: workspace.frontmostApplication;
+        pid_t foreground = owner.processIdentifier;
+        NSArray *menus = applicationMenuRects(foreground);
         NSArray *windows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID));
         NSDictionary *boundary = argc == 2 && strcmp(argv[1], "--measure-status-items") == 0 ? statusItemBoundary() : nil;
         for (NSScreen *screen in NSScreen.screens) {
@@ -138,7 +139,7 @@ int main(int argc, char **argv) {
                 }
             }
             [result addObject:@{ @"id": displayID, @"top": @(top), @"notchX": @(x), @"notchWidth": @(width),
-                @"menuBarContext": context,
+                @"menuBarContext": context, @"menuBarForeground": @(foreground),
                 @"menuBarLeft": leftKnown ? @(left) : NSNull.null,
                 @"menuBarRight": rightKnown ? @(right) : NSNull.null }];
         }

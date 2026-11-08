@@ -91,15 +91,22 @@ class AppleNotch {
       if (!current()) return;
       // A probe failure is not evidence of occupied space. Keep the last measurement.
       if (!info) { this.menuBarGrowth = this.pendingMenuBarContext = null; return; }
-      const context = info.menuBarContext;
-      const contextChanged = context && context !== this.menuBarContext && context === this.pendingMenuBarContext;
+      const context = { apps: info.menuBarContext, foreground: info.menuBarForeground };
+      const pending = this.pendingMenuBarContext;
+      const previous = this.menuBarContext;
+      const stable = context.apps && context.apps === pending?.apps && context.foreground === pending?.foreground;
+      const appsChanged = context.apps !== previous?.apps;
+      // A switch between running apps can make room without changing the process set.
+      const foregroundChanged = this.layout.indicatorMode !== 'full' && context.foreground > 0 && context.foreground !== previous?.foreground;
       this.pendingMenuBarContext = context;
       // Periodic reads must not insert a status item and disturb the menu bar.
-      if (this.mode === 'island' && !Number.isFinite(info.menuBarRight) && (initial || contextChanged)) {
+      if (this.mode === 'island' && !Number.isFinite(info.menuBarRight) && (initial || (stable && (appsChanged || foregroundChanged)))) {
         const measured = await read(true);
         if (!current()) return;
-        if (measured && measured.menuBarContext === context) info = measured;
-        this.menuBarContext = context;
+        if (!measured || (measured.menuBarContext === context.apps && measured.menuBarForeground === context.foreground)) {
+          if (measured) info = measured;
+          this.menuBarContext = context;
+        }
       } else if (Number.isFinite(info.menuBarRight)) {
         this.menuBarContext = context;
       }
@@ -110,9 +117,12 @@ class AppleNotch {
       // The side insets absorb small variations without moving the panel.
       if (change === 0 || (!initial && Math.abs(change) < 8)) { this.menuBarGrowth = null; return; }
       if (!initial && change > 0) {
-        // Shrink on the first occupied probe; grow only after stable free space.
-        if (this.menuBarGrowth?.width !== next.menuBarWidth) this.menuBarGrowth = { width: next.menuBarWidth, since: this.now() };
-        if (this.now() - this.menuBarGrowth.since < this.menuBarGrowDelay) return;
+        // Use the space confirmed by every sample during the growth delay.
+        const now = this.now();
+        this.menuBarGrowth ??= { width: next.menuBarWidth, since: now };
+        this.menuBarGrowth.width = Math.min(this.menuBarGrowth.width, next.menuBarWidth);
+        if (now - this.menuBarGrowth.since < this.menuBarGrowDelay) return;
+        next.menuBarWidth = this.menuBarGrowth.width;
       }
       this.menuBarGrowth = null;
       this.layout.menuBarWidth = next.menuBarWidth;
