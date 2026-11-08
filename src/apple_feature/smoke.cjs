@@ -148,6 +148,7 @@ async function verifyAppleNotch({ appleNotch, window, trayPresentation, setDispl
 async function verifyAppleIsland(options) {
   const { appleNotch } = options;
   const read = appleNotch.readNativeScreens, growDelay = appleNotch.menuBarGrowDelay, measured = appleNotch.layoutScreenInfo;
+  const context = appleNotch.menuBarContext, pendingContext = appleNotch.pendingMenuBarContext;
   const native = appleNotch.screenInfo;
   // Exercise deterministic menu layouts without relying on the user's current status items.
   appleNotch.readNativeScreens = async () => [{ ...native, menuBarLeft: 0, menuBarRight: appleNotch.display.bounds.width }];
@@ -157,11 +158,13 @@ async function verifyAppleIsland(options) {
     appleNotch.readNativeScreens = read;
     appleNotch.menuBarGrowDelay = growDelay;
     appleNotch.layoutScreenInfo = measured;
+    appleNotch.menuBarContext = context;
+    appleNotch.pendingMenuBarContext = pendingContext;
     await appleNotch.refreshMenuBar();
   }
 }
 
-async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, artifactRoot, demo, monitor, showResetNotification }) {
+async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, artifactRoot, demo, monitor, showResetNotification, layoutFixture }) {
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   const run = source => target.webContents.executeJavaScript(source);
   const renderState = () => run('window.limits.get().then(render)');
@@ -178,6 +181,7 @@ async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, 
   clearInterval(appleNotch.menuBarTimer); appleNotch.menuBarTimer = null;
   await renderState(); await delay(550);
   if (appleNotch.mode !== 'island' || trayPresentation.entries.length) throw new Error('Side panel mode did not activate');
+  if (layoutFixture) return verifyMenuBarProtection({ appleNotch, target, artifactRoot });
   const surface = await verifyNotchSurface({ appleNotch, target, artifactRoot });
   const contentSizing = await verifyContentSizing(target, appleNotch);
   const menuBarProtection = await verifyMenuBarProtection({ appleNotch, target, artifactRoot });
@@ -191,7 +195,7 @@ async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, 
   const center = appleNotch.snapshot().bounds.width / 2;
   const notchWidth = appleNotch.snapshot().notchWidth;
   if (header.mode !== 'island' || header.color !== 'rgb(0, 0, 0)' || header.meters[0].right > center - notchWidth / 2 || header.meters[1].left < center + notchWidth / 2) throw new Error('Side indicators overlap physical notch: ' + JSON.stringify(header));
-  if (demo && header.meters.map(item => item.text).join(',') !== '5h72%,7d46%') throw new Error('Side panel quotas do not match the selected account');
+  if (demo && header.meters.map(item => item.text).join(',') !== '72%5h,7d46%') throw new Error('Side panel quotas do not match the selected account');
   if (demo) {
     monitor.selectProfile('00000000-0000-4000-8000-000000000001'); await renderState();
     if (await run("[...document.querySelectorAll('.apple-island-value')].map(el => el.textContent).join(',')") !== '38%,81%') throw new Error('Side panel account switch failed');
@@ -216,7 +220,12 @@ async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, 
   if (await run("document.getElementById('apple-notification-title').textContent") !== 'Limits · Codex Resets') throw new Error('Queued notification was lost');
   appleNotch.expand(); await renderState(); await delay(550);
   await run('window.limitsSettings.open()'); await renderState(); await delay(550);
-  if (!await run("document.querySelector('#settings-dialog .apple-notification') && window.limitsSettings.dialog.open")) throw new Error('Notification hid behind Settings');
+  const noticeInSettings = await run(`(() => {
+    const notice = document.querySelector('.apple-notification');
+    return { inside: Boolean(notice.closest('#settings-dialog')), parent: notice.parentElement.className,
+      open: [...document.querySelectorAll('dialog[open]')].map(dialog => dialog.id), phase: document.body.dataset.notchPhase };
+  })()`);
+  if (!noticeInSettings.inside || !noticeInSettings.open.includes('settings-dialog')) throw new Error('Notification hid behind Settings: ' + JSON.stringify(noticeInSettings));
   if (demo) fs.writeFileSync(path.join(artifactRoot, 'apple-island-settings.png'), (await target.webContents.capturePage()).toPNG());
   await run('window.limitsSettings.dialog.close()');
   appleNotch.collapse(); await renderState();
@@ -351,7 +360,7 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
   const wide = { ...native, menuBarLeft: 0, menuBarRight: appleNotch.display.bounds.width };
   const cases = [
     { name: 'wide', metadata: wide, expected: 'full' },
-    { name: 'values', metadata: { ...wide, menuBarLeft: native.notchX - 80 }, expected: 'values', side: 'left' },
+    { name: 'values', metadata: { ...wide, menuBarLeft: native.notchX - 71 }, expected: 'values', side: 'left' },
     { name: 'tight', metadata: { ...wide, menuBarLeft: native.notchX - 36 }, expected: 'values', side: 'left', shrinksFont: true },
     { name: 'crowded-left', metadata: { ...wide, menuBarLeft: native.notchX - 8 }, expected: 'hidden', side: 'left' },
     { name: 'crowded-right', metadata: { ...wide, menuBarRight: native.notchX + native.notchWidth + 8 }, expected: 'hidden', side: 'right' },
@@ -391,26 +400,39 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
           const shell = document.querySelector('.apple-shell').getBoundingClientRect();
           const header = document.querySelector('.apple-island-meters');
           const preview = document.querySelector('.apple-preview');
-          const meters = [...header.querySelectorAll('.apple-island-meter:not([hidden]) .apple-island-value')].map(el => {
-            const rect = el.getBoundingClientRect();
-            return { text: el.textContent, left: rect.left, right: rect.right, font: parseFloat(getComputedStyle(el).fontSize) };
+          const meters = [...header.querySelectorAll('.apple-island-meter:not([hidden])')].map((el, index) => {
+            const label = el.querySelector('.apple-island-label');
+            const value = el.querySelector('.apple-island-value');
+            const dotRect = el.querySelector('.apple-island-dot').getBoundingClientRect();
+            const rect = el.getBoundingClientRect(), labelRect = label.getBoundingClientRect(), valueRect = value.getBoundingClientRect();
+            const [first, second] = el.firstElementChild === label ? [labelRect, valueRect] : [valueRect, labelRect];
+            return { text: el.textContent, left: rect.left, right: rect.right, labelWidth: labelRect.width,
+              labelFont: parseFloat(getComputedStyle(label).fontSize), font: parseFloat(getComputedStyle(value).fontSize),
+              outerDot: dotRect.width > 0 && (index === 0 ? dotRect.right <= first.left : dotRect.left >= second.right),
+              orderedInline: first.right <= second.left,
+              orderedStacked: labelRect.bottom <= valueRect.top && Math.abs(index === 0
+                ? labelRect.left - valueRect.left : labelRect.right - valueRect.right) < 0.1 };
           });
           return { left: shell.left, right: shell.right, width: shell.width, bottom: shell.bottom,
             headerHidden: header.hidden, meters,
-            labelsHidden: [...header.querySelectorAll('.apple-island-label')].every(el => getComputedStyle(el).display === 'none'),
             previewOverflow: preview.scrollWidth > preview.clientWidth + 1,
             values: ['short','weekly'].map(kind => document.getElementById('apple-' + kind + '-value').textContent) };
         })()`);
-        if (report.headerHidden !== (scenario.expected === 'hidden') || (scenario.expected === 'values' && !report.labelsHidden)) throw new Error('Indicators did not adapt to menu space: ' + JSON.stringify(report));
+        if (report.headerHidden !== (scenario.expected === 'hidden')) throw new Error('Indicators did not adapt to menu space: ' + JSON.stringify(report));
         if (!report.headerHidden) {
           const center = layout.bounds.width / 2;
           const leftEdge = center - layout.capWidth / 2, rightEdge = center + layout.capWidth / 2;
           const notchLeft = center - layout.notchWidth / 2, notchRight = center + layout.notchWidth / 2;
           const [left, right] = report.meters;
-          const expectedValues = scenario.shrinksFont ? '100%,100%' : '72%,46%';
+          const expectedValues = scenario.shrinksFont ? '100%5h,7d100%' : '72%5h,7d46%';
+          const fontLimit = scenario.expected === 'full' ? 12 : 11;
+          const inset = scenario.expected === 'full' ? 18 : scenario.shrinksFont ? 4 : 10;
           if (report.meters.map(meter => meter.text).join(',') !== expectedValues ||
-            left.left < leftEdge || left.right > notchLeft || right.left < notchRight || right.right > rightEdge ||
-            report.meters.some(meter => scenario.shrinksFont ? meter.font >= 12 : meter.font !== 12)) {
+            Math.abs(left.left - leftEdge - inset) > 0.5 || left.right > notchLeft ||
+            right.left < notchRight || Math.abs(rightEdge - right.right - inset) > 0.5 ||
+            report.meters.some(meter => meter.labelWidth === 0 || (scenario.shrinksFont ? !meter.orderedStacked : !meter.orderedInline) ||
+              meter.outerDot !== (scenario.expected === 'full') ||
+              (scenario.shrinksFont ? meter.font >= fontLimit || meter.labelFont >= 9 : meter.font !== fontLimit))) {
             throw new Error('Quota values did not fit beside the notch: ' + JSON.stringify({ scenario: scenario.name, report }));
           }
         }

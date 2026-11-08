@@ -218,9 +218,11 @@ body.apple-notch:not([data-notch-phase="expanded"]) {
 .apple-island .apple-trigger { overflow: hidden; }
 .apple-island .apple-content { clip-path: inset(0 round 0 0 28px 28px); }
 .apple-island .apple-mini { display: none; }
-body.apple-island[data-island-indicators="values"] .apple-island-label { display: none; }
+body.apple-island[data-island-indicators="values"] .apple-island-meter:not(.quota-period) .apple-island-label { display: none; }
 body.apple-island[data-island-indicators="values"] .apple-island-dot { display: none; }
-body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meters { width: min(calc(100% - 8px), calc(var(--meters-width) - 8px)); }
+body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meters {
+  width: calc(min(100%, var(--meters-width)) - 2 * var(--island-compact-inset, 4px));
+}
 body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter { color: var(--short); }
 body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter.weekly { color: var(--weekly); }
 body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter.unknown { color: #949bab; }
@@ -242,8 +244,18 @@ body[data-platform="darwin"].apple-island .apple-island-more {
   font-size: var(--island-value-size, 12px); font-weight: 650; border-radius: 4px;
 }
 body[data-platform="darwin"].apple-island .apple-island-more { min-width: 24px; justify-content: center; color: #a7aab6; font-size: 10px; }
-.apple-island-label { max-width: 40px; font-size: 10px; font-weight: 500; color: #9b9ca9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.apple-island-label { max-width: 40px; font-size: .83333em; font-weight: 500; color: #9b9ca9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .apple-island-value { white-space: nowrap; }
+body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter.quota-period {
+  font-size: var(--island-value-size, 11px); gap: .3em;
+}
+body[data-platform="darwin"].apple-island .apple-island-meters.stacked .apple-island-meter.quota-period {
+  flex-direction: column; align-items: flex-start; gap: .1em; line-height: 1.1;
+}
+.apple-island-meters.stacked .apple-island-meter.quota-period > .apple-island-label { order: -1; }
+body[data-platform="darwin"].apple-island .apple-island-meters.stacked .apple-island-wing:last-child .apple-island-meter.quota-period {
+  align-items: flex-end;
+}
 .apple-island-dot { flex: 0 0 4px; height: 4px; border-radius: 50%; background: #78e7ca; }
 .apple-island-meter.weekly .apple-island-dot { background: #b6a0ff; }
 .apple-island-meter.low .apple-island-dot { background: #ff6378; }

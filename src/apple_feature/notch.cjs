@@ -3,8 +3,16 @@ const path = require('node:path');
 const { chooseDisplay, notchLayout, fitMenuBar, hitBounds, contains } = require('./geometry.cjs');
 const { readScreens } = require('./screens.cjs');
 
+function keepMenuBoundaries(info, previous) {
+  const measured = { ...info };
+  for (const key of ['menuBarLeft', 'menuBarRight']) {
+    if (!Number.isFinite(measured[key]) && Number.isFinite(previous?.[key])) measured[key] = previous[key];
+  }
+  return measured;
+}
+
 class AppleNotch {
-  constructor({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, resourcesPath, getState, getMenu, onChange, onUnavailable, readNativeScreens = () => readScreens(resourcesPath), now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, menuBarGrowDelay = 1000 }) {
+  constructor({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, resourcesPath, getState, getMenu, onChange, onUnavailable, readNativeScreens = options => readScreens(resourcesPath, options), now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, menuBarGrowDelay = 1000 }) {
     Object.assign(this, { BrowserWindow, screen, Menu, webPreferences, restrictWindow, getState, getMenu, onChange, onUnavailable, readNativeScreens, now, setTimer, clearTimer, menuBarGrowDelay });
     this.mode = 'notch'; this.notifications = []; this.notificationSequence = 0;
     this.phase = 'closed'; this.enabled = false; this.available = false; this.revision = 0; this.activation = 0;
@@ -52,7 +60,11 @@ class AppleNotch {
     if (revision !== this.revision) return;
     const display = chooseDisplay(this.screen.getAllDisplays(), screens, this.screen.getPrimaryDisplay());
     this.available = Boolean(display);
-    this.display = display; this.screenInfo = screens.find(info => info.id === display?.id);
+    const info = screens.find(info => info.id === display?.id);
+    const previous = this.layoutScreenInfo;
+    const sameNotch = info && previous?.id === info.id && previous.notchX === info.notchX && previous.notchWidth === info.notchWidth;
+    if (!sameNotch) this.menuBarContext = this.pendingMenuBarContext = null;
+    this.display = display; this.screenInfo = sameNotch ? keepMenuBoundaries(info, previous) : info;
     this.layoutScreenInfo = this.screenInfo;
     this.layout = display ? notchLayout(display, this.screenInfo, this.mode) : null;
     this.fitContent();
@@ -68,22 +80,37 @@ class AppleNotch {
     this.menuBarPending = true;
     const activation = this.activation, revision = this.revision;
     try {
-      let screens;
-      try { screens = await this.readNativeScreens(); } catch { screens = []; }
-      if (!this.enabled || activation !== this.activation || revision !== this.revision) return;
-      const info = screens.find(info => info.id === this.display?.id && info.top > 0 && info.notchWidth > 0);
+      const current = () => this.enabled && activation === this.activation && revision === this.revision;
+      const read = async measureStatusItems => {
+        try {
+          const screens = await this.readNativeScreens({ measureStatusItems });
+          return screens.find(info => info.id === this.display?.id && info.top > 0 && info.notchWidth > 0);
+        } catch { return null; }
+      };
+      let info = await read(false);
+      if (!current()) return;
       // A probe failure is not evidence of occupied space. Keep the last measurement.
-      if (!info) { this.menuBarGrowth = null; return; }
-      this.screenInfo = { ...info };
-      for (const key of ['menuBarLeft', 'menuBarRight']) {
-        if (!Number.isFinite(this.screenInfo[key]) && Number.isFinite(this.layoutScreenInfo?.[key])) this.screenInfo[key] = this.layoutScreenInfo[key];
+      if (!info) { this.menuBarGrowth = this.pendingMenuBarContext = null; return; }
+      const context = info.menuBarContext;
+      const contextChanged = context && context !== this.menuBarContext && context === this.pendingMenuBarContext;
+      this.pendingMenuBarContext = context;
+      // Periodic reads must not insert a status item and disturb the menu bar.
+      if (this.mode === 'island' && !Number.isFinite(info.menuBarRight) && (initial || contextChanged)) {
+        const measured = await read(true);
+        if (!current()) return;
+        if (measured && measured.menuBarContext === context) info = measured;
+        this.menuBarContext = context;
+      } else if (Number.isFinite(info.menuBarRight)) {
+        this.menuBarContext = context;
       }
+      this.screenInfo = keepMenuBoundaries(info, this.layoutScreenInfo);
       this.layoutScreenInfo = this.screenInfo;
       const next = notchLayout(this.display, this.screenInfo, this.mode);
-      if (next.menuBarWidth === this.layout.menuBarWidth) { this.menuBarGrowth = null; return; }
-      if (!initial && next.menuBarWidth > this.layout.menuBarWidth) {
+      const change = next.menuBarWidth - this.layout.menuBarWidth;
+      // The side insets absorb small variations without moving the panel.
+      if (change === 0 || (!initial && Math.abs(change) < 8)) { this.menuBarGrowth = null; return; }
+      if (!initial && change > 0) {
         // Shrink on the first occupied probe; grow only after stable free space.
-        if (next.menuBarWidth - this.layout.menuBarWidth < 8) { this.menuBarGrowth = null; return; }
         if (this.menuBarGrowth?.width !== next.menuBarWidth) this.menuBarGrowth = { width: next.menuBarWidth, since: this.now() };
         if (this.now() - this.menuBarGrowth.since < this.menuBarGrowDelay) return;
       }
@@ -117,6 +144,7 @@ class AppleNotch {
     if (!this.available) throw new Error('No physical notch on connected displays');
     this.mode = mode;
     this.menuBarGrowth = null;
+    this.menuBarContext = this.pendingMenuBarContext = null;
     this.layout = notchLayout(this.display, this.screenInfo, mode); this.fitContent();
     const activation = ++this.activation;
     await this.prepare();
@@ -131,7 +159,6 @@ class AppleNotch {
     this.timer = setInterval(() => this.trackPointer(), 50);
     this.menuBarTimer = setInterval(() => { void this.refreshMenuBar(); }, 1000);
     this.menuBarTimer.unref?.();
-    void this.refreshMenuBar();
     this.trackPointer(); this.onChange();
   }
 

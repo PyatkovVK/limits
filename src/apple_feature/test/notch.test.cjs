@@ -353,7 +353,7 @@ test('menu-bar polling coalesces slow probes, ignores late results and stops whe
   } finally { notch.destroy(); }
 });
 
-test('menu space shrinks immediately, grows after stability, and ignores tiny widening', async () => {
+test('menu space shrinks promptly, grows after stability, and ignores small width changes', async () => {
   let time = 0;
   let native = { ...info, menuBarLeft: 760, menuBarRight: 1080 };
   const notch = await controller({ now: () => time, menuBarGrowDelay: 1000, readNativeScreens: async () => [native] });
@@ -367,22 +367,52 @@ test('menu space shrinks immediately, grows after stability, and ignores tiny wi
     await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'values');
     assert.equal(notch.snapshot().closedWidth, 384);
-    native.menuBarLeft = 700.5; await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().closedWidth, 383);
-    native.menuBarLeft = 700; time = 3000; await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().closedWidth, 383);
+    for (const left of [700.5, 699.5, 700, 701, 700]) {
+      native.menuBarLeft = left; time += 1000; await notch.refreshMenuBar();
+      assert.equal(notch.snapshot().closedWidth, 384);
+    }
     native.menuBarLeft = 300; await notch.refreshMenuBar();
-    time = 3500; await notch.refreshMenuBar();
-    assert.equal(notch.snapshot().closedWidth, 383);
+    time += 500; await notch.refreshMenuBar();
+    assert.equal(notch.snapshot().closedWidth, 384);
     native = { ...info, menuBarLeft: 760, menuBarRight: 1080 }; await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'hidden');
     native = { ...info, menuBarLeft: 300, menuBarRight: 1500 };
-    time = 4000; await notch.refreshMenuBar();
-    time = 4999; await notch.refreshMenuBar();
+    time += 500; await notch.refreshMenuBar();
+    time += 999; await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'hidden');
-    time = 5000; await notch.refreshMenuBar();
+    time += 1; await notch.refreshMenuBar();
     assert.equal(notch.snapshot().indicatorMode, 'full');
     assert.equal(notch.snapshot().peekWidth, notch.snapshot().closedWidth);
+  } finally { notch.destroy(); }
+});
+
+test('passive polling measures a status item once per stable app layout', async () => {
+  let context = 'app-a';
+  let right = 1090;
+  let activeReads = 0;
+  const notch = await controller({ readNativeScreens: async ({ measureStatusItems } = {}) => {
+    if (measureStatusItems) activeReads++;
+    return [{ ...info, menuBarContext: context, menuBarRight: measureStatusItems ? right : null }];
+  } });
+  try {
+    await notch.enable('island'); clearInterval(notch.timer); clearInterval(notch.menuBarTimer);
+    assert.equal(activeReads, 1);
+    assert.equal(notch.snapshot().closedWidth, 364);
+    for (let i = 0; i < 5; i++) await notch.refreshMenuBar();
+    assert.equal(activeReads, 1);
+    await notch.discover();
+    assert.equal(notch.snapshot().closedWidth, 364);
+    context = 'app-b'; await notch.refreshMenuBar();
+    context = 'app-a'; await notch.refreshMenuBar();
+    assert.equal(activeReads, 1);
+    context = 'app-c'; right = 1060;
+    await notch.refreshMenuBar();
+    assert.equal(activeReads, 1);
+    await notch.refreshMenuBar();
+    assert.equal(activeReads, 2);
+    assert.equal(notch.snapshot().closedWidth, 304);
+    await notch.refreshMenuBar();
+    assert.equal(activeReads, 2);
   } finally { notch.destroy(); }
 });
 

@@ -50,10 +50,15 @@
           const dot = document.createElement('span'); dot.className = 'apple-island-dot'; dot.setAttribute('aria-hidden', 'true');
           node.append(label, value, dot); node.onclick = () => window.limits.open(); nodes.set(metric.id, node);
         }
-        const label = metric.slot === 'short' ? '5h' : metric.slot === 'weekly' ? '7d' : metric.compactLabel || metric.label || metric.id;
-        node.querySelector('.apple-island-label').textContent = label;
-        node.querySelector('.apple-island-value').textContent = metric.formatted;
+        const short = metric.slot === 'short';
+        const label = short ? '5h' : metric.slot === 'weekly' ? '7d' : metric.compactLabel || metric.label || metric.id;
+        const caption = node.querySelector('.apple-island-label'), value = node.querySelector('.apple-island-value');
+        const dot = node.querySelector('.apple-island-dot');
+        caption.textContent = label; value.textContent = metric.formatted;
+        const order = short ? [dot, value, caption] : [caption, value, dot];
+        if (node.firstElementChild !== order[0]) node.append(...order);
         node.title = `${metric.label || label}: ${metric.formatted}`; node.setAttribute('aria-label', node.title);
+        node.classList.toggle('quota-period', short || metric.slot === 'weekly');
         node.classList.toggle('weekly', index % 2 === 1);
         node.classList.toggle('low', metric.type === 'percentage' && metric.semantics === 'remaining' && metric.value !== null && metric.value <= 10);
         node.classList.toggle('unknown', next.stale || metric.value == null);
@@ -61,9 +66,13 @@
         return node;
       });
       const compact = layout.indicatorMode === 'values';
-      const sideWidth = Math.max(0, (width - layout.notchWidth) / 2 - (compact ? 4 : 24));
+      const wingWidth = (width - layout.notchWidth) / 2;
+      const compactInset = Math.min(10, Math.max(4, wingWidth - 24));
+      const sideWidth = Math.max(0, wingWidth - (compact ? compactInset : 24));
+      header.style.setProperty('--island-compact-inset', `${compactInset}px`);
       header.style.setProperty('--island-wing-width', `${sideWidth}px`);
       header.style.removeProperty('--island-value-size');
+      header.classList.toggle('stacked', compact && sideWidth < 38);
       if (header.hidden) {
         for (const node of ordered) node.hidden = true;
         more.hidden = true;

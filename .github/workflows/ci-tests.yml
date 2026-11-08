@@ -19,5 +19,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+      - name: Check notch side panel layouts
+        if: runner.os == 'macOS'
+        run: npm run smoke:notch-layout
       - name: Run tests
         run: npm test

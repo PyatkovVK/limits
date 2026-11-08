@@ -1,6 +1,7 @@
 #import <AppKit/AppKit.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <ApplicationServices/ApplicationServices.h>
+#import <string.h>
 #import <unistd.h>
 
 // Read geometry only, and never request Accessibility or screen-recording access.
@@ -45,8 +46,20 @@ static void excludeRect(CGRect rect, CGRect bar, CGFloat center, CGFloat *left, 
     else { *left = center; *right = center; }
 }
 
-// A temporary empty status item gives us a real layout boundary even when macOS
-// exposes the entire menu bar as one Window Server window. It never takes focus.
+static NSString *menuBarContext(void) {
+    NSWorkspace *workspace = NSWorkspace.sharedWorkspace;
+    NSMutableArray<NSNumber *> *pids = [NSMutableArray array];
+    for (NSRunningApplication *app in workspace.runningApplications) {
+        pid_t pid = app.processIdentifier;
+        if (pid > 0 && pid != getpid() && pid != getppid() && app.activationPolicy != NSApplicationActivationPolicyProhibited) {
+            [pids addObject:@(pid)];
+        }
+    }
+    [pids sortUsingSelector:@selector(compare:)];
+    return [pids componentsJoinedByString:@","];
+}
+
+// Used only after a layout change when window metadata has no status-item bounds.
 static NSDictionary *statusItemBoundary(void) {
     [NSApplication.sharedApplication setActivationPolicy:NSApplicationActivationPolicyAccessory];
     NSStatusItem *item = [NSStatusBar.systemStatusBar statusItemWithLength:1];
@@ -71,12 +84,13 @@ static NSDictionary *statusItemBoundary(void) {
     return result;
 }
 
-int main(void) {
+int main(int argc, char **argv) {
     @autoreleasepool {
         NSMutableArray *result = [NSMutableArray array];
+        NSString *context = menuBarContext();
         NSArray *menus = applicationMenuRects();
-        NSDictionary *boundary = statusItemBoundary();
         NSArray *windows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID));
+        NSDictionary *boundary = argc == 2 && strcmp(argv[1], "--measure-status-items") == 0 ? statusItemBoundary() : nil;
         for (NSScreen *screen in NSScreen.screens) {
             NSNumber *displayID = screen.deviceDescription[@"NSScreenNumber"];
             CGFloat top = 0, width = 0, x = 0;
@@ -124,6 +138,7 @@ int main(void) {
                 }
             }
             [result addObject:@{ @"id": displayID, @"top": @(top), @"notchX": @(x), @"notchWidth": @(width),
+                @"menuBarContext": context,
                 @"menuBarLeft": leftKnown ? @(left) : NSNull.null,
                 @"menuBarRight": rightKnown ? @(right) : NSNull.null }];
         }

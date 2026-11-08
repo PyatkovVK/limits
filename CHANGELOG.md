@@ -10,7 +10,8 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ### Fixed
 
-- On macOS, align the bottom of the collapsed side panel with the physical notch and reduce the quota font as its wings narrow so both percentages stay visible down to the minimum width.
+- On macOS, align the bottom of the collapsed side panel with the physical notch. Scale the 5h and 7d labels together with their percentages and keep the period labels closest to the notch.
+- Keep the macOS notch side panel steady during regular menu-bar checks by reading the current layout without adding a temporary status item on every check and ignoring small width changes.
 - Keep Windows widget quota rows on one line while connecting or waiting for data; show a dash without a percent sign for unknown values.
 - Highlight only the low quota bar in the Windows widget and tighten the five-hour period label.
 
