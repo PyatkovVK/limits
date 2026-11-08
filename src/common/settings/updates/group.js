@@ -2,44 +2,56 @@
 (() => {
   const words = {
     ru: {
-      title: 'Обновления', version: 'Версия', check: 'Проверить обновления', checking: 'Проверяем обновления…',
-      idle: 'Проверка ещё не выполнялась.', current: 'Установлена актуальная версия.', available: 'Доступна версия',
+      title: 'Обновления', version: 'Версия', check: 'Проверить', checking: 'Проверяем обновления…',
+      idle: 'Проверка ещё не выполнялась', current: 'У вас актуальная версия', available: 'Доступна версия',
+      installed: 'Версия Limits', installedDescription: 'Установлена на этом компьютере', checkTitle: 'Проверка обновлений',
+      newVersion: 'Доступна новая версия', downloadReady: 'Готова к скачиванию', restartHint: 'После установки Limits перезапустится',
+      openRelease: 'Открыть релиз', manual: 'Скачивание и установка вручную',
       lastCheck: 'Последняя проверка', update: 'Обновить', later: 'Позже', offer: 'Доступно обновление Limits',
       hint: 'Кнопка «Обновить» откроет релиз на GitHub. Скачайте и установите подходящий файл вручную.',
       checkFailed: 'Не удалось проверить обновления. Проверьте интернет и попробуйте ещё раз.',
       timeout: 'GitHub не ответил вовремя. Попробуйте ещё раз.', rateLimited: 'GitHub ограничил запросы. Повторите проверку позже.',
       invalidResponse: 'Не удалось прочитать список релизов GitHub. Попробуйте позже.', noRelease: 'Опубликованные стабильные версии пока не найдены.',
       openFailed: 'Не удалось открыть релиз в браузере. Попробуйте ещё раз.', unavailable: 'Действие сейчас недоступно. Повторите проверку.',
-      demo: 'Результат в демо', demoCurrent: 'Актуальная версия', demoAvailable: 'Новая версия', demoError: 'Ошибка проверки',
       simulated: 'Демо: открытие релиза показано без запуска браузера.',
     },
     en: {
-      title: 'Updates', version: 'Version', check: 'Check for updates', checking: 'Checking for updates…',
-      idle: 'Updates have not been checked yet.', current: 'You have the latest version.', available: 'Version available:',
+      title: 'Updates', version: 'Version', check: 'Check', checking: 'Checking for updates…',
+      idle: 'Updates have not been checked yet', current: 'You have the latest version', available: 'Version available:',
+      installed: 'Limits version', installedDescription: 'Installed on this computer', checkTitle: 'Check for updates',
+      newVersion: 'A new version is available', downloadReady: 'Ready to download', restartHint: 'Limits will restart after installation',
+      openRelease: 'Open release', manual: 'Download and install manually',
       lastCheck: 'Last check', update: 'Update', later: 'Later', offer: 'A Limits update is available',
       hint: 'Update opens the release on GitHub. Download and install the appropriate file manually.',
       checkFailed: 'Could not check for updates. Check your connection and try again.',
       timeout: 'GitHub did not respond in time. Try again.', rateLimited: 'GitHub has limited requests. Check again later.',
       invalidResponse: 'Could not read the GitHub release list. Try again later.', noRelease: 'No published stable versions were found yet.',
       openFailed: 'Could not open the release in your browser. Try again.', unavailable: 'This action is unavailable right now. Check again.',
-      demo: 'Demo result', demoCurrent: 'Current version', demoAvailable: 'New version', demoError: 'Check failed',
       simulated: 'Demo: the release action was simulated without opening a browser.',
     },
   };
   const make = (tag, parent, className = '') => { const node = document.createElement(tag); node.className = className; parent?.append(node); return node; };
-  const section = make('section', window.limitsSettings.extensions, 'updates-section');
-  const title = make('h3', section);
-  const version = make('p', section, 'updates-version'); version.id = 'updates-version';
-  const result = make('p', section, 'updates-result'); result.id = 'updates-result'; result.setAttribute('role', 'status');
-  const checked = make('p', section, 'footnote'); checked.id = 'updates-checked';
-  const actions = make('div', section, 'updates-actions');
-  const check = make('button', actions, 'refresh-button'); check.id = 'updates-check'; check.type = 'button';
-  const open = make('button', actions, 'refresh-button'); open.id = 'updates-open'; open.type = 'button'; open.hidden = true;
-  const hint = make('p', section, 'footnote');
-  const demoRow = make('label', section, 'settings-row'); const demoLabel = make('span', demoRow);
-  const demoSelect = make('select', demoRow); demoSelect.id = 'updates-demo';
-  for (const scenario of ['current', 'available', 'error']) { const option = make('option', demoSelect); option.value = scenario; }
-  const actionMessage = make('p', section, 'updates-result'); actionMessage.setAttribute('role', 'status'); actionMessage.hidden = true;
+  const section = make('section', window.limitsSettings.extensions, 'settings-group updates-section');
+  const title = make('h3', section); title.id = 'updates-settings-title';
+  section.setAttribute('aria-labelledby', title.id);
+  const card = make('div', section, 'settings-group-card');
+  function row() {
+    const element = make('div', card, 'settings-item');
+    const copy = make('div', element, 'settings-item-copy');
+    return { element, title: make('div', copy, 'updates-label'), description: make('p', copy, 'settings-item-description') };
+  }
+  const installed = row();
+  const version = make('span', installed.element); version.id = 'updates-version';
+  const verification = row();
+  const result = verification.description; result.id = 'updates-result'; result.setAttribute('role', 'status');
+  const checked = make('p', result.parentElement, 'settings-item-description'); checked.id = 'updates-checked';
+  const check = make('button', verification.element, 'refresh-button'); check.id = 'updates-check'; check.type = 'button';
+  const release = row(); release.element.id = 'updates-release'; release.element.hidden = true;
+  release.description.setAttribute('role', 'status');
+  const open = make('button', release.element, 'refresh-button'); open.id = 'updates-open'; open.type = 'button'; open.hidden = true;
+  const percent = make('span', release.element, 'updates-percent'); percent.hidden = true; percent.setAttribute('aria-hidden', 'true');
+  const progress = make('progress', release.element, 'updates-progress'); progress.id = 'updates-progress'; progress.max = 100; progress.hidden = true;
+  const actionMessage = make('p', card, 'settings-item-error'); actionMessage.setAttribute('role', 'status'); actionMessage.hidden = true;
 
   const dialog = make('dialog', document.body, 'updates-dialog'); dialog.id = 'updates-dialog'; dialog.setAttribute('aria-labelledby', 'updates-title');
   const dialogTitle = make('h2', dialog); dialogTitle.id = 'updates-title';
@@ -72,29 +84,46 @@
     if (!value) return;
     const t = text();
     const installation = window.limitsInstallation?.presentation(next);
-    title.textContent = t.title; version.textContent = `${t.version} ${value.currentVersion}`;
-    result.textContent = value.status === 'available' ? `${t.available} ${value.release.version}` : value.status === 'error' ? t[value.error] || t.checkFailed : t[value.status] || t.idle;
-    if (installation?.result) result.textContent = installation.result;
-    result.classList.toggle('warning', value.status === 'error' || installation?.error);
+    title.textContent = t.title;
+    installed.title.textContent = t.installed; installed.description.textContent = t.installedDescription;
+    version.textContent = value.currentVersion;
+    verification.title.textContent = t.checkTitle;
+    const checkResult = value.status === 'available' ? t.newVersion : value.status === 'error' ? t[value.error] || t.checkFailed : t[value.status] || t.idle;
+    if (result.textContent !== checkResult) result.textContent = checkResult;
+    result.classList.toggle('warning', value.status === 'error');
     checked.hidden = value.checkedAt === null;
     checked.textContent = value.checkedAt === null ? '' : `${t.lastCheck}: ${new Date(value.checkedAt).toLocaleString(next.language === 'ru' ? 'ru-RU' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })}`;
     check.textContent = value.status === 'checking' ? t.checking : t.check;
-    check.disabled = demoSelect.disabled = value.status === 'checking';
-    open.textContent = update.textContent = installation?.button || t.update; open.hidden = !value.release;
+    check.disabled = value.status === 'checking' || Boolean(installation?.disabled) || opening;
+    const phase = installation?.status;
+    const downloading = phase === 'downloading';
+    release.element.hidden = !value.release;
+    release.title.textContent = value.release ? `${t.version} ${value.release.version}` : '';
+    const releaseStatus = phase === 'ready' ? t.restartHint
+      : t[phase] && installation.disabled ? t[phase]
+      : installation ? installation.result || t.downloadReady : t.manual;
+    if (release.description.textContent !== releaseStatus) release.description.textContent = releaseStatus;
+    release.description.classList.toggle('warning', Boolean(installation?.error));
+    progress.hidden = !downloading && phase !== 'verifying';
+    progress.setAttribute('aria-label', release.description.textContent);
+    const amount = downloading && Number.isFinite(installation.progress) ? installation.progress : null;
+    if (amount === null) progress.removeAttribute('value'); else progress.value = amount;
+    percent.hidden = amount === null; percent.textContent = amount === null ? '' : `${amount}%`;
+    open.textContent = phase === 'ready' ? t.update : installation?.button || t.openRelease;
+    open.hidden = !value.release || Boolean(installation?.disabled);
+    update.textContent = installation?.button || t.update;
     open.disabled = update.disabled = opening || Boolean(installation?.disabled); later.disabled = dismissing;
-    hint.textContent = dialogHint.textContent = installation?.hint || t.hint;
-    demoRow.hidden = !value.demo; demoLabel.textContent = t.demo; demoSelect.value = value.demoScenario;
-    for (const option of demoSelect.options) option.textContent = t[{ current: 'demoCurrent', available: 'demoAvailable', error: 'demoError' }[option.value]];
+    dialogHint.textContent = installation?.hint || t.hint;
     dialogTitle.textContent = t.offer; later.textContent = t.later;
     dialogVersion.textContent = `${t.available} ${value.offer?.version || value.release?.version || ''}`;
     actionMessage.hidden = !messageKey; actionMessage.textContent = t[messageKey] || '';
     dialogError.hidden = !messageKey || messageKey === 'simulated'; dialogError.textContent = t[messageKey] || '';
     maybeOffer();
   }
-  async function checkUpdates(scenario) {
+  async function checkUpdates() {
     messageKey = null;
     try {
-      const value = await (scenario ? window.limits.demoUpdate(scenario) : window.limits.checkUpdates());
+      const value = await window.limits.checkUpdates();
       if (value.error && !value.currentVersion) messageKey = value.error;
       else current = { ...current, updates: value };
     } catch { messageKey = 'checkFailed'; }
@@ -120,7 +149,7 @@
     } catch { messageKey = 'unavailable'; }
     dismissing = false; render(current);
   }
-  check.onclick = () => void checkUpdates(); demoSelect.onchange = () => void checkUpdates(demoSelect.value);
+  check.onclick = () => void checkUpdates();
   open.onclick = update.onclick = () => void openRelease(); later.onclick = () => void dismissOffer();
   dialog.addEventListener('cancel', event => { event.preventDefault(); void dismissOffer(); });
   dialog.addEventListener('keydown', event => { if (event.key === 'Escape') event.stopPropagation(); });
@@ -135,5 +164,8 @@
   modals.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
   window.addEventListener('pagehide', () => modals.disconnect(), { once: true });
   window.limits.subscribe(render);
-  window.limitsUpdatesReady = window.limits.get().then(render);
+  window.limitsUpdatesReady = window.renderReady.then(() => {
+    document.getElementById('general-settings-title')?.closest('section').after(section);
+    return window.limits.get();
+  }).then(render);
 })();

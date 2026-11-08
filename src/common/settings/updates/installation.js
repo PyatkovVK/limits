@@ -39,7 +39,8 @@
       const differentVersion = value.version && next.updates.release && value.version !== next.updates.release.version;
       const status = differentVersion && value.status !== 'installing' ? 'idle' : value.status;
       const busy = ['downloading', 'verifying', 'installing'].includes(status);
-      const presentation = { button: status === 'ready' ? t.restart : status === 'error' ? t.retry : busy ? t[status] : t.download,
+      const presentation = { status, progress: status === 'downloading' ? value.progress : null,
+        button: status === 'ready' ? t.restart : status === 'error' ? t.retry : busy ? t[status] : t.download,
         disabled: busy, hint: t.downloadHint };
       if (next.updates.status === 'checking' || next.updates.status === 'error') return presentation;
       return { ...presentation,

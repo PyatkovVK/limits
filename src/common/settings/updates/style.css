@@ -1,5 +1,17 @@
-.updates-section { border-top: 1px solid var(--edge, #414650); margin-top: 14px; padding-top: 12px; }
-.updates-section h3 { font-size: 12px; margin: 0 0 8px; }
+.updates-section { margin-top: 14px; }
+.updates-section .updates-label { font-size: 14px; font-weight: 500; }
+.updates-section .warning { color: var(--group-error); }
+.updates-section .refresh-button { justify-self: end; min-height: 32px; }
+#settings-dialog .updates-section #updates-open { background: var(--group-accent); color: #fff; border-color: transparent; }
+.updates-percent { justify-self: end; color: var(--muted); font-variant-numeric: tabular-nums; }
+#settings-dialog .updates-progress { grid-column: 1 / -1; height: 6px; border-radius: 4px; accent-color: var(--group-accent); }
+#settings-dialog .updates-progress::-webkit-progress-bar { background: var(--group-divider); }
+#settings-dialog .updates-progress::-webkit-progress-value { background: var(--group-accent); }
+.updates-section .settings-item-error { margin: 0; padding: 0 0 10px; }
+@container (max-width: 295px) {
+  .updates-section .settings-item:has(button:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
+  .updates-section .refresh-button { justify-self: start; }
+}
 .updates-version { font-size: 12px; font-weight: 600; margin: 8px 0; }
 .updates-result { font-size: 11px; line-height: 1.5; margin: 8px 0; }
 .updates-section .footnote { color: var(--muted, #aab3c3); line-height: 1.5; }

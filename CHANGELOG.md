@@ -4,6 +4,11 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ## 1.8.0
 
+### Changed
+
+- Group language, display mode and launch at login in a single General settings card on Windows, macOS and Linux. Shorten display labels and use a switch for launch at login.
+- Put update status and actions in an Updates settings card. Show the download action only when a newer version is available, then show progress and an Update button after verification.
+
 ### Added
 
 - Add three reset-time display options to the Windows taskbar widget: hidden, countdown, or date and time. Hiding reset times moves the period labels next to the bars; countdowns show hours:minutes for the five-hour limit and days:hours:minutes for the weekly limit. Keep date and time as the default and remember the selected option.

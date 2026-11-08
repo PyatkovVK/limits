@@ -23,12 +23,11 @@
       connectAccount: 'Подключите аккаунт ChatGPT', login: 'Войти через ChatGPT ↗', switchAccount: 'Сменить аккаунт ↗',
       finishLogin: 'Завершите вход в браузере', refresh: 'Обновить', details: 'Открыть подробности',
       close: 'Закрыть подробности', drag: 'Перетащите аккаунт, чтобы передвинуть блок',
-      footnote: 'Перетащите аккаунт, чтобы передвинуть блок на панели задач.',
       demoNotice: 'Демо · показаны примерные данные', bucket: 'Лимит', language: 'Язык',
       showWidget: 'Показывать блок на панели задач', resetPosition: 'Вернуть блок к системному трею',
       width: 'Ширина блока', startup: 'Запускать при входе в Windows', quit: 'Выйти из приложения',
-      displayMode: 'Отображение', widgetMode: 'Виджет на панели задач', trayMode: 'Два значка в трее',
-      trayFootnote: 'Наведите на значок для подробностей. Нажмите, чтобы открыть лимиты.', resetsAt: 'Сброс',
+      displayMode: 'Отображение', widgetMode: 'Виджет', trayMode: 'Трей',
+      resetsAt: 'Сброс',
       tooltip: 'Limits · панель задач', lowTitle: 'Codex: лимит заканчивается',
       unsupported: 'Лимиты подписки доступны при входе через ChatGPT. Сейчас используется другой способ авторизации.',
       noLimits: 'Сервис пока не вернул данные о лимитах.', cached: 'Показаны последние полученные данные. Ожидаем обновление.',
@@ -64,12 +63,11 @@
       connectAccount: 'Connect your ChatGPT account', login: 'Sign in with ChatGPT ↗', switchAccount: 'Switch account ↗',
       finishLogin: 'Complete sign-in in your browser', refresh: 'Refresh', details: 'Open details',
       close: 'Close details', drag: 'Drag the account to move the widget',
-      footnote: 'Drag the account to move the widget along the taskbar.',
       demoNotice: 'Demo · sample data', bucket: 'Limit', language: 'Language',
       showWidget: 'Show widget on taskbar', resetPosition: 'Move widget back beside the tray',
       width: 'Widget width', startup: 'Launch at Windows sign-in', quit: 'Quit application',
-      displayMode: 'Display', widgetMode: 'Taskbar widget', trayMode: 'Two tray icons',
-      trayFootnote: 'Hover over an icon for details. Click to open your limits.', resetsAt: 'Resets at',
+      displayMode: 'Display', widgetMode: 'Widget', trayMode: 'System tray',
+      resetsAt: 'Resets at',
       tooltip: 'Limits · taskbar', lowTitle: 'Codex: limit running low',
       unsupported: 'Subscription limits require ChatGPT sign-in. Codex currently uses another authentication method.',
       noLimits: 'The service has not returned limit data yet.', cached: 'Showing the last received data. Waiting for an update.',
@@ -106,9 +104,7 @@
   };
   const api = {
     languages: Object.keys(strings),
-    t(language, key, platform) {
-      if (platform === 'linux' && key === 'widgetMode') return language === 'en' ? 'Desktop widget' : 'Виджет на рабочем столе';
-      if (platform === 'linux' && key === 'footnote') return language === 'en' ? 'Drag the account label to move the widget. Click the bars for details.' : 'Перетащите название аккаунта для перемещения. Нажмите на полоски для подробностей.';
+    t(language, key) {
       return (connectionStrings[language] || connectionStrings.ru)[key] || (strings[language] || strings.ru)[key] || key;
     },
     apply(language, doc, translate = api.t) {

@@ -1,13 +1,14 @@
 'use strict';
 (() => {
   const texts = {
-    ru: { settings: 'Настройки', close: 'Закрыть настройки', language: 'Язык', widget: 'Настройки панели', width: 'Ширина', visible: 'Показывать виджет', reset: 'Сбросить положение', startup: 'Запускать при входе в систему', installed: 'Автозапуск доступен в установленной версии.', error: 'Не удалось изменить настройку. Попробуйте ещё раз.' },
-    en: { settings: 'Settings', close: 'Close settings', language: 'Language', widget: 'Panel settings', width: 'Width', visible: 'Show widget', reset: 'Reset position', startup: 'Launch at login', installed: 'Autostart is available in the installed app.', error: 'Could not change this setting. Try again.' },
+    ru: { settings: 'Настройки', close: 'Закрыть настройки', widget: 'Настройки панели', width: 'Ширина', visible: 'Показывать виджет', reset: 'Сбросить положение', error: 'Не удалось изменить настройку. Попробуйте ещё раз.' },
+    en: { settings: 'Settings', close: 'Close settings', widget: 'Panel settings', width: 'Width', visible: 'Show widget', reset: 'Reset position', error: 'Could not change this setting. Try again.' },
   };
   const resetTexts = {
     ru: { label: 'Время сброса', hidden: 'Не отображать', countdown: 'Время до сброса', clock: 'Дата и время', hint: 'Отсчёт: 5ч — часы:минуты; 7д — дни:часы:минуты.' },
     en: { label: 'Widget reset times', hidden: 'Do not show', countdown: 'Time until reset', clock: 'Date and time', hint: 'Countdown: 5h — hours:minutes; 7d — days:hours:minutes.' },
   };
+  const groups = [window.limitsGeneralSettings.describe].map(describe => ({ describe, view: null }));
   let current;
   const make = (tag, parent, className = '') => { const node = document.createElement(tag); node.className = className; parent?.append(node); return node; };
   const button = make('button', null, 'settings-button'); button.id = 'settings-button'; button.type = 'button';
@@ -17,9 +18,6 @@
   const title = make('h2', header); title.id = 'settings-title';
   const close = make('button', header, 'settings-close'); close.type = 'button';
   const content = make('div', dialog, 'settings-content');
-  const languageRow = make('label', content, 'settings-row'); const languageText = make('span', languageRow);
-  languageRow.append(document.getElementById('language'));
-  content.append(document.querySelector('.display-settings'), document.getElementById('display-hint'));
   const widgetSection = make('section', content, 'settings-widget');
   const widgetTitle = make('h3', widgetSection);
   const widthRow = make('label', widgetSection, 'settings-row'); const widthText = make('span', widthRow);
@@ -32,17 +30,28 @@
   const visibleRow = make('label', widgetSection, 'settings-row'); const visibleText = make('span', visibleRow);
   const visible = make('input', visibleRow); visible.type = 'checkbox'; visible.id = 'settings-visible';
   const reset = make('button', widgetSection, 'refresh-button'); reset.type = 'button'; reset.id = 'settings-reset';
-  const startupRow = make('label', content, 'settings-row'); const startupText = make('span', startupRow);
-  const startup = make('input', startupRow); startup.type = 'checkbox'; startup.id = 'settings-startup';
-  const startupHint = make('p', content, 'footnote');
   const extensions = make('div', content); extensions.id = 'settings-extensions';
   for (const section of document.querySelectorAll('[data-setting-section]')) extensions.append(section);
   content.append(document.querySelector('.accounts-section'));
   const error = make('p', content, 'notice warning'); error.setAttribute('role', 'status'); error.hidden = true;
-  function render(next) {
+  async function apply(request) {
+    const next = await request;
+    render(next);
+    if (next.preferenceError) throw new Error(next.preferenceError);
+  }
+  const groupActions = { apply, close: () => dialog.close() };
+  function renderSettings(next, translate) {
     current = next;
     if (dialog.open && document.body.classList.contains('apple-notch') && next.appleNotch?.phase !== 'expanded') dialog.close();
     const t = texts[next.language] || texts.en;
+    for (const group of groups) {
+      const definition = group.describe(next, translate, groupActions);
+      if (!group.view) {
+        group.view = window.limitsSettingsGroup.create(definition);
+        content.insertBefore(group.view.section, widgetSection);
+      }
+      group.view.update(definition, t.error);
+    }
     const resetT = resetTexts[next.language] || resetTexts.en;
     resetDisplayText.textContent = resetT.label;
     for (const option of resetDisplay.options) option.textContent = resetT[option.value];
@@ -52,16 +61,12 @@
     resetDisplayHint.hidden = next.platform !== 'win32' || resetDisplay.value !== 'countdown';
     button.textContent = t.settings; button.title = t.settings;
     title.textContent = t.settings; close.setAttribute('aria-label', t.close);
-    languageText.textContent = t.language; widgetTitle.textContent = t.widget;
+    widgetTitle.textContent = t.widget;
     widthText.textContent = t.width; visibleText.textContent = t.visible; reset.textContent = t.reset;
-    startupText.textContent = next.platform === 'darwin' ? window.limitsAppleI18n.t(next.language, 'startup') : t.startup; startupHint.textContent = t.installed;
     const prefs = next.preferences;
     widgetSection.hidden = !prefs?.widgetSupported || next.displayMode !== 'widget';
     width.value = String(prefs?.width || 280); visible.checked = prefs?.visible !== false;
     width.disabled = visible.disabled = reset.disabled = next.displayMode !== 'widget';
-    startupRow.hidden = !prefs?.startup.supported;
-    startup.checked = Boolean(prefs?.startup.enabled); startup.disabled = !prefs?.startup.available;
-    startupHint.hidden = !prefs?.startup.supported || prefs.startup.available;
   }
   let pendingOpen = false;
   function open() {
@@ -78,19 +83,15 @@
     const bounds = dialog.getBoundingClientRect();
     if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();
   });
-  document.getElementById('display-mode').addEventListener('change', () => dialog.close());
   async function change(key, value) {
     error.hidden = true;
-    try { const next = await window.limits.preference(key, value); render(next); if (next.preferenceError) throw new Error(); }
+    try { await apply(window.limits.preference(key, value)); }
     catch { error.textContent = (texts[current?.language] || texts.en).error; error.hidden = false; }
   }
   width.onchange = () => change('width', Number(width.value));
   resetDisplay.onchange = () => change('widgetResetDisplay', resetDisplay.value);
   visible.onchange = () => change('visible', visible.checked);
-  startup.onchange = () => change('startup', startup.checked);
   reset.onclick = () => change('resetPosition');
   window.limits.onSettingsOpen(open);
-  window.limits.subscribe(render);
-  window.limits.get().then(render);
-  window.limitsSettings = { open, dialog, extensions };
+  window.limitsSettings = { open, dialog, extensions, render: renderSettings };
 })();

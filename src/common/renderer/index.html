@@ -24,15 +24,17 @@
   <script src="../../linux_feature/renderer/settings.js" defer></script>
   <link rel="stylesheet" href="key-connection.css">
   <script src="key-connection.js" defer></script>
+  <link rel="stylesheet" href="../settings/common/style.css">
+  <script src="../settings/common/group.js" defer></script>
+  <script src="../settings/general/group.js" defer></script>
+  <script src="../settings/common/dialog.js" defer></script>
   <script src="renderer.js" defer></script>
-  <link rel="stylesheet" href="settings.css">
-  <script src="settings.js" defer></script>
   <link rel="stylesheet" href="reset-notifications.css">
   <script src="reset-strings.js" defer></script>
   <script src="reset-notifications.js" defer></script>
-  <link rel="stylesheet" href="updates.css">
-  <script src="update-installation.js" defer></script>
-  <script src="updates.js" defer></script>
+  <link rel="stylesheet" href="../settings/updates/style.css">
+  <script src="../settings/updates/installation.js" defer></script>
+  <script src="../settings/updates/group.js" defer></script>
   <script src="../../linux_feature/renderer/panel.js" defer></script>
   <script src="../../apple_feature/renderer/panel.js" defer></script>
   <script src="subscriptions.js" defer></script>
@@ -40,7 +42,7 @@
   <script src="../../windows_feature/renderer/panel.js" defer></script>
 </head>
 <body>
-  <header class="titlebar"><div class="brand">Limits</div><select id="language" class="language" data-i18n-aria="language"><option value="ru">RU</option><option value="en">EN</option></select><span id="connection" class="connection">Подключение</span><button id="hide" class="icon-button" data-i18n-aria="close">×</button></header>
+  <header class="titlebar"><div class="brand">Limits</div><span id="connection" class="connection">Подключение</span><button id="hide" class="icon-button" data-i18n-aria="close">×</button></header>
   <main>
     <div class="account-row"><span id="account">Подключаем аккаунт Codex…</span><span id="plan" class="plan" hidden></span></div>
     <div id="demo" class="notice" data-i18n="demoNotice" hidden></div>
@@ -62,8 +64,6 @@
       <div class="accounts-heading"><span data-i18n="accounts"></span><button id="add-account" class="refresh-button" data-i18n="addAccount"></button></div>
       <div id="accounts"></div>
     </section>
-    <div class="display-settings"><label for="display-mode" data-i18n="displayMode"></label><select id="display-mode"><option value="widget" data-i18n="widgetMode"></option><option value="tray" data-i18n="trayMode"></option><option value="notch" data-i18n="notchMode" hidden disabled></option></select></div>
-    <p id="display-hint" class="footnote"></p>
   </main>
 </body>
 </html>

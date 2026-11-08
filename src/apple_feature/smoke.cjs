@@ -190,7 +190,7 @@ async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, 
   const header = await run(`(() => {
     const shell = document.querySelector('.apple-shell').getBoundingClientRect();
     const meters = [...document.querySelectorAll('.apple-island-meter')].map(el => ({ text: el.textContent, left: el.getBoundingClientRect().left, right: el.getBoundingClientRect().right }));
-    return { mode: document.getElementById('display-mode').value, color: getComputedStyle(document.querySelector('.apple-shell')).backgroundColor, shell: { left: shell.left, right: shell.right, width: shell.width }, meters, settings: document.getElementById('display-hint').textContent };
+    return { mode: document.getElementById('display-mode').value, color: getComputedStyle(document.querySelector('.apple-shell')).backgroundColor, shell: { left: shell.left, right: shell.right, width: shell.width }, meters, settings: document.getElementById('display-mode-description').textContent };
   })()`);
   const center = appleNotch.snapshot().bounds.width / 2;
   const notchWidth = appleNotch.snapshot().notchWidth;

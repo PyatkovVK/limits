@@ -1,0 +1,127 @@
+.settings-button { -webkit-app-region: no-drag; flex: none; border: 1px solid #3c3c3c; border-radius: 6px; background: #171717; color: #eee; font-size: 10px; padding: 5px 8px; }
+#settings-dialog { --ink: #eee; --muted: #aab3c3; --edge: #414650; --surface: #202632; --control: #222a33; --track: #343c44; --appearance-ink: #eee; --appearance-muted: #aab3c3; color: #eee; background: #15171c; border: 1px solid #414650; border-radius: 16px; padding: 0; width: min(400px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow: hidden; box-shadow: 0 16px 60px #0008; }
+#settings-dialog::backdrop { background: #0007; }
+.settings-header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #454545; }
+.settings-header h2 { margin: 0; font-size: 15px; flex: 1; }
+.settings-close { position: relative; display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; appearance: none; border: 1px solid var(--edge); border-radius: 50%; background: var(--control); color: inherit; cursor: pointer; -webkit-app-region: no-drag; }
+.settings-close::before, .settings-close::after { content: ''; position: absolute; width: 14px; height: 2px; border-radius: 1px; background: currentColor; pointer-events: none; }
+.settings-close::before { transform: rotate(45deg); }
+.settings-close::after { transform: rotate(-45deg); }
+#settings-dialog, #settings-dialog * { -webkit-app-region: no-drag; }
+/* Native drag regions underneath a top-layer dialog can intercept its buttons. */
+body:has(dialog[open]) .titlebar { -webkit-app-region: no-drag; }
+.settings-content { padding: 12px 18px 18px; max-height: calc(100vh - 100px); overflow-y: auto; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0; font-size: 12px; }
+.settings-row select { flex: none; width: 120px; }
+#settings-widget-reset-display { width: 156px; }
+.settings-row input[type="checkbox"] { flex: none; width: 16px; height: 16px; margin: 0; accent-color: #7ecfba; }
+.settings-widget { padding: 8px 0 16px; border-bottom: 1px solid #454545; }
+.settings-widget h3 { font-size: 12px; margin: 4px 0; }
+body[data-platform="darwin"][data-theme="light"]:not(.apple-notch) #settings-dialog { --ink: #202431; --muted: #606575; --edge: #c4c8d2; --surface: #ffffff55; --control: #dce0e8; --appearance-ink: #202431; --appearance-muted: #606575; background: #eef1f7; color: #202431; border-color: #c4c8d2; }
+body[data-platform="darwin"].apple-notch #settings-dialog { margin: 0; top: 18px; left: 50%; transform: translateX(-50%); width: calc(var(--full-width) - 24px); max-height: calc(var(--full-height) - 36px); }
+body.apple-notch #settings-dialog::backdrop { background: transparent; }
+body.apple-notch .settings-content { max-height: calc(var(--full-height) - 106px); }
+
+.settings-group {
+  --group-fill: #242527;
+  --group-divider: #353638;
+  --group-hover: #303133;
+  --group-switch-off: #666970;
+  --group-accent: #3275f0;
+  --group-error: #ffaaa8;
+  margin-bottom: 14px;
+}
+body[data-platform="darwin"][data-theme="light"]:not(.apple-notch) .settings-group {
+  --group-fill: #e3e6ee;
+  --group-divider: #cdd2de;
+  --group-hover: #f0f2f7;
+  --group-switch-off: #747780;
+  --group-accent: #245fdd;
+  --group-error: #a32121;
+}
+.settings-group h3 {
+  margin: 0 0 10px 2px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.settings-group-card {
+  container-type: inline-size;
+  padding-inline: 12px;
+  border-radius: 12px;
+  background: var(--group-fill);
+}
+.settings-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding-block: 10px;
+}
+.settings-item + .settings-item { border-top: 1px solid var(--group-divider); }
+.settings-item-copy label { display: block; font-size: 14px; font-weight: 500; }
+.settings-item-description, .settings-item-error { margin: 2px 0 0; font-size: 12px; line-height: 1.4; }
+.settings-item-description { color: var(--muted); }
+.settings-item-error { grid-column: 1 / -1; color: var(--group-error); }
+.settings-item-error:empty { display: none; }
+.settings-item-select { position: relative; justify-self: end; max-width: 100%; }
+.settings-item-select::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: 11px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border: solid var(--muted);
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-75%) rotate(45deg);
+  pointer-events: none;
+}
+#settings-dialog .settings-group .settings-item-select select {
+  width: 100%;
+  height: auto;
+  min-height: 32px;
+  padding: 5px 26px 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: end;
+}
+.settings-item-select option { background: var(--group-fill); color: var(--ink); }
+#settings-dialog .settings-group .settings-item-select select:enabled:hover { background: var(--group-hover); }
+#settings-dialog .settings-group .settings-item-toggle {
+  appearance: none;
+  position: relative;
+  width: 36px;
+  height: 22px;
+  margin: 0;
+  border: 0;
+  border-radius: 99px;
+  background: var(--group-switch-off);
+}
+.settings-item-toggle::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  inset: 3px auto auto 3px;
+  border-radius: 50%;
+  background: #fff;
+}
+#settings-dialog .settings-group .settings-item-toggle:checked { background: var(--group-accent); }
+.settings-item-toggle:checked::after { transform: translateX(14px); }
+.settings-group :is(select, input):enabled { cursor: pointer; }
+.settings-group :is(select, input):disabled { opacity: .55; }
+#settings-dialog .settings-group :is(select, input):focus-visible { outline: 2px solid var(--group-accent); outline-offset: 2px; }
+
+@container (max-width: 275px) {
+  .settings-item:has(.settings-item-select) { grid-template-columns: minmax(0, 1fr); }
+  .settings-item-select { justify-self: start; }
+}
+
+@media (forced-colors: active) {
+  #settings-dialog .settings-group .settings-item-toggle { appearance: auto; }
+  .settings-item-toggle::after { display: none; }
+}

@@ -2,34 +2,30 @@
 (function (root) {
   const strings = {
     ru: {
-      islandMode: 'Панель вокруг чёлки',
-      islandFootnote: 'Лимиты по бокам чёлки. При сжатии панели шрифт уменьшается. Если места для цифр совсем мало, лимиты видны при наведении. Нажмите для подробностей. Уведомления Limits раскрываются здесь, без системных баннеров.',
+      islandMode: 'Вокруг чёлки',
       islandDismiss: 'Закрыть уведомление', islandSource: 'Открыть источник', islandUpdateAction: 'Посмотреть обновление',
       islandUpdate: 'Доступно обновление Limits', islandVersion: 'Новая версия:',
       islandMore: 'Показать остальные показатели',
       browserOpening: 'Сейчас откроется браузер. Завершите вход там — чёлка свернётся автоматически.',
       inWidget: 'В строке меню', useWidget: 'В строку меню',
       startup: 'Запускать при входе в macOS', tooltip: 'Limits · строка меню',
-      trayMode: 'Две полоски в строке меню',
+      trayMode: 'Строка меню',
       accountsHint: 'В строке меню показаны лимиты выбранного аккаунта. Остальные аккаунты — ниже.',
-      trayFootnote: '5h — пятичасовой лимит, 7d — недельный. Рядом с 5h — время до сброса в часах и минутах. Нажмите на полоску, чтобы открыть панель.',
-      notchMode: 'Чёлка · Apple', notchFootnote: 'Наведите на чёлку, чтобы увидеть лимиты. Нажмите, чтобы открыть панель. Esc — свернуть.',
+      notchMode: 'Чёлка',
       notchOpen: 'Открыть лимиты', notchHint: 'Нажмите, чтобы открыть', notchClose: 'Свернуть к чёлке',
       inNotch: 'В чёлке', useNotch: 'В чёлку', notchAccounts: 'Чёлка показывает лимиты выбранного аккаунта. Остальные аккаунты — ниже.'
     },
     en: {
-      islandMode: 'Notch side panel',
-      islandFootnote: 'Limits beside the notch use a smaller font as the panel narrows. If there is too little room for the values, hover to see them. Click for details. Limits notifications expand here instead of system banners.',
+      islandMode: 'Around the notch',
       islandDismiss: 'Dismiss notification', islandSource: 'Open source', islandUpdateAction: 'View update',
       islandUpdate: 'A Limits update is available', islandVersion: 'New version:',
       islandMore: 'Show more metrics',
       browserOpening: 'Your browser will open. Complete sign-in there; the notch will collapse automatically.',
       inWidget: 'In menu bar', useWidget: 'Use in menu bar',
       startup: 'Launch at macOS login', tooltip: 'Limits · menu bar',
-      trayMode: 'Two menu bar indicators',
+      trayMode: 'Menu bar',
       accountsHint: 'The menu bar shows limits for the selected account. Other accounts appear below.',
-      trayFootnote: '5h is the five-hour limit; 7d is the weekly limit. The timer beside 5h shows hours and minutes until reset. Click either bar to open the panel.',
-      notchMode: 'Notch · Apple', notchFootnote: 'Hover over the notch to preview limits. Click to open the panel. Press Esc to collapse.',
+      notchMode: 'Notch',
       notchOpen: 'Open limits', notchHint: 'Click to open', notchClose: 'Collapse to notch',
       inNotch: 'In notch', useNotch: 'Use in notch', notchAccounts: 'The notch shows limits for the selected account. Other accounts appear below.'
     }

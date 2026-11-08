@@ -58,7 +58,7 @@ for (const [platform, UpdateType] of [['linux', LinuxUpdates], ['win32', Windows
 }
 
 const context = vm.createContext({ window: {} });
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/common/renderer/update-installation.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/common/settings/updates/installation.js'), 'utf8'), context);
 const presentation = (platform, language, installation, update = {}) => context.window.limitsInstallation.presentation({ platform, language,
   updates: { status: 'available', release: { version: '1.5.0' }, installation: { enabled: true, version: '1.5.0', ...installation }, ...update } });
 
@@ -73,6 +73,7 @@ for (const platform of ['linux', 'win32', 'darwin']) for (const language of ['ru
       assert.equal(presentation(platform, language, { status }).disabled, true);
     }
     const progress = presentation(platform, language, { status: 'downloading', progress: 42 });
+    assert.equal(progress.status, 'downloading'); assert.equal(progress.progress, 42);
     assert.ok(progress.result.includes('42%'));
     assert.equal(presentation(platform, language, { status: 'ready' }).button, install);
     const error = presentation(platform, language, { status: 'error', error: 'downloadFailed' });

@@ -1,24 +1,16 @@
 'use strict';
 (() => {
   const texts = {
-    ru: { classic: 'Значки · проценты', bar: 'Полоски · 5ч / 7д', widget: 'Виджет на рабочем столе' },
-    en: { classic: 'Icons · percentages', bar: 'Bars · 5h / 7d', widget: 'Desktop widget' },
+    ru: { classic: 'Значки в трее', bar: 'Полоски в трее' },
+    en: { classic: 'Tray icons', bar: 'Tray bars' },
   };
-  function render(next) {
-    if (next.platform !== 'linux') return false;
-    const select = document.getElementById('display-mode');
-    if (!select.dataset.linuxDisplay) {
-      const options = ['classic', 'bar', 'widget'].map(value => {
-        const option = document.createElement('option'); option.value = value; return option;
-      });
-      select.replaceChildren(...options);
-      select.dataset.linuxDisplay = 'true';
-    }
+  function selection(next, modes, translate) {
     const t = texts[next.language] || texts.en;
-    for (const option of select.options) if (option.textContent !== t[option.value]) option.textContent = t[option.value];
-    select.value = next.displayMode === 'widget' ? 'widget' : next.preferences?.linuxTrayStyle || 'classic';
-    select.closest('.display-settings').hidden = false;
-    return true;
+    return {
+      value: next.displayMode === 'widget' ? 'widget' : next.preferences?.linuxTrayStyle || 'classic',
+      options: modes.flatMap(mode => mode === 'tray' ? ['classic', 'bar'] : [mode])
+        .map(value => ({ value, label: t[value] || translate(`${value}Mode`) })),
+    };
   }
-  window.limitsLinuxDisplay = { render };
+  window.limitsLinuxDisplay = { selection };
 })();

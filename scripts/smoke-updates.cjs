@@ -33,6 +33,7 @@ app.whenReady().then(async () => {
     }, 'startup update check');
     const run = source => panel.webContents.executeJavaScript(source);
     await run('Promise.all([window.renderReady, window.limitsUpdatesReady])');
+    assert.equal(await run('document.getElementById("general-settings-title").closest("section").nextElementSibling.classList.contains("updates-section")'), true);
     await run('window.limits.open()');
     const languages = [];
     for (const language of ['ru', 'en']) {
@@ -40,7 +41,9 @@ app.whenReady().then(async () => {
       await run('window.limitsSettings.open()');
       await waitFor(() => run('document.getElementById("settings-dialog").open'), 'settings dialog');
       const labels = await run('({ check: document.getElementById("updates-check").textContent, version: document.getElementById("updates-version").textContent, status: document.getElementById("updates-result").textContent })');
-      assert.equal(labels.check, language === 'ru' ? 'Проверить обновления' : 'Check for updates');
+      assert.equal(labels.check, language === 'ru' ? 'Проверить' : 'Check');
+      assert.equal(labels.status, language === 'ru' ? 'У вас актуальная версия' : 'You have the latest version');
+      assert.equal(await run('document.getElementById("updates-release").hidden && !document.getElementById("updates-demo")'), true);
       assert.ok(labels.version.includes(pkg.version));
       await run('document.querySelector(".updates-section").scrollIntoView({block:"center"})');
       fs.writeFileSync(path.join(root, `settings-${language}.png`), (await panel.webContents.capturePage()).toPNG());
@@ -50,6 +53,7 @@ app.whenReady().then(async () => {
       await pending;
       assert.equal(await run('document.getElementById("updates-dialog").open'), false);
       assert.equal(await run('document.getElementById("updates-open").hidden'), false);
+      assert.equal(await run('document.getElementById("updates-result").textContent'), language === 'ru' ? 'Доступна новая версия' : 'A new version is available');
       await run('window.limitsSettings.dialog.close()');
       await waitFor(() => run('document.getElementById("updates-dialog").open'), 'deferred offer');
       assert.equal(await run('window.limits.get().then(next => next.updates.installation?.status)'), 'idle');
@@ -86,7 +90,8 @@ app.whenReady().then(async () => {
       await run('window.limitsSettings.open(); document.getElementById("updates-open").click()');
       await waitFor(() => run('window.limits.get().then(next => next.updates.installation?.status === "ready")'), 'download after explicit action');
       await waitFor(() => run('!document.getElementById("updates-open").disabled'), 'download action completion');
-      assert.equal(await run('document.getElementById("updates-open").textContent'), language === 'ru' ? 'Установить и перезапустить' : 'Install and restart');
+      assert.equal(await run('document.getElementById("updates-open").textContent'), language === 'ru' ? 'Обновить' : 'Update');
+      assert.equal(await run('document.getElementById("updates-progress").hidden'), true);
       await run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
       fs.writeFileSync(path.join(root, `ready-${language}.png`), (await panel.webContents.capturePage()).toPNG());
       await run('document.getElementById("updates-open").click()');

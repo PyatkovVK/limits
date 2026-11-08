@@ -147,18 +147,11 @@ function render(next) {
   document.body.classList.toggle('reduced-transparency', Boolean(next.reducedTransparency));
   document.body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
   const language = next.language || 'ru';
-  const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsApple?.translate(lang, key, next) : null) || (next.platform === 'win32' ? window.limitsWindowsI18n?.t(lang, key) : null) || window.limitsI18n.t(lang, key, next.platform);
+  const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsApple?.translate(lang, key, next) : null) || (next.platform === 'win32' ? window.limitsWindowsI18n?.t(lang, key) : null) || window.limitsI18n.t(lang, key);
   const t = key => translate(language, key);
   const generic = Boolean(next.displaySchema && next.displaySchema.layout !== 'quota-windows');
   window.limitsI18n.apply(language, document, translate);
-  $('language').value = language;
-  if (!window.limitsLinuxDisplay?.render(next)) {
-    $('display-mode').value = next.displayMode || 'widget';
-    const modes = next.displayModes || ['widget', 'tray'];
-    for (const option of $('display-mode').options) option.hidden = option.disabled = !modes.includes(option.value);
-    $('display-mode').closest('.display-settings').hidden = modes.length < 2;
-  }
-  $('display-hint').textContent = t(next.displayMode === 'notch' ? 'notchFootnote' : next.displayMode === 'tray' ? 'trayFootnote' : 'footnote');
+  window.limitsSettings.render(next, t);
   const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > (next.staleAfterMs || 90000);
   const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets[0];
   document.body.classList.toggle('stale', Boolean(stale));
@@ -225,8 +218,6 @@ $('add-account').addEventListener('click', async () => {
   render(await window.limits.get());
 });
 $('bucket').addEventListener('change', () => window.limits.select($('bucket').value));
-$('language').addEventListener('change', async () => { render(await window.limits.language($('language').value)); });
-$('display-mode').addEventListener('change', async () => { render(await window.limits.displayMode($('display-mode').value)); });
 window.limits.subscribe(render);
 window.renderReady = window.limits.get().then(render);
 setInterval(renderCountdown, 1000);

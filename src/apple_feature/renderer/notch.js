@@ -3,10 +3,6 @@
   const isNotch = new URLSearchParams(location.search).get('apple') === 'notch';
   const body = document.body;
   let islandIndicators, updateSurface;
-  // This option belongs only to the macOS adapter; shared hosts filter it out.
-  const islandOption = document.createElement('option');
-  islandOption.value = 'island'; islandOption.dataset.i18n = 'islandMode'; islandOption.hidden = islandOption.disabled = true;
-  document.getElementById('display-mode').append(islandOption);
   if (isNotch) {
     body.classList.add('apple-notch');
     const content = document.createElement('div');
@@ -65,7 +61,6 @@
     translate(language, key, next) {
       if (['notch', 'island'].includes(next.displayMode)) {
         const keys = { inWidget: 'inNotch', useWidget: 'useNotch', accountsHint: 'notchAccounts', close: 'notchClose' };
-        if (next.displayMode === 'island') keys.footnote = 'islandFootnote';
         key = keys[key] || key;
       }
       return window.limitsAppleI18n.t(language, key);
