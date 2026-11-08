@@ -1,8 +1,8 @@
 'use strict';
 (() => {
   const texts = {
-    ru: { title: 'Главные', language: 'Язык интерфейса', display: 'Где показывать лимиты', startup: 'Запускать при входе', startupDescription: 'Открывать Limits в фоне', unavailable: 'Автозапуск сейчас недоступен' },
-    en: { title: 'General', language: 'Interface language', display: 'Where to show usage limits', startup: 'Launch at login', startupDescription: 'Start Limits in the background', unavailable: 'Launch at login is currently unavailable' },
+    ru: { title: 'Главные', language: 'Язык интерфейса', display: 'Как показывать лимиты', startup: 'Запускать при входе', startupDescription: 'Автоматически запускать Limits после входа в систему', unavailable: 'Автозапуск сейчас недоступен' },
+    en: { title: 'General', language: 'Interface language', display: 'How to show usage limits', startup: 'Launch at login', startupDescription: 'Start Limits automatically after you sign in', unavailable: 'Launch at login is currently unavailable' },
   };
   const languages = [{ value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }];
 

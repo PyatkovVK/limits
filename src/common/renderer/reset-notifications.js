@@ -3,6 +3,7 @@
   const { words, eventText } = window.limitsResetStrings;
   const make = (tag, parent, className = '') => { const node = document.createElement(tag); node.className = className; parent?.append(node); return node; };
   const section = make('section', window.limitsSettings.extensions, 'reset-section');
+  section.hidden = true;
   const title = make('h3', section);
   const row = make('div', section, 'reset-toggle-row');
   const label = make('label', row, 'reset-toggle');
@@ -37,7 +38,9 @@
   function render(next) {
     current = next;
     const value = next.resetNotifications;
-    if (!value) return;
+    // Every installation has a default Codex profile, even before sign-in.
+    section.hidden = !value || !next.profiles?.some(profile => profile.providerId === 'codex' && profile.account?.type === 'chatgpt');
+    if (section.hidden) return;
     const t = text();
     title.textContent = t.title; labelText.textContent = t.enabled;
     enabled.checked = value.enabled; enabled.disabled = saving;

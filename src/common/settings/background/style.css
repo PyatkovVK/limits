@@ -1,0 +1,53 @@
+.background-settings { margin-top: 14px; }
+.background-image-label { font-size: 14px; font-weight: 500; }
+#settings-dialog .background-settings #background-color { justify-self: end; width: 44px; height: 32px; padding: 2px 4px; border: 1px solid var(--edge); border-radius: 8px; background: var(--control); }
+#settings-dialog .background-settings .refresh-button { justify-self: end; min-height: 32px; color: var(--ink); background: var(--control); border-color: var(--edge); }
+.background-settings .settings-item-error { padding: 0 0 10px; }
+.background-preview { padding: 10px 0 12px; border-top: 1px solid var(--group-divider); }
+.background-preview-caption { margin-bottom: 5px; color: var(--muted); font-size: 12px; }
+.background-preview-compact { margin-bottom: 10px; }
+.background-preview-strip, .background-preview-screen { overflow: hidden; border-radius: 8px; background: var(--control); }
+.background-preview-strip { min-height: 24px; }
+.background-preview-meters { display: flex; justify-content: flex-end; gap: 10px; padding: 5px 8px; font-size: 10px; font-variant-numeric: tabular-nums; }
+.background-preview-neck { display: none; }
+.background-preview:is([data-presentation="notch"], [data-presentation="island"]) :is(.background-preview-meters, .background-preview-neck) {
+  display: flex; justify-content: center; width: max-content; min-width: 66px; margin-inline: auto; background: #08080a; color: #f4f5f8;
+}
+.background-preview:is([data-presentation="notch"], [data-presentation="island"]) .background-preview-meters { gap: 18px; border-radius: 0 0 9px 9px; }
+.background-preview[data-presentation="notch"] .background-preview-meters { height: 24px; align-items: center; gap: 4px; }
+.background-preview[data-presentation="notch"] .background-preview-meters span { width: 18px; height: 2px; border-radius: 4px; background: #d2d9e4; font-size: 0; }
+.background-preview:is([data-presentation="notch"], [data-presentation="island"]) .background-preview-neck { position: relative; height: 16px; }
+.background-preview-neck::before, .background-preview-neck::after { content: ''; position: absolute; bottom: 0; width: 8px; height: 8px; }
+.background-preview-neck::before { right: calc(100% - .5px); background: radial-gradient(circle at 0 0, transparent 7px, #08080a 7.5px); }
+.background-preview-neck::after { left: calc(100% - .5px); background: radial-gradient(circle at 100% 0, transparent 7px, #08080a 7.5px); }
+.background-preview-window {
+  display: grid; gap: 7px; width: min(224px, 100%); margin-inline: auto; padding: 9px 11px 10px;
+  border-radius: 8px; background: var(--surface) center / cover no-repeat; color: var(--ink); font-size: 12px;
+}
+.background-preview[data-presentation="window"] .background-preview-window { width: 100%; }
+.background-preview[data-presentation="tray"] .background-preview-window { margin: 6px 6px 6px auto; width: min(224px, calc(100% - 12px)); }
+.background-preview:is([data-presentation="notch"], [data-presentation="island"]) .background-preview-window { border-radius: 7px 7px 10px 10px; }
+.background-preview-window[data-tone="light"] { color: #111318; }
+.background-preview-window[data-tone="dark"] { color: #f4f5f8; }
+.background-preview-line { display: flex; justify-content: space-between; gap: 6px; font-variant-numeric: tabular-nums; }
+.background-preview-title { font-weight: 600; }
+.background-preview-title span:last-child { opacity: .75; font-weight: 400; }
+.background-preview .limit-67 .background-preview-value { color: var(--spark-a); font-weight: 750; }
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.reduced-motion) .background-preview .limit-67 .background-preview-value {
+    animation: sixty-seven-pop 900ms cubic-bezier(.2,.8,.3,1) 2;
+  }
+}
+#settings-dialog .background-preview progress { margin-top: 4px; height: 4px; border-radius: 8px; background: transparent; }
+#settings-dialog .background-preview progress::-webkit-progress-bar { background: color-mix(in srgb, currentColor 20%, transparent); }
+#settings-dialog .background-preview progress::-webkit-progress-value { background: currentColor; }
+#settings-dialog .background-preview .limit-67 progress::-webkit-progress-value { background: linear-gradient(90deg, var(--spark-a), var(--spark-b), var(--spark-c)); }
+#settings-dialog .background-preview-window[data-tone="light"] .limit-67 { --spark-a: #176d62; --spark-b: #7750ad; --spark-c: #a83970; }
+#settings-dialog .background-preview-window[data-tone="dark"] .limit-67 { --spark-a: #9af4e1; --spark-b: #c4adff; --spark-c: #ffb4d9; }
+body[data-platform="darwin"][data-theme="light"]:not(.apple-notch) .background-preview-window[data-tone="default"] .limit-67 {
+  --spark-a: #176d62; --spark-b: #7750ad; --spark-c: #a83970;
+}
+@container (max-width: 275px) {
+  .background-settings .settings-item:has(button) { grid-template-columns: minmax(0, 1fr); }
+  #settings-dialog .background-settings .refresh-button { justify-self: start; }
+}

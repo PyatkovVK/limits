@@ -34,6 +34,15 @@ app.whenReady().then(async () => {
     }, 'ready with reset notifications disabled');
     const run = source => panel.webContents.executeJavaScript(source);
     await run('Promise.all([window.renderReady, window.limitsResetNotificationsReady])');
+    const original = await run('window.limits.get()');
+    const codex = original.profiles.find(profile => profile.providerId === 'codex' && profile.account?.type === 'chatgpt');
+    const deepseek = { ...codex, id: 'deepseek-smoke', providerId: 'deepseek', account: { type: 'api-key' } };
+    const hidden = () => run('document.querySelector(".reset-section").hidden');
+    panel.webContents.send('limits:state', { ...original, ...deepseek, selectedProfileId: deepseek.id, profiles: [deepseek, { ...codex, account: null }] });
+    await waitFor(hidden, 'reset settings hidden with only DeepSeek connected');
+    panel.webContents.send('limits:state', { ...original, ...deepseek, selectedProfileId: deepseek.id, profiles: [deepseek, codex] });
+    await waitFor(async () => !(await hidden()), 'reset settings visible with Codex connected and DeepSeek selected');
+    panel.webContents.send('limits:state', original);
     await run('window.limits.open()');
     const languages = [];
     for (const language of ['ru', 'en']) {

@@ -8,6 +8,8 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 - Group language, display mode and launch at login in a single General settings card on Windows, macOS and Linux. Shorten display labels and use a switch for launch at login.
 - Put update status and actions in an Updates settings card. Show the download action only when a newer version is available, then show progress and an Update button after verification.
+- Show Codex Resets settings when at least one Codex subscription is signed in.
+- Add a live background preview to Settings with the active macOS panel style. Keep the 67% animation and gradient without the text badge.
 
 ### Added
 

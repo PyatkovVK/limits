@@ -339,6 +339,17 @@ async function verifyCompactAppearance({ appleNotch, target, artifactRoot }) {
           await new Promise(resolve => setTimeout(resolve, 600));
           const gap = await run("document.getElementById('settings-dialog').getBoundingClientRect().top - parseFloat(getComputedStyle(document.body).getPropertyValue('--cap-height')) - 12");
           if (gap < 12) throw new Error('Custom-background Settings lost its top inset: ' + gap);
+          const preview = await run(`(() => {
+            const sample = document.getElementById('background-preview-window');
+            const style = getComputedStyle(sample);
+            return { color: style.backgroundColor, image: style.backgroundImage,
+              mode: sample.closest('.background-preview').dataset.presentation,
+              values: [...sample.querySelectorAll('.background-preview-value')].map(node => node.textContent) };
+          })()`);
+          if (preview.mode !== appleNotch.mode || preview.values.join(',') !== '67%,23%' ||
+              (mode === 'image' ? !preview.image.includes('data:image/png') : preview.color !== 'rgb(255, 255, 255)')) {
+            throw new Error('Settings background preview does not match the expanded notch: ' + JSON.stringify(preview));
+          }
           fs.writeFileSync(path.join(artifactRoot, `apple-${appleNotch.mode}-${mode}-settings.png`), (await target.webContents.capturePage()).toPNG());
           await run('window.limitsSettings.dialog.close()');
         }
