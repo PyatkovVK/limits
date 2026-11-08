@@ -38,5 +38,9 @@ const registry = new ControllerRegistry().register('codex', {
   name: 'DeepSeek', authentication: 'api-key',
   create: options => new (require('./deepseek/controller.cjs').DeepSeekController)(options),
   connectionOptions: context => require('./deepseek/credentials.cjs').connectionOptions(context)
+}).register('zai', {
+  name: 'GLM Coding Plan (Z.ai)', authentication: 'api-key',
+  create: options => new (require('./zai/controller.cjs').ZaiController)(options),
+  connectionOptions: context => require('./api-key-credentials.cjs').keyConnectionOptions(context, 'zai')
 });
 module.exports = { ControllerRegistry, registry };

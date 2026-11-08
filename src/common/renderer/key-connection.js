@@ -2,9 +2,11 @@
 (() => {
   const words = {
     ru: { title: 'Подключить', hint: 'Войдите в кабинет {name} в браузере, создайте API-ключ и вставьте его сюда.',
+      codingPlanHint: 'Создайте ключ в разделе Personal Coding Plan в кабинете Z.ai и вставьте его сюда.',
       key: 'API-ключ', browser: 'Открыть кабинет ↗', connect: 'Подключить', checking: 'Проверяем ключ…', cancel: 'Отмена',
       stored: 'Ключ хранится на этом устройстве в зашифрованном виде.' },
     en: { title: 'Connect', hint: 'Sign in to the {name} platform in your browser, create an API key, and paste it here.',
+      codingPlanHint: 'Create a key under Personal Coding Plan in Z.ai and paste it here.',
       key: 'API key', browser: 'Open platform ↗', connect: 'Connect', checking: 'Checking key…', cancel: 'Cancel',
       stored: 'The key is stored encrypted on this device.' }
   };
@@ -33,7 +35,8 @@
     if (connectionId !== pending.id) { connectionId = pending.id; input.value = ''; actionError = null; }
     const t = words[next.language] || words.en;
     title.textContent = `${t.title} ${pending.name}`;
-    hint.textContent = t.hint.replace('{name}', pending.name); label.textContent = t.key; stored.textContent = t.stored;
+    hint.textContent = pending.providerId === 'zai' ? t.codingPlanHint : t.hint.replace('{name}', pending.name);
+    label.textContent = t.key; stored.textContent = t.stored;
     browser.textContent = t.browser; cancel.textContent = t.cancel;
     const checking = pending.phase === 'checking';
     input.disabled = checking; browser.disabled = checking;

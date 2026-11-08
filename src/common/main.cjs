@@ -138,7 +138,7 @@ function update() {
     if (!demo && !smoke && !stale && value !== null && value <= 10) {
       const key = `${state.selectedProfileId}:${bucket.id}:${kind}:${bucket[kind].resetsAt}`;
       if (!notified.has(key)) {
-        const notification = { title: t('lowTitle'), body: `${label}: ${value}%.` };
+        const notification = { title: t('lowTitle').replace('{provider}', state.capabilities?.apiKey ? bucket.name : 'Codex'), body: `${label}: ${value}%.` };
         const delivered = applePresentation?.notify(widgetSettings.displayMode, appleNotch, notification);
         if (delivered === false) continue;
         if (delivered == null && Notification.isSupported()) new Notification(notification).show();
@@ -365,7 +365,7 @@ async function setup() {
   handle('limits:key-submit', async (id, key) => {
     if (!monitor || demo || typeof id !== 'string') return { error: 'loginUnavailable' };
     try { return { profileId: await monitor.submitKeyConnection(id, key) }; }
-    catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
+    catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'quotaRefreshFailed', 'codingPlanRequired', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
   });
   handle('limits:key-cancel', id => { if (typeof id === 'string') monitor?.cancelKeyConnection(id); return {}; });
   handle('limits:key-browser', id => typeof id === 'string' ? openCredentials(id) : { error: 'loginUnavailable' });

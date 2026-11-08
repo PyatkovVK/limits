@@ -21,10 +21,12 @@ function render(next) {
   document.body.classList.toggle('low', !stale && [bucket?.short?.remaining, bucket?.weekly?.remaining].some(n => typeof n === 'number' && n <= 10));
   setText($('widget-account'), next.displayName || next.account?.email || t('connectAccount'));
   $('widget-account').title = next.account?.email || t('login');
-  setText($('widget-plan'), next.demo ? t('demo') : `${generic ? next.providerId || 'Limits' : 'Codex'}${next.account?.planType ? ` · ${next.account.planType}` : ''}`);
+  const provider = generic ? next.providerId || 'Limits' : next.capabilities?.apiKey ? bucket?.name || next.displayName || 'Limits' : 'Codex';
+  setText($('widget-plan'), next.demo ? t('demo') : `${provider}${next.account?.planType ? ` · ${next.account.planType}` : ''}`);
   for (const kind of generic ? [] : ['short', 'weekly']) {
     const quota = bucket?.[kind];
     setText($(`${kind}-value`), quota?.remaining == null ? '—' : String(quota.remaining));
+    $(`${kind}-unit`).hidden = quota?.remaining == null;
     if ($(`${kind}-bar`).value !== (quota?.remaining ?? 0)) $(`${kind}-bar`).value = quota?.remaining ?? 0;
     $(`${kind}-bar`).closest('.quota').classList.toggle('limit-67', quota?.remaining === 67);
   }

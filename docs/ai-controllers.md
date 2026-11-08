@@ -1,6 +1,6 @@
 # AI controllers
 
-Limits registers its AI integrations in `src/common/ai-connects/registry.cjs`. The only production provider is `codex`. Its folder owns App Server transport, runtime discovery, account storage options, authentication, local source tracking, quota normalization, and display metadata.
+Limits registers its AI integrations in `src/common/ai-connects/registry.cjs`. Production providers include `codex`, `deepseek`, and `zai`. The Codex folder owns App Server transport, runtime discovery, account storage options, authentication, local source tracking, quota normalization, and display metadata.
 
 `AiController` defines `connect()`, `checkAccess()`, `refresh()`, `getDisplaySchema()`, and `disconnect()`. Account actions are optional and declared by `state.capabilities`. Disconnect releases resources without signing out. Interactive authentication must be explicit; access checks and quota reads must not invoke a model.
 
@@ -16,7 +16,7 @@ The shared `Monitor` schedules updates and retry backoff, coalesces refreshes, r
 
 Generic layouts use `layout: 'metrics'` and an explicit `primaryMetricId`. `groups` in the schema reference the data group IDs and ordered metric descriptors. Each descriptor has an `id`, localized `label`, and optional `compactLabel`. Details, account summaries, compact widgets/notch, and tray tooltips share the same formatter. Tray icons use a compact numeric readout; their tooltip preserves the complete amount and currency/unit.
 
-Codex uses the `quota-windows` layout with `short` and `weekly` display slots. A shared presentation projection retains the existing window fields and seconds-based countdown interfaces for platform consumers. Service response fields stay in the Codex adapter. The legacy `codex-client.cjs`, `codex-path.cjs`, and `subscriptions.cjs` modules remain compatibility entry points.
+Codex and Z.ai use the `quota-windows` layout with `short` and `weekly` display slots. A shared presentation projection retains the existing window fields and seconds-based countdown interfaces for platform consumers. Service response fields stay in the Codex adapter. The legacy `codex-client.cjs`, `codex-path.cjs`, and `subscriptions.cjs` modules remain compatibility entry points.
 
 Profiles without a `providerId` remain Codex profiles, with their IDs, selected account, names, source references, and credential locations preserved. Unknown provider IDs become unavailable; they never fall back to another provider's credentials. Full isolation from external Codex credential/configuration storage remains a separate task.
 

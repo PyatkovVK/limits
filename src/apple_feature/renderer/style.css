@@ -101,6 +101,7 @@ body[data-platform="darwin"] input:focus-visible { outline: 2px solid var(--shor
 body[data-platform="darwin"] .icon-button { border: 0; background: transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; }
 body[data-platform="darwin"] .connection,
 body[data-platform="darwin"] #short-reset,
+body[data-platform="darwin"] #weekly-reset,
 body[data-platform="darwin"] .profile-status,
 body[data-platform="darwin"] .profile-edit,
 body[data-platform="darwin"] .profile-quota time,

@@ -19,7 +19,7 @@ test('the abstract contract rejects incomplete controllers and production regist
   assert.throws(() => new AiController(), { code: 'controllerContract' });
   class MissingMethods extends AiController {}
   assert.throws(() => new MissingMethods(), { code: 'controllerContract' });
-  assert.deepEqual([...registry.providers.keys()], ['codex', 'deepseek']);
+  assert.deepEqual([...registry.providers.keys()], ['codex', 'deepseek', 'zai']);
 });
 test('a monetary controller uses the shared scheduler and schema, retaining zero, units and stale samples', async t => {
   const controller = new MoneyController({ profileId: 'money-profile' }); const monitor = new Monitor(controller);

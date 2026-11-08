@@ -51,11 +51,11 @@
     <div id="error" class="notice warning" role="status" hidden></div>
     <div id="bucket-row" hidden><label for="bucket" data-i18n="bucket"></label><select id="bucket"></select></div>
     <section class="quota-card short">
-      <div class="quota-meta"><div class="period"><span data-i18n="short"></span> <time id="short-reset">—</time></div><span><span id="short-value" class="remaining-value">—</span>%</span></div>
+      <div class="quota-meta"><div class="period"><span data-i18n="short"></span> <time id="short-reset">—</time></div><span><span id="short-value" class="remaining-value">—</span><span id="short-unit" hidden>%</span></span></div>
       <progress id="short-bar" max="100" value="0" data-i18n-aria="short"></progress>
     </section>
     <section class="quota-card weekly">
-      <div class="quota-meta"><div class="period" data-i18n="weekly"></div><span><span id="weekly-value" class="remaining-value">—</span>%</span></div>
+      <div class="quota-meta"><div class="period"><span data-i18n="weekly"></span> <time id="weekly-reset" hidden></time></div><span><span id="weekly-value" class="remaining-value">—</span><span id="weekly-unit" hidden>%</span></span></div>
       <progress id="weekly-bar" max="100" value="0" data-i18n-aria="weekly"></progress>
     </section>
     <div id="other" class="other" hidden></div>

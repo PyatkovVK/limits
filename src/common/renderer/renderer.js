@@ -133,6 +133,9 @@ function renderCountdown() {
   const timer = state.platform === 'win32' ? window.limitsWindowsResetClock : window.limitsCountdown;
   const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets[0];
   timer.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
+  const weeklyReset = $('weekly-reset');
+  weeklyReset.hidden = !state.capabilities?.apiKey || bucket?.weekly?.resetsAt == null;
+  if (!weeklyReset.hidden) timer.render(weeklyReset, bucket.weekly.resetsAt, state.language || 'ru', Date.now(), { compactDays: true });
   for (const profile of state.profiles || []) {
     const card = profileCards.get(profile.id);
     if (card) { const metrics = card.quotas.querySelector('.profile-metrics'); if (metrics) window.limitsMetricElements.countdowns(metrics, state); }
@@ -183,6 +186,7 @@ function render(next) {
     const value = bucket?.[kind];
     const remaining = value?.remaining ?? null;
     $(`${kind}-value`).textContent = remaining === null ? '—' : String(remaining);
+    $(`${kind}-unit`).hidden = remaining === null;
     $(`${kind}-bar`).value = remaining ?? 0;
     const card = $(`${kind}-bar`).closest('.quota-card');
     card.classList.toggle('low', remaining !== null && remaining <= 10);

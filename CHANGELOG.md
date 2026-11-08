@@ -13,6 +13,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ### Added
 
+- Add GLM Coding Plan to Subscriptions on Windows, macOS and Linux. Connect a personal Z.ai API key and track the 5-hour and weekly allowances, including reset times when available.
 - Add three reset-time display options to the Windows taskbar widget: hidden, countdown, or date and time. Hiding reset times moves the period labels next to the bars; countdowns show hours:minutes for the five-hour limit and days:hours:minutes for the weekly limit. Keep date and time as the default and remember the selected option.
 
 ### Fixed

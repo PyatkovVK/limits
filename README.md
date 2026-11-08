@@ -33,6 +33,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 
 - **Two usage windows:** remaining five-hour and weekly allowances, with reset information.
 - **Multiple accounts:** subscriptions connected in Limits and current local Codex / VS Code profiles, with separate usage data, local names, filters, and a selected account for your compact indicators.
+- **GLM Coding Plan:** track remaining 5-hour and weekly allowances from Z.ai, with reset times when available.
 - **DeepSeek balance:** connect an API key from Settings → Subscriptions, then monitor total, granted and topped-up funds in USD or CNY with independent refreshes.
 - **Automatic refresh:** polling about one minute after each completed request, refresh after waking from sleep, and a manual refresh button.
 - **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
@@ -156,6 +157,8 @@ For Codex, Limits starts a local **Codex App Server** process and reads account 
 
 **DeepSeek:** open Settings → Subscriptions, select DeepSeek, and choose **+ Add**. Limits opens the API-key page in your browser. Sign in, create a key, return to Limits and paste it into **Connect DeepSeek**. The profile is added after a successful balance check; cancellation leaves no empty profile. Keys are encrypted on this device using the OS credential storage through Electron; connecting fails if secure storage is unavailable. Use **Name and connection → Replace API key** to change a key, or disconnect the profile to delete its saved key locally. This does not revoke the key in DeepSeek. Balances refresh about one minute after each completed request, independently from Codex. Different currencies are kept separate. Account-wide token or spending history is not included.
 
+**GLM Coding Plan (Z.ai)** is available in Settings → Subscriptions. Choose **+ Add** and paste a key from **Personal Coding Plan** in the Z.ai console. After validating the key, Limits stores it encrypted on this device and checks the 5-hour and weekly allowances independently about once per minute. The panel shows a reset time when Z.ai reports one. Use **Name and connection → Replace API key** to update the key or disconnect the profile to remove its local copy.
+
 **macOS:** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Add subscriptions using the provider selector and **+ Add**. Extra local `CODEX_HOME` folders are not tracked. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
 
 On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically and reloads sign-in changes on polling; sign in or out in Codex / VS Code. Extra CODEX_HOME folders are not tracked. Add subscriptions using the provider selector and **+ Add**. Codex accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
@@ -174,7 +177,7 @@ Use **Background** to choose the platform default, a solid color, or a local PNG
 
 Translations, documentation improvements, and platform testing are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and issues labeled [good first issue](https://github.com/PyatkovVK/limits/labels/good%20first%20issue). Please follow the [code of conduct](CODE_OF_CONDUCT.md).
 
-For additional AI integrations, see the [shared controller guide](docs/ai-controllers.md). Codex is the only production integration currently registered.
+For additional AI integrations, see the [shared controller guide](docs/ai-controllers.md).
 
 See [CHANGELOG.md](CHANGELOG.md) for release features. Limits uses the [MIT license](LICENSE); bundled dependencies have their own [third-party notices](THIRD-PARTY-NOTICES.md).
 
