@@ -1,0 +1,19 @@
+.reset-section { margin-top: 14px; }
+.reset-section .reset-status { display: block; }
+.reset-section .reset-result { font-size: 14px; font-weight: 500; }
+.reset-section .warning { color: var(--group-error); }
+.reset-section .settings-item-error { padding-bottom: 10px; }
+.reset-source { padding-block: 10px; border-top: 1px solid var(--group-divider); }
+#settings-dialog .reset-source-toggle {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent;
+  color: var(--muted); font-size: 12px;
+}
+.reset-source-toggle::before {
+  content: ''; width: 5px; height: 5px; border: solid currentColor; border-width: 1px 1px 0 0;
+  transform: rotate(45deg);
+}
+.reset-source-toggle[aria-expanded="true"]::before { transform: rotate(135deg); }
+.reset-help { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.reset-help p { margin: 8px 0 0; }
+.reset-source a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.reset-source :is(a, button):focus-visible { outline: 2px solid var(--group-accent); outline-offset: 2px; }

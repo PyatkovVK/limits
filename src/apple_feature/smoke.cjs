@@ -342,11 +342,14 @@ async function verifyCompactAppearance({ appleNotch, target, artifactRoot }) {
           const preview = await run(`(() => {
             const sample = document.getElementById('background-preview-window');
             const style = getComputedStyle(sample);
-            return { color: style.backgroundColor, image: style.backgroundImage,
-              mode: sample.closest('.background-preview').dataset.presentation,
+            const preview = sample.closest('.background-preview');
+            const wings = [...preview.querySelectorAll('.background-preview-wing')].map(wing => wing.textContent);
+            return { color: style.backgroundColor, image: style.backgroundImage, wings,
+              mode: preview.dataset.presentation,
               values: [...sample.querySelectorAll('.background-preview-value')].map(node => node.textContent) };
           })()`);
           if (preview.mode !== appleNotch.mode || preview.values.join(',') !== '67%,23%' ||
+              (preview.mode === 'island' && preview.wings.join(',') !== '67%5h,7d28%') ||
               (mode === 'image' ? !preview.image.includes('data:image/png') : preview.color !== 'rgb(255, 255, 255)')) {
             throw new Error('Settings background preview does not match the expanded notch: ' + JSON.stringify(preview));
           }

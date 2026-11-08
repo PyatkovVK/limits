@@ -50,15 +50,17 @@ app.whenReady().then(async () => {
       await run('window.limitsSettings.open()');
       await waitFor(() => run('window.limitsSettings.dialog.open'), 'settings');
       assert.equal(await run('document.getElementById("reset-notifications-enabled").checked'), false);
+      assert.equal(await run('document.getElementById("reset-notifications-enabled").getAttribute("role")'), 'switch');
+      assert.equal(await run('document.getElementById("reset-notifications-status").hidden'), true);
       await run('document.querySelector(".reset-section").scrollIntoView({block:"start",behavior:"instant"})');
       await pause();
       fs.writeFileSync(path.join(root, `disabled-${language}.png`), (await panel.webContents.capturePage()).toPNG());
       await run('document.getElementById("reset-notifications-info").click()');
-      assert.equal(await run('document.getElementById("reset-notifications-info").getAttribute("aria-expanded")'), 'true');
+      await waitFor(() => run('!document.getElementById("reset-notifications-help").hidden'), 'source disclosure');
       const help = await run('document.getElementById("reset-notifications-help").textContent');
       assert.ok(help.includes('codex-resets.com')); assert.ok(help.includes('@wong2__'));
       assert.ok(help.includes(language === 'ru' ? 'Спасибо' : 'Thanks'));
-      assert.equal(await run('(() => { const info = document.getElementById("reset-notifications-info").getBoundingClientRect(); const label = document.querySelector(".reset-toggle").getBoundingClientRect(); return info.left > label.right; })()'), true);
+      assert.equal(await run('(() => { const toggle = document.getElementById("reset-notifications-enabled").getBoundingClientRect(); const label = document.querySelector(".reset-toggle").getBoundingClientRect(); return toggle.left >= label.right; })()'), true);
       fs.writeFileSync(path.join(root, `help-${language}.png`), (await panel.webContents.capturePage()).toPNG());
       // Escape closes the explanation first, keeping the Settings dialog open.
       await run('document.getElementById("reset-notifications-info").focus()');
@@ -69,28 +71,28 @@ app.whenReady().then(async () => {
       await run('document.getElementById("reset-notifications-enabled").click()');
       await waitFor(() => run('window.limits.get().then(next => next.resetNotifications.enabled && next.resetNotifications.status === "ready")'), 'enabling');
       await waitFor(() => run('document.getElementById("reset-notifications-enabled").checked && !document.getElementById("reset-notifications-enabled").disabled'), 'checkbox state');
+      assert.equal(await run('document.getElementById("reset-notifications-status").hidden'), false);
       assert.equal(await run('document.getElementById("reset-notifications-summary").hidden'), true);
       await run('window.limits.demoReset("scheduled")');
       await waitFor(() => run('!document.getElementById("reset-notifications-summary").hidden'), 'upcoming announcement');
-      const future = await run('document.getElementById("reset-notifications-summary").textContent');
+      const future = await run('document.getElementById("reset-notifications-status").innerText');
       assert.ok(future.includes(language === 'ru' ? 'Объявлен будущий сброс' : 'upcoming Codex reset'));
       await run('document.querySelector(".reset-section").scrollIntoView({block:"center",behavior:"instant"})'); await pause();
       fs.writeFileSync(path.join(root, `scheduled-${language}.png`), (await panel.webContents.capturePage()).toPNG());
-      // Exercise the actual demo control rather than just the preload command.
-      await run('(() => { const select = document.getElementById("reset-notifications-demo"); select.value = "forecast"; select.dispatchEvent(new Event("change")); })()');
+      await run('window.limits.demoReset("forecast")');
       await waitFor(() => run('document.getElementById("reset-notifications-summary").textContent.includes("80%")'), 'forecast');
       const forecast = await run('document.getElementById("reset-notifications-summary").textContent');
       assert.ok(forecast.includes(language === 'ru' ? 'не подтверждённое обещание' : 'not a confirmed commitment'));
       fs.writeFileSync(path.join(root, `forecast-${language}.png`), (await panel.webContents.capturePage()).toPNG());
-      await run('document.querySelector(".reset-source a").click(); document.querySelector(".reset-help a").click()');
+      await run('document.getElementById("reset-notifications-info").click(); for (const link of document.querySelectorAll(".reset-help a")) link.click(); document.getElementById("reset-notifications-info").click()');
       await run('window.limits.demoReset("error")');
       await waitFor(() => run('document.getElementById("reset-notifications-result").classList.contains("warning")'), 'API error');
       assert.equal(await run('document.getElementById("reset-notifications-summary").hidden'), true);
       await run('window.limits.demoReset("quiet")');
       await run('document.getElementById("reset-notifications-enabled").click()');
       await waitFor(() => run('window.limits.get().then(next => !next.resetNotifications.enabled && next.resetNotifications.status === "disabled")'), 'disabling');
-      assert.equal(await run('document.getElementById("reset-notifications-demo").disabled'), true);
-      languages.push({ language, defaultOff: true, future, forecast, helpOnRight: true, credits: true, errors: true });
+      assert.equal(await run('document.getElementById("reset-notifications-status").hidden'), true);
+      languages.push({ language, defaultOff: true, future, forecast, toggleOnRight: true, credits: true, errors: true });
       await run('window.limitsSettings.dialog.close()');
     }
     const outsider = new BrowserWindow({ show: false, webPreferences: { preload: path.resolve(__dirname, '../src/common/preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
@@ -99,7 +101,7 @@ app.whenReady().then(async () => {
       assert.equal(await outsider.webContents.executeJavaScript(`window.limits.${action}.then(() => false, () => true)`), true);
     }
     outsider.destroy();
-    await run('window.limitsSettings.open(); document.getElementById("reset-notifications-info").click()');
+    await run('window.limitsSettings.open(); if (document.getElementById("reset-notifications-help").hidden) document.getElementById("reset-notifications-info").click()');
     const primaryDisplay = screen.getPrimaryDisplay.bind(screen), matchingDisplay = screen.getDisplayMatching.bind(screen);
     const small = display => ({ ...display, workArea: { ...display.workArea, width: 360, height: 340 } });
     screen.getPrimaryDisplay = () => small(primaryDisplay()); screen.getDisplayMatching = bounds => small(matchingDisplay(bounds));
@@ -110,7 +112,7 @@ app.whenReady().then(async () => {
     fs.writeFileSync(path.join(root, 'small-window.png'), (await panel.webContents.capturePage()).toPNG());
     // Shared Settings colors must remain readable over a custom light background.
     await run('window.limits.setAppearance({mode:"color",color:"#ffffff"})');
-    assert.equal(await run('getComputedStyle(document.querySelector(".reset-toggle")).color'), 'rgb(238, 238, 238)');
+    assert.equal(await run('getComputedStyle(document.querySelector(".reset-toggle")).color === getComputedStyle(document.getElementById("settings-dialog")).color'), true);
     assert.equal(fs.existsSync(path.join(profile, 'reset-notifications.json')), false, 'Demo does not persist real notification preferences');
     const report = { platform: process.platform, languages, trustedIpc: true, narrowLayout: true, noNetworkOrNotifications: true, artifacts: root };
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify(report, null, 2));

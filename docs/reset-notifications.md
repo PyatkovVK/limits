@@ -4,11 +4,11 @@ This feature uses [Codex Resets](https://codex-resets.com/), a community service
 
 ## Settings
 
-Open **Settings → Codex resets → Receive reset notifications**. The checkbox is **off by default**. Until explicitly enabled, the integration makes no API requests and schedules no checks. The choice is saved for future launches.
+With a connected Codex subscription, open **Settings → Codex resets → Reset notifications**. The switch is **off by default**. Enabling it starts checks and reveals the status row. The choice is saved for future launches.
 
-The **?** button to the right opens a localized explanation of the integration, its hourly polling, and a final thank-you to the author. A source link remains visible in the section. Both links open through the main process at fixed HTTPS addresses.
+**About the source** expands the integration details and links to the source and its author. Both links open through the main process at fixed HTTPS addresses.
 
-Russian: **«Настройки → Сбросы Codex → Получать уведомления о сбросах»**. Чекбокс **выключен по умолчанию**. Кнопка **?** справа открывает описание интеграции и благодарность автору. Пока опция выключена, запросов к сервису нет.
+После подключения подписки Codex откройте **«Настройки → Сбросы Codex → Уведомления о сбросах»**. Тумблер **выключен по умолчанию**. После включения появляется строка состояния. Раздел **«Об источнике»** раскрывает описание интеграции и ссылки.
 
 ## Behavior
 
@@ -25,11 +25,11 @@ Russian: **«Настройки → Сбросы Codex → Получать ув
 
 `reset-notifications.json` in the existing **Codex Limits** application data directory stores only `enabled` and the identifiers of the last 128 notified announcements/forecasts. Missing, corrupt or non-boolean opt-in values default to disabled. No tokens, account identifiers, email addresses or usage values are sent to this service. As with any HTTPS service, the server receives the connecting IP address and standard request metadata.
 
-Demo and smoke modes simulate results without networking, browser launches, OS notifications or writes to this preference file. Settings includes demo choices for no announcement, an upcoming reset, a forecast and a failed check. Normal application mode does not expose those controls.
+Demo and smoke modes simulate results without networking, browser launches, OS notifications or writes to this preference file.
 
 ## Validation
 
 - `npm test`: default-off behavior, interval/resume scheduling, cancellation and races, schema validation, filtering completed/expired events, anonymous requests, persistence, deduplication, safe links and localized forecast wording.
-- `npm run smoke:resets`: real Electron Settings UI in RU/EN, default-off checkbox, right-hand explanation/credits, announced/forecast/error states, keyboard dismissal, narrow-window scrolling, custom-background contrast and rejection of untrusted IPC. All external effects are simulated; screenshots and `report.json` are saved under `artifacts/resets-smoke-*`.
+- `npm run smoke:resets`: real Electron Settings UI in RU/EN, default-off switch, source disclosure and credits, announced/forecast/error states, keyboard dismissal, narrow-window scrolling, custom-background contrast and rejection of untrusted IPC. All external effects are simulated; screenshots and `report.json` are saved under `artifacts/resets-smoke-*`.
 
 The shared implementation lives in `src/common`; native Windows/macOS/Linux notification delivery still needs acceptance testing in each target desktop environment.

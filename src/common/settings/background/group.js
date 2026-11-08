@@ -56,7 +56,16 @@
   const compactMeters = make(strip, 'div', 'background-preview-meters');
   compactMeters.setAttribute('aria-hidden', 'true');
   const quotas = [{ period: 'fiveHours', value: 67 }, { period: 'sevenDays', value: 23 }];
-  const compactValues = quotas.map(() => make(compactMeters, 'span'));
+  const compactValues = quotas.map(({ value }, index) => {
+    const wing = make(compactMeters, 'span', 'background-preview-wing');
+    const dot = make(wing, 'span', 'background-preview-dot');
+    const percent = make(wing, 'span', 'background-preview-percent');
+    percent.textContent = `${value}%`;
+    const period = make(wing, 'span', 'background-preview-period');
+    period.textContent = index === 0 ? '5h' : '7d';
+    if (index === 1) wing.append(period, percent, dot);
+    return percent;
+  });
   const caption = make(preview, 'div', 'background-preview-caption'); caption.id = 'background-preview-caption';
   const screen = make(preview, 'div', 'background-preview-screen');
   make(screen, 'div', 'background-preview-neck').setAttribute('aria-hidden', 'true');
@@ -77,6 +86,7 @@
 
   let saved, issue, draftImage = false, pending = false;
   let text = strings.ru;
+  let language, presentation;
   function paint(mode, color, image) {
     sample.dataset.tone = mode === 'default' ? 'default' : mode === 'color' && appearance.isLight(color) ? 'light' : 'dark';
     appearance.paint(sample, mode, color, image);
@@ -123,7 +133,11 @@
   });
 
   function localize(next) {
-    text = strings[next.language] || strings.en;
+    const activePresentation = next.platform === 'darwin' ? next.displayMode || 'tray' : 'window';
+    if (language === next.language && presentation === activePresentation) return;
+    language = next.language;
+    presentation = activePresentation;
+    text = strings[language] || strings.en;
     title.textContent = text.title;
     modeLabel.textContent = text.type;
     description.textContent = text.description;
@@ -133,12 +147,13 @@
     hint.textContent = text.hint;
     compactLabel.textContent = text.compact;
     caption.textContent = text.preview;
-    for (const [index, { period, value }] of quotas.entries()) {
+    for (const [index, { period }] of quotas.entries()) {
       periods[index].textContent = text[period];
-      compactValues[index].textContent = `${text[period]} ${value}%`;
     }
-    compact.hidden = next.platform !== 'darwin';
-    preview.dataset.presentation = next.platform === 'darwin' ? next.displayMode : 'window';
+    compact.hidden = presentation === 'window';
+    preview.dataset.presentation = presentation;
+    // The collapsed side panel uses the approved reference values.
+    compactValues[1].textContent = presentation === 'island' ? '28%' : `${quotas[1].value}%`;
     choose.textContent = saved.hasImage ? text.replace : text.choose;
     error.textContent = issue ? text[issue] || text.appearanceFailed : '';
   }

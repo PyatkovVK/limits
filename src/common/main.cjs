@@ -7,7 +7,7 @@ const { Accounts } = require('./accounts.cjs');
 const { AppearanceStore } = require('./appearance.cjs');
 const { Updates } = require('./updates.cjs');
 const { ResetNotifications } = require('./reset-notifications.cjs');
-const { eventText: resetEventText, words: resetWords } = require('./renderer/reset-strings.js');
+const { eventText: resetEventText, words: resetWords } = require('./settings/resets/strings.js');
 let updates;
 let resetNotifications;
 const resetToasts = new Set();

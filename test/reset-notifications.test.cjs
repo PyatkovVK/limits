@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { ResetNotifications, parseStatus, CHECK_INTERVAL, STATUS_API, LINKS } = require('../src/common/reset-notifications.cjs');
-const { words, eventText } = require('../src/common/renderer/reset-strings.js');
+const { words, eventText } = require('../src/common/settings/resets/strings.js');
 const NOW = Date.UTC(2026, 9, 18, 12);
 const iso = delta => new Date(NOW + delta).toISOString();
 const scheduled = (overrides = {}) => ({ id: 'announced-reset', status: 'scheduled', reset_type: 'regular', announced_at: iso(-60000), scheduled_for: iso(3600000), ...overrides });
