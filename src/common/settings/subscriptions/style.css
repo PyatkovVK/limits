@@ -1,0 +1,35 @@
+.profile-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+.profile-toggle::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg);
+}
+.profile-toggle[aria-expanded="true"]::before { transform: translateY(-2px) rotate(45deg); }
+.profile-copy { min-width: 0; overflow-wrap: anywhere; }
+.profile-fold { display: grid; grid-template-rows: 1fr; opacity: 1; }
+.profile-fold[data-collapsed] { grid-template-rows: 0fr; opacity: 0; }
+.profile-fold-content { min-height: 0; overflow: hidden; }
+
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.reduced-motion) .profile-fold {
+    transition: grid-template-rows 160ms ease-out, opacity 160ms ease-out;
+  }
+  body:not(.reduced-motion) .profile-toggle::before { transition: transform 160ms ease-out; }
+}

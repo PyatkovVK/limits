@@ -60,6 +60,25 @@ app.whenReady().then(async () => {
     });
     await run('window.limits.get().then(render); window.limits.open(); window.limitsSettings.open()');
     const workCard = `[data-profile-id="${work}"]`;
+    const foldState = () => run(`(() => {
+      const toggle = document.querySelector('${workCard} .profile-toggle');
+      const fold = document.getElementById(toggle.getAttribute('aria-controls'));
+      return { expanded: toggle.getAttribute('aria-expanded'), inert: fold.inert, height: fold.offsetHeight };
+    })()`);
+    assert.equal((await foldState()).expanded, 'true');
+    const animates = await run(`(() => {
+      const toggle = document.querySelector('${workCard} .profile-toggle');
+      const fold = document.getElementById(toggle.getAttribute('aria-controls'));
+      fold.getBoundingClientRect();
+      toggle.click();
+      fold.getBoundingClientRect();
+      const reduce = document.body.classList.contains('reduced-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+      return fold.getAnimations().some(animation => animation.transitionProperty === 'grid-template-rows') === !reduce;
+    })()`);
+    assert.equal(animates, true);
+    await run('window.limits.get().then(render)');
+    await waitFor(async () => (await foldState()).height === 0, 'collapse subscription limits');
+    assert.deepEqual(await foldState(), { expanded: 'false', inert: true, height: 0 });
     for (const language of ['ru', 'en']) {
       base.language = language; publish();
       await waitFor(() => run(`document.documentElement.lang === '${language}'`), 'language');
@@ -79,6 +98,10 @@ app.whenReady().then(async () => {
     failRemoval = false;
     await run(`document.querySelector('${workCard} .profile-select').click()`);
     await waitFor(() => run(`document.querySelector('${workCard}').classList.contains('selected')`), 'selected work account');
+    assert.deepEqual(await foldState(), { expanded: 'false', inert: true, height: 0 });
+    await run(`document.querySelector('${workCard} .profile-toggle').click()`);
+    await waitFor(async () => (await foldState()).height > 0, 'expand subscription limits');
+    assert.equal((await foldState()).inert, false);
     panel.show(); panel.focus(); panel.webContents.focus(); await pause(100);
     await run(`document.querySelector('${workCard} .profile-remove').focus()`);
     assert.equal(await run(`document.activeElement === document.querySelector('${workCard} .profile-remove')`), true);
@@ -117,10 +140,11 @@ app.whenReady().then(async () => {
     }
     base.reducedMotion = true; publish(); await pause();
     assert.equal(await run('getComputedStyle(document.getElementById("weekly-value")).animationName'), 'none');
+    assert.equal(await run('getComputedStyle(document.querySelector(".profile-fold")).transitionDuration'), '0s');
     if (widget) assert.equal(await widget.webContents.executeJavaScript('getComputedStyle(document.querySelector(".quota.limit-67 .percentage")).animationName'), 'none');
     base.reducedMotion = false;
     quota.short.remaining = null; quota.weekly.remaining = 68; publish(); await pause();
-    assert.equal(await run('document.querySelectorAll(".limit-67").length'), 0);
+    assert.equal(await run('document.querySelectorAll(".quota-card.limit-67, .profile-quota.limit-67").length'), 0);
     if (widget) assert.equal(await widget.webContents.executeJavaScript('document.querySelectorAll(".limit-67").length'), 0);
     // Also cover a 67 in an unselected account and a narrow Settings viewport.
     const extra = accounts.add();
@@ -131,7 +155,7 @@ app.whenReady().then(async () => {
     await run('document.querySelector(".accounts-section").scrollIntoView({block:"end",behavior:"instant"})'); await pause(150);
     assert.equal(await run('(() => { const el = document.querySelector(".settings-content"); return el.scrollWidth <= el.clientWidth + 1; })()'), true);
     fs.writeFileSync(path.join(root, 'accounts-narrow.png'), (await panel.webContents.capturePage()).toPNG());
-    const report = { platform: process.platform, trashInHeading: true, localized: true, keyboardDisconnect: true, pendingAndErrors: true, selectedRemovalPersisted: true, sixtySeven: ['short', 'weekly', 'unselected account', ...(widget ? ['Windows widget'] : [])], pollingStable: true, reducedMotion: true, narrowLayout: true, artifacts: root };
+    const report = { platform: process.platform, accordion: true, trashInHeading: true, localized: true, keyboardDisconnect: true, pendingAndErrors: true, selectedRemovalPersisted: true, sixtySeven: ['short', 'weekly', 'unselected account', ...(widget ? ['Windows widget'] : [])], pollingStable: true, reducedMotion: true, narrowLayout: true, artifacts: root };
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify(report, null, 2));
     console.log('ACCOUNTS_SMOKE_OK', JSON.stringify(report));
     accounts.stop(); widget?.destroy(); app.quit();

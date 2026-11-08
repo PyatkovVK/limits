@@ -1,4 +1,3 @@
-.updates-section { margin-top: 14px; }
 .updates-section .updates-label { font-size: 14px; font-weight: 500; }
 .updates-section .warning { color: var(--group-error); }
 .updates-section .refresh-button { justify-self: end; min-height: 32px; }

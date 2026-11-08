@@ -1,4 +1,3 @@
-.reset-section { margin-top: 14px; }
 .reset-section .reset-status { display: block; }
 .reset-section .reset-result { font-size: 14px; font-weight: 500; }
 .reset-section .warning { color: var(--group-error); }

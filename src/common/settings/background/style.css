@@ -1,4 +1,3 @@
-.background-settings { margin-top: 14px; }
 .background-image-label { font-size: 14px; font-weight: 500; }
 #settings-dialog .background-settings #background-color { justify-self: end; width: 44px; height: 32px; padding: 2px 4px; border: 1px solid var(--edge); border-radius: 8px; background: var(--control); }
 #settings-dialog .background-settings .refresh-button { justify-self: end; min-height: 32px; color: var(--ink); background: var(--control); border-color: var(--edge); }

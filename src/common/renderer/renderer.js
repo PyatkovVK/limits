@@ -45,7 +45,12 @@ function renderAccounts(next, t) {
       const node = element('article', 'profile-card', $('accounts'));
       node.dataset.profileId = profile.id;
       const heading = element('div', 'profile-heading', node);
-      const name = element('span', 'profile-name', heading);
+      const toggle = element('button', 'profile-toggle', heading);
+      toggle.type = 'button';
+      toggle.setAttribute('aria-expanded', 'true');
+      const copy = element('span', 'profile-copy', toggle);
+      const name = element('span', 'profile-name', copy);
+      const status = element('span', 'profile-status', copy);
       const select = element('button', 'profile-select', heading);
       select.onclick = () => accountAction('select', profile.id);
       const remove = element('button', 'profile-remove', heading);
@@ -59,8 +64,16 @@ function renderAccounts(next, t) {
         remove.disabled = true;
         void accountAction('remove', profile.id);
       };
-      const status = element('div', 'profile-status', node);
-      const quotas = element('div', 'profile-quotas', node);
+      const fold = element('div', 'profile-fold', node);
+      fold.id = `profile-limits-${profile.id}`;
+      toggle.setAttribute('aria-controls', fold.id);
+      const clip = element('div', 'profile-fold-content', fold);
+      const quotas = element('div', 'profile-quotas', clip);
+      toggle.onclick = () => {
+        const collapsed = fold.toggleAttribute('data-collapsed');
+        fold.inert = collapsed;
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+      };
       const values = {};
       for (const kind of ['short', 'weekly']) {
         const row = element('div', 'profile-quota', quotas);
@@ -81,7 +94,7 @@ function renderAccounts(next, t) {
       login.onclick = () => beginLogin(profile.id);
       const cancel = element('button', 'profile-action', buttons);
       cancel.onclick = () => accountAction('cancel', profile.id);
-      card = { node, name, select, status, quotas, values, reset, summary, input, save, login, cancel, remove };
+      card = { node, name, select, status, quotas, values, reset, edit, summary, input, save, login, cancel, remove };
       profileCards.set(profile.id, card);
     }
     const selected = profile.id === next.selectedProfileId;
@@ -93,7 +106,6 @@ function renderAccounts(next, t) {
     card.select.textContent = t(selected ? 'inWidget' : 'useWidget');
     card.select.disabled = selected;
     card.status.textContent = [profile.account?.planType, t(profile.error || (profile.accountAvailable === false ? 'insufficientBalance' : profile.status === 'ready' ? profile.stale ? 'stale' : 'online' : profile.status === 'signing-in' ? 'signingIn' : profile.status === 'signed-out' ? 'signedOut' : 'connecting'))].filter(Boolean).join(' · ');
-    card.quotas.hidden = selected;
     const generic = Boolean(profile.displaySchema && profile.displaySchema.layout !== 'quota-windows');
     for (const value of Object.values(card.values)) value.row.hidden = generic;
     let metrics = card.quotas.querySelector('.profile-metrics');
@@ -114,6 +126,7 @@ function renderAccounts(next, t) {
       card.values[kind].value.textContent = quota?.remaining == null ? '—' : `${quota.remaining}%`;
       card.values[kind].row.classList.toggle('limit-67', quota?.remaining === 67);
     }
+    card.edit.hidden = Boolean(profile.readOnly) || profile.providerId === 'deepseek';
     card.summary.textContent = t('editAccount');
     card.input.placeholder = t('nickname'); card.input.setAttribute('aria-label', t('nickname'));
     if (document.activeElement !== card.input) card.input.value = profile.nickname;

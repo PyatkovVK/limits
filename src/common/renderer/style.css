@@ -45,12 +45,12 @@ select { flex: 1; min-width: 0; background-color: #111; color: inherit; border: 
 .profile-card { border: 1px solid #262626; border-radius: 6px; padding: 9px; margin-top: 6px; }
 .profile-card.selected { border-color: #666; }
 .profile-heading { display: flex; align-items: center; gap: 8px; }
-.profile-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.profile-name { display: block; overflow-wrap: anywhere; font-weight: 600; }
 .profile-select, .profile-action { background: #111; color: #ccc; border: 1px solid #333; border-radius: 4px; padding: 4px 6px; font-size: 10px; }
 .profile-remove { display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 5px; border: 1px solid #5555; border-radius: 6px; background: transparent; color: inherit; }
 .profile-remove svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .profile-remove:not(:disabled):hover { color: #ff9baf; background: #df44651a; border-color: #df446580; }
-.profile-status { font-size: 9px; color: #999; margin-top: 4px; }
+.profile-status { display: block; font-size: 9px; color: #999; margin-top: 4px; }
 .profile-quotas { display: grid; grid-template-columns: max-content minmax(24px, 1fr) 34px; column-gap: 8px; row-gap: 6px; margin: 8px 0; }
 .profile-quota { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; font-size: 10px; }
 .profile-quota > span:first-child { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
