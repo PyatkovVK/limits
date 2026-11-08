@@ -183,8 +183,6 @@ See [CHANGELOG.md](CHANGELOG.md) for release features. Limits uses the [MIT lice
 These are ideas for future work, not current features:
 
 - Claude Code integration, subject to availability of a suitable usage data source.
-- DeepSeek integration, subject to availability of a suitable usage data source.
 - Configurable low-usage and approaching-reset notifications.
-- Broader Linux desktop support.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
