@@ -14,6 +14,10 @@ function changePreference(key, value, { app, settings, platform, taskbarSupporte
     return changed;
   }
   if (key === 'linuxTrayStyle' && platform === 'linux') return require('../linux_feature/preferences.cjs').changeTrayStyle(value, { settings, save, update });
+  if (key === 'islandHoverStyle' && platform === 'darwin' && settings.displayMode === 'island' && require('../apple_feature/presentation.cjs').islandHoverStyles.includes(value)) {
+    settings.islandHoverStyle = value;
+    save(); update(); return true;
+  }
   if (key === 'widgetResetDisplay' && platform === 'win32' && ['hidden', 'countdown', 'clock'].includes(value)) settings.widgetResetDisplay = value;
   else if (key === 'width' && taskbarSupported && WIDTHS.includes(value)) settings.width = value;
   else if (key === 'visible' && taskbarSupported && typeof value === 'boolean') settings.visible = value;

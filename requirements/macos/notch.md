@@ -6,7 +6,7 @@
 | MAC-NOTCH-002 | Select a compatible MacBook display even when an external monitor is primary. | The panel remains at the MacBook’s physical notch rather than the center of an external display. |
 | MAC-NOTCH-003 | Provide closed, peek, and expanded states. | States have distinct visible bounds; switching does not recreate the common account or limit monitor. |
 | MAC-NOTCH-004 | Open peek on hover and collapse after the cursor leaves. | Stable hovering for approximately 100 ms shows peek; leaving for approximately 250 ms closes peek without accidentally opening the full panel. |
-| MAC-NOTCH-005 | Open the full panel on click. | Expanded state offers limits, Settings, and account management; the window receives interaction focus. |
+| MAC-NOTCH-005 | Open the full panel on click. | Expanded state previews the selected subscription and offers Settings; account management is available in Settings. The window receives interaction focus. |
 | MAC-NOTCH-006 | Collapse on Escape, loss of focus, or close when no guarded modal operation is active. | The island closes, not the whole application. When Settings is open, Escape applies to Settings first. |
 | MAC-NOTCH-007 | Do not immediately reopen peek after explicit collapse. | After Escape/close, the cursor must leave the region before another hover. |
 | MAC-NOTCH-008 | Accept mouse interaction only in the visible island region. | Transparent host-window areas pass interactions to underlying applications; hit testing matches actual native bounds. |
@@ -18,7 +18,7 @@
 
 ## Notch side panel
 
-The approved reference frames use the same sample quotas, 67% for 5h and 28% for 7d. Insets are measured in logical pixels from the outside edge of the black panel.
+The closed reference frames use the same sample quotas, 67% for 5h and 28% for 7d. Insets are measured in logical pixels from the outside edge of the black panel.
 
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
@@ -27,5 +27,10 @@ The approved reference frames use the same sample quotas, 67% for 5h and 28% for
 | MAC-NOTCH-016 | Fit both quotas on one line per wing in the compact layout. | The left wing reads `67% 5h` and the right wing reads `7d 28%`. Periods and values stay visible as the font shrinks. The decorative dots are hidden and the two outer insets are normally 10 px. [Compact reference](../../docs/screenshots/apple-notch-side-compact.png) |
 | MAC-NOTCH-017 | Stack the quotas in the narrowest layout. | Each period appears above its percentage. The `5h` pair aligns to the left inset and the `7d` pair aligns to the right inset. The outer insets may decrease to 4 px to fit both pairs. When the wings have no usable room, hover reveals the quotas below the notch. [Two-line reference](../../docs/screenshots/apple-notch-side-tight.png) |
 | MAC-NOTCH-018 | Keep the panel steady between meaningful menu-bar changes. | Routine polls read geometry passively and leave the status items in place. Small width variations and missing measurements preserve the last layout. A significant loss of space shrinks the panel promptly. Expansion uses the space confirmed throughout the settling period, even when readings differ. When passive right-side geometry is unavailable, a one-off status-item measurement is allowed at activation, after a stable change in the set of running menu-capable apps, or after switching to a different foreground app while the panel is narrow. |
+| MAC-NOTCH-019 | Keep the existing indicators above the hover preview. | In Around the notch mode, the left and right indicators retain their positions, text, and width. Minimal hover adds thin progress bars below them. Informative hover adds the time until the short limit resets when available. If neither wing fits, hover shows the values below the camera. A click opens the selected subscription's expanded preview. |
+| MAC-NOTCH-020 | Remember the hover style. | Settings → General → On hover offers Minimal and Informative while Around the notch is selected. Minimal is the default for existing installations without a saved choice. Both styles share the same expanded preview and Settings. |
+| MAC-NOTCH-021 | Keep the expanded preview compact and visually connected to the notch. | The five-hour and weekly quotas share a surface and sit side by side with a thin divider. The footer shows the selected account, connection indicator, last update time, and a refresh control. Account connection and switching are available under Settings → Subscriptions. A continuous thin outline follows the rounded notch joins, with a matching outline on Settings. |
 
 The macOS layout check exercises the three frames with simulated menu-bar widths. Deliberate changes to an approved layout require updating its requirement, reference frame and regression check together.
+
+The hover and expanded reference frames use demo data. [Minimal hover](../../docs/screenshots/apple-island-hover-minimal.png), [informative hover](../../docs/screenshots/apple-island-hover-informative.png), [expanded subscription preview](../../docs/screenshots/apple-island-subscription-preview.png).

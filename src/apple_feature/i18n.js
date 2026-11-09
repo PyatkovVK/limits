@@ -3,6 +3,9 @@
   const strings = {
     ru: {
       islandMode: 'Вокруг чёлки',
+      islandHoverStyle: 'При наведении', islandHoverMinimal: 'Минималистичный', islandHoverInformative: 'Информативный',
+      islandHoverMinimalDescription: 'Шкалы под показателями', islandHoverInformativeDescription: 'Шкалы и время до сброса под показателями',
+      islandShortPeriod: '5 часов', islandWeeklyPeriod: '7 дней',
       islandDismiss: 'Закрыть уведомление', islandSource: 'Открыть источник', islandUpdateAction: 'Посмотреть обновление',
       islandUpdate: 'Доступно обновление Limits', islandVersion: 'Новая версия:',
       islandMore: 'Показать остальные показатели',
@@ -17,6 +20,9 @@
     },
     en: {
       islandMode: 'Around the notch',
+      islandHoverStyle: 'On hover', islandHoverMinimal: 'Minimal', islandHoverInformative: 'Informative',
+      islandHoverMinimalDescription: 'Bars below the indicators', islandHoverInformativeDescription: 'Bars and time until reset below the indicators',
+      islandShortPeriod: '5 hours', islandWeeklyPeriod: '7 days',
       islandDismiss: 'Dismiss notification', islandSource: 'Open source', islandUpdateAction: 'View update',
       islandUpdate: 'A Limits update is available', islandVersion: 'New version:',
       islandMore: 'Show more metrics',

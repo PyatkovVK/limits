@@ -80,10 +80,11 @@ function render(next) {
   $('refresh').disabled = next.refreshing || next.demo;
   $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
   $('login').textContent = t(next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
-  $('updated').textContent = next.updatedAt ? `${t('updated')} ${new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('waiting');
+  const updatedTime = next.updatedAt ? new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+  $('updated').textContent = updatedTime ? `${t('updated')} ${updatedTime}` : t('waiting');
   renderSubscriptions(next, t, actionError);
   renderCountdown();
-  window.limitsApple?.render(next);
+  window.limitsApple?.render(next, updatedTime);
 }
 
 $('hide').addEventListener('click', () => window.limits.hide());

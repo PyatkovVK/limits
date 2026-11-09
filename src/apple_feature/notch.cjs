@@ -262,7 +262,7 @@ class AppleNotch {
     if (this.layout) {
       const group = state.groups?.find(group => group.id === state.selectedId) || state.groups?.[0];
       const count = state.displaySchema?.groups?.find(schema => schema.id === group?.id)?.metrics.length || 2;
-      fitMenuBar(this.layout, this.mode, count);
+      fitMenuBar(this.layout, this.mode, count, state.preferences?.islandHoverStyle);
       this.fitContent();
     }
     this.window.webContents.send('limits:state', { ...state, appleNotch: this.snapshot() });

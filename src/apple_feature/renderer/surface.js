@@ -16,11 +16,15 @@
   }
 
   function observeSurface(shell, body) {
+    const outline = shell.querySelector('.apple-surface-outline path');
     function update() {
       const bounds = shell.getBoundingClientRect();
       const style = getComputedStyle(body);
       const path = surfacePath(bounds.width, bounds.height, parseFloat(style.getPropertyValue('--menu-bar-width')), parseFloat(style.getPropertyValue('--cap-height')), parseFloat(getComputedStyle(shell).borderBottomLeftRadius));
-      if (path) shell.style.clipPath = `path("${path}")`;
+      if (path) {
+        shell.style.clipPath = `path("${path}")`;
+        if (outline.getAttribute('d') !== path) outline.setAttribute('d', path);
+      }
     }
     // Track the actual animated size, rather than jumping to the final contour.
     const observer = new ResizeObserver(update);

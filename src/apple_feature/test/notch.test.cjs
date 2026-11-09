@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { chooseDisplay, notchLayout, hitBounds, contains } = require('../geometry.cjs');
+const { chooseDisplay, notchLayout, fitMenuBar, hitBounds, contains } = require('../geometry.cjs');
 const { AppleNotch } = require('../notch.cjs');
 const display = { id: 1, bounds: { x: 0, y: 0, width: 1800, height: 1169 }, workArea: { x: 0, y: 38, width: 1800, height: 1080 } };
 const info = { id: 1, top: 38, notchX: 790, notchWidth: 220 };
@@ -36,6 +36,26 @@ test('the compact notch fills both side margins and keeps them interactive', () 
     assert.equal(contains(hitBounds(layout, 'closed'), { x: 900 + offset, y: info.top / 2 }), true);
   }
   assert.equal(contains(hitBounds(layout, 'closed'), { x: 900 + layout.closedWidth / 2 + 1, y: info.top / 2 }), false);
+});
+test('island hover styles keep the top indicators aligned and only change the height below them', () => {
+  const layout = notchLayout(display, info, 'island');
+  const closed = hitBounds(layout, 'closed');
+  const minimal = hitBounds(layout, 'peek');
+  assert.equal(layout.hoverStyle, 'minimal');
+  assert.equal(minimal.width, closed.width);
+  assert.equal(minimal.x, closed.x);
+  assert.ok(minimal.height > layout.capHeight);
+  fitMenuBar(layout, 'island', 2, 'informative');
+  const informative = hitBounds(layout, 'peek');
+  assert.deepEqual({ ...informative, height: minimal.height }, minimal);
+  assert.ok(informative.height > minimal.height);
+
+  const narrow = notchLayout(display, { ...info, menuBarLeft: info.notchX }, 'island');
+  assert.equal(narrow.indicatorMode, 'hidden');
+  assert.ok(narrow.peekHeight > informative.height);
+  const fallbackHeight = narrow.peekHeight;
+  fitMenuBar(narrow, 'island', 2, 'informative');
+  assert.equal(narrow.peekHeight, fallbackHeight);
 });
 class FakeWindow extends EventEmitter {
   constructor() { super(); this.webContents = new EventEmitter(); this.webContents.send = (_channel, state) => { this.state = state; }; this.webContents.executeJavaScript = async () => {}; }

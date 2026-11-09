@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * @typedef {{ id: string, title: string, description: string, disabled?: boolean }} SettingBase
+ * @typedef {{ id: string, title: string, description: string, disabled?: boolean, hidden?: boolean }} SettingBase
  * @typedef {{ value: string, label: string }} SelectOption
  * @typedef {SettingBase & { kind: 'select', value: string, options: readonly SelectOption[], onChange: (value: string) => Promise<void> }} SelectSetting
  * @typedef {SettingBase & { kind: 'toggle', value: boolean, onChange: (value: boolean) => Promise<void> }} ToggleSetting
@@ -72,6 +72,7 @@
     return (next, message) => {
       current = next;
       failureText = message;
+      row.hidden = Boolean(next.hidden);
       updateText(title, next.title);
       updateText(description, next.description);
       if (next.kind === 'select') {

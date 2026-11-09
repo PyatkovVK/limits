@@ -40,3 +40,17 @@ test('widget settings reject unsupported platforms, unknown keys and invalid wid
   assert.equal(value.saves, 2);
   for (const platform of ['darwin', 'linux']) assert.equal(changePreference('width', 320, context(platform)), false);
 });
+test('only Around the notch accepts and saves the two hover styles', () => {
+  const value = context('darwin');
+  value.save = () => value.saves++;
+  value.settings.displayMode = 'island';
+  for (const style of ['informative', 'minimal']) {
+    assert.equal(changePreference('islandHoverStyle', style, value), true);
+    assert.equal(value.settings.islandHoverStyle, style);
+  }
+  assert.equal(changePreference('islandHoverStyle', 'unknown', value), false);
+  assert.equal(changePreference('islandHoverStyle', 'informative', { ...value, platform: 'linux' }), false);
+  value.settings.displayMode = 'notch';
+  assert.equal(changePreference('islandHoverStyle', 'informative', value), false);
+  assert.equal(value.saves, 2);
+});

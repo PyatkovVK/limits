@@ -32,7 +32,7 @@ function notchLayout(display, info = {}, mode = 'notch') {
   return layout;
 }
 
-function fitMenuBar(layout, mode, metricCount = 2) {
+function fitMenuBar(layout, mode, metricCount = 2, hoverStyle = 'minimal') {
   const island = mode === 'island';
   const preferredWidth = Math.min(layout.fullWidth, island && metricCount > 2 ? layout.fullWidth : layout.notchWidth + (island ? 192 : 24));
   const availableWidth = Math.min(preferredWidth, layout.menuBarWidth);
@@ -48,7 +48,9 @@ function fitMenuBar(layout, mode, metricCount = 2) {
   layout.contentTop = layout.capHeight + 12;
   layout.closedHeight = island ? layout.notchHeight : layout.capHeight + 9;
   layout.peekWidth = island ? layout.closedWidth : Math.min(layout.fullWidth, Math.max(340, layout.closedWidth + 40));
-  layout.peekHeight = layout.contentTop + 116;
+  layout.hoverStyle = hoverStyle;
+  layout.peekHeight = !island || layout.indicatorMode === 'hidden' ? layout.contentTop + 116
+    : layout.capHeight + (hoverStyle === 'informative' ? 37 : 19);
   layout.notificationHeight = Math.min(layout.maxFullHeight, layout.closedHeight + 164);
 }
 

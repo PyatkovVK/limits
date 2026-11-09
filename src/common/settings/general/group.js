@@ -18,6 +18,7 @@
           options: modes.map(value => ({ value, label: translate(`${value}Mode`) })),
         };
     const startup = next.preferences?.startup;
+    const hoverStyle = next.preferences?.islandHoverStyle || 'minimal';
     return {
       id: 'general-settings',
       title: labels.title,
@@ -42,6 +43,19 @@
             await apply(window.limits.displayMode(value));
             close();
           },
+        },
+        {
+          id: 'island-hover-style',
+          kind: 'select',
+          title: translate('islandHoverStyle'),
+          description: translate(hoverStyle === 'minimal' ? 'islandHoverMinimalDescription' : 'islandHoverInformativeDescription'),
+          hidden: next.platform !== 'darwin' || next.displayMode !== 'island',
+          value: hoverStyle,
+          options: [
+            { value: 'minimal', label: translate('islandHoverMinimal') },
+            { value: 'informative', label: translate('islandHoverInformative') },
+          ],
+          onChange: value => apply(window.limits.preference('islandHoverStyle', value)),
         },
         {
           id: 'settings-startup',

@@ -2,6 +2,7 @@
 
 const isNotchMode = mode => ['notch', 'island'].includes(mode);
 const displayModes = available => available ? ['tray', 'notch', 'island'] : ['tray'];
+const islandHoverStyles = ['minimal', 'informative'];
 
 // null leaves delivery to the existing system notification path.
 function notify(mode, notch, message) {
@@ -12,4 +13,4 @@ function offerUpdate(mode, notch, offer, t) {
   notch?.notify({ title: t('islandUpdate'), body: `${t('islandVersion')} ${offer.version}`, action: 'updates' });
   return true;
 }
-module.exports = { isNotchMode, displayModes, notify, offerUpdate };
+module.exports = { isNotchMode, displayModes, islandHoverStyles, notify, offerUpdate };
