@@ -275,14 +275,22 @@ async function verifyCompactMacPanel(target) {
   const report = await target.webContents.executeJavaScript(`(() => {
     const short = document.querySelector('.apple-panel-quotas .short').getBoundingClientRect();
     const weekly = document.querySelector('.apple-panel-quotas .weekly').getBoundingClientRect();
+    const titlebar = document.querySelector('.titlebar').getBoundingClientRect();
+    const island = document.body.classList.contains('apple-island');
+    const buttonSize = island ? 30 : 32;
+    const iconSize = island ? '18px' : '20px';
+    const iconInsets = island ? [56, 26] : [65, 29];
     return {
       quotas: short.width > 0 && weekly.width > 0 && short.top === weekly.top && short.right <= weekly.left,
       footer: Boolean(document.querySelector('footer #account')) && Boolean(document.querySelector('footer #refresh')),
       loginHidden: !document.getElementById('login').getClientRects().length,
-      icons: ['settings-button', 'hide'].every(id => {
+      icons: titlebar.height === (island ? 38 : 40) && ['settings-button', 'hide'].every((id, index) => {
         const button = document.getElementById(id);
+        const bounds = button.getBoundingClientRect();
         const icon = getComputedStyle(button, '::after');
-        return button.offsetWidth === 32 && button.offsetHeight === 32 && icon.width === '20px' && icon.maskImage !== 'none';
+        const rightInset = titlebar.right - bounds.left - bounds.width / 2;
+        return bounds.width === buttonSize && bounds.height === buttonSize && icon.width === iconSize && icon.maskImage !== 'none' &&
+          Math.abs(rightInset - iconInsets[index]) < 0.5;
       }),
     };
   })()`);
@@ -499,6 +507,9 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
           const shell = document.querySelector('.apple-shell').getBoundingClientRect();
           const header = document.querySelector('.apple-island-meters');
           const preview = document.querySelector('.apple-preview');
+          const heading = preview.querySelector('.apple-preview-heading');
+          const [short, weekly] = [...preview.querySelectorAll('.apple-preview-row')].map(row => row.getBoundingClientRect());
+          const [shortBar, weeklyBar] = [...preview.querySelectorAll('.apple-preview-row progress')].map(bar => bar.getBoundingClientRect());
           const meters = [...header.querySelectorAll('.apple-island-meter:not([hidden])')].map((el, index) => {
             const label = el.querySelector('.apple-island-label');
             const value = el.querySelector('.apple-island-value');
@@ -515,6 +526,8 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
           return { left: shell.left, right: shell.right, width: shell.width, bottom: shell.bottom,
             headerHidden: header.hidden, meters,
             previewOverflow: preview.scrollWidth > preview.clientWidth + 1,
+            fallback: heading.getClientRects().length > 0 && short.height > 0 && short.bottom <= weekly.top &&
+              shortBar.width > 0 && shortBar.left === weeklyBar.left && shortBar.width === weeklyBar.width,
             values: ['short','weekly'].map(kind => document.getElementById('apple-' + kind + '-value').textContent) };
         })()`);
         if (report.headerHidden !== (scenario.expected === 'hidden')) throw new Error('Indicators did not adapt to menu space: ' + JSON.stringify(report));
@@ -543,6 +556,9 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
         }
         if (phase === 'peek') {
           if (Math.abs(compact.left - report.left) > 0.5 || Math.abs(compact.right - report.right) > 0.5 || report.previewOverflow || report.values.join(',') !== '72%,46%') throw new Error('Hover preview widened, overflowed or lost values: ' + JSON.stringify({ scenario: scenario.name, compact, hover: report }));
+          if (report.fallback !== (scenario.expected === 'hidden') || (report.fallback && Math.abs(report.bottom - layout.contentTop - 116) > 0.5)) {
+            throw new Error('Hover lost the full fallback when the side indicators do not fit: ' + JSON.stringify({ scenario: scenario.name, report }));
+          }
           checks.push({ scenario: scenario.name, indicatorMode: layout.indicatorMode, compactWidth: compact.width, hoverWidth: report.width, alignedEdges: true });
         }
         if (phase === 'closed' || phase === 'peek') {

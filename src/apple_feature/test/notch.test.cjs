@@ -55,11 +55,11 @@ test('both notch hover styles retain the closed width and fit extra information 
   }
   const narrow = notchLayout(display, { ...info, menuBarLeft: info.notchX }, 'island');
   assert.equal(narrow.indicatorMode, 'hidden');
-  assert.equal(narrow.peekShowsValues, true);
-  const fallbackHeight = narrow.peekHeight;
+  assert.equal(narrow.peekFallback, true);
+  assert.equal(narrow.peekHeight, narrow.contentTop + 116);
   fitMenuBar(narrow, 'island', 2, 'informative');
-  assert.equal(narrow.peekShowsValues, true);
-  assert.ok(narrow.peekHeight > fallbackHeight);
+  assert.equal(narrow.peekFallback, true);
+  assert.equal(narrow.peekHeight, narrow.contentTop + 116);
 });
 class FakeWindow extends EventEmitter {
   constructor() { super(); this.webContents = new EventEmitter(); this.webContents.send = (_channel, state) => { this.state = state; }; this.webContents.executeJavaScript = async () => {}; }

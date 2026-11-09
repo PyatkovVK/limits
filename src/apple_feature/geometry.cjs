@@ -50,8 +50,10 @@ function fitMenuBar(layout, mode, metricCount = 2, hoverStyle = 'minimal') {
   layout.peekWidth = layout.closedWidth;
   layout.hoverStyle = hoverStyle;
   const informative = hoverStyle === 'informative';
-  layout.peekShowsValues = island ? layout.indicatorMode === 'hidden' : informative;
-  layout.peekHeight = layout.capHeight + 19 + (layout.peekShowsValues ? 17 : 0) + (informative ? 18 : 0);
+  layout.peekFallback = island && layout.indicatorMode === 'hidden';
+  layout.peekShowsValues = !island && informative;
+  layout.peekHeight = layout.peekFallback ? layout.contentTop + 116
+    : layout.capHeight + 19 + (layout.peekShowsValues ? 17 : 0) + (informative ? 18 : 0);
   layout.notificationHeight = Math.min(layout.maxFullHeight, layout.closedHeight + 164);
 }
 

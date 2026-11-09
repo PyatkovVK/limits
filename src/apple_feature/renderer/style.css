@@ -164,8 +164,8 @@ body.apple-notch:not([data-notch-phase="expanded"]) .apple-shell { background: #
 body.apple-notch:not([data-notch-phase="expanded"]) {
   --ink: #f4f5f8 !important; --muted: #9b9ca9 !important;
   --appearance-ink: #f4f5f8 !important; --appearance-muted: #9b9ca9 !important;
-  --track: #ffffff26 !important;
 }
+body.apple-notch:not(.apple-island):not([data-notch-phase="expanded"]) { --track: #ffffff26 !important; }
 .apple-cap { background: #000; border-radius: inherit; }
 .apple-trigger { overflow: hidden; }
 .apple-content { clip-path: inset(0 round 0 0 28px 28px); }
@@ -191,8 +191,9 @@ body[data-notch-phase="closed"] .apple-preview { top: auto; bottom: 5px; left: c
 .apple-preview :is(.weekly, .metric-compact-row:nth-child(2)) {
   grid-column: 2; justify-self: end; --preview-progress: var(--weekly);
 }
-.apple-preview .low { --preview-progress: #e75d70; }
-.apple-preview :is(.metric-label, .metric-value, .metric-reset, .metric-empty) { display: none; }
+body.apple-notch:not(.apple-island) .apple-preview .low,
+body[data-peek-fallback] .apple-preview .low { --preview-progress: #e75d70; }
+.apple-preview-heading, .apple-preview :is(.metric-label, .metric-value, .metric-reset, .metric-empty) { display: none; }
 .apple-preview .metric-label > span { display: block; }
 body[data-notch-phase="peek"][data-peek-values] .apple-preview :is(.metric-label, .metric-value),
 body.apple-notch:not(.apple-island)[data-notch-phase="peek"] .apple-preview .metric-compact-row:not(:has(progress:not([hidden]))) :is(.metric-label, .metric-value) { display: block; }
@@ -216,6 +217,36 @@ body[data-notch-phase="peek"][data-notch-hover-style="informative"] .apple-previ
   display: flex; gap: 5px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums;
 }
 body[data-peek-values] .apple-preview-reset { margin-top: 17px; }
+body[data-notch-phase="peek"][data-peek-fallback] .apple-preview {
+  display: block; top: calc(var(--content-top) + 12px); left: 22px; right: 22px; font-size: 11px;
+}
+body[data-peek-fallback].apple-narrow-preview .apple-preview { left: 12px; right: 12px; }
+body[data-peek-fallback] .apple-preview-heading {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; font-weight: 600; letter-spacing: -.2px; margin-bottom: 18px;
+}
+body[data-peek-fallback] #apple-hint { color: var(--muted); font-size: 10px; font-weight: 400; letter-spacing: 0; }
+body[data-peek-fallback].apple-narrow-preview #apple-hint { display: none; }
+body[data-peek-fallback] .apple-preview .apple-preview-row {
+  grid-template-columns: 76px minmax(0, 1fr) 34px;
+  grid-column: auto; justify-self: stretch; align-items: center;
+  gap: 12px; margin-top: 12px; width: auto;
+}
+body[data-peek-fallback].apple-narrow-preview .apple-preview-row {
+  grid-template-columns: 56px minmax(0, 1fr) 30px; gap: 8px;
+}
+body[data-peek-fallback] .apple-preview .metric-label { display: flex; align-items: center; }
+body[data-peek-fallback] .apple-preview-row .metric-label { gap: 9px; }
+body[data-peek-fallback].apple-narrow-preview .apple-preview-row .metric-label { gap: 4px; }
+body[data-peek-fallback] .apple-preview :is(.metric-value, .metric-reset, .metric-empty) { display: block; text-align: right; }
+body[data-peek-fallback] .apple-preview #apple-short-reset { color: var(--muted); font-size: 10px; }
+body[data-platform="darwin"][data-peek-fallback] .apple-preview progress { height: 4px; }
+body[data-platform="darwin"][data-peek-fallback] .apple-preview-row progress { grid-row: auto; grid-column: auto; }
+body[data-peek-fallback] .apple-preview .metric-compact { display: grid; }
+body[data-peek-fallback] .apple-preview .metric-compact-row {
+  width: auto; grid-column: 1; justify-self: stretch; gap: 3px 6px;
+}
+body[data-platform="darwin"][data-peek-fallback] .apple-preview .metric-compact-row progress { grid-row: 2; }
 body[data-platform="darwin"].apple-notch:not([data-background]) .apple-content { background: #17191f; }
 body.apple-notch[data-notch-phase="expanded"]:not([data-background]) .apple-cap {
   height: var(--content-top); background: linear-gradient(#000 var(--cap-height), #17191f);
@@ -233,6 +264,12 @@ body[data-platform="darwin"] .titlebar :is(#settings-button, #hide)::after {
   width: 20px; height: 20px; background: currentColor; pointer-events: none;
   mask: var(--titlebar-icon) center / contain no-repeat;
 }
+/* Keep the approved island header and icon centers with the larger symbols. */
+body[data-platform="darwin"].apple-island .titlebar { height: 38px; padding-right: 11px; gap: 0; }
+body[data-platform="darwin"].apple-island .titlebar :is(#settings-button, #hide) {
+  flex-basis: 30px; width: 30px; height: 30px; color: var(--muted);
+}
+body[data-platform="darwin"].apple-island .titlebar :is(#settings-button, #hide)::after { width: 18px; height: 18px; }
 .titlebar #settings-button {
   --titlebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M10 2h4l.6 3.1 1.8 1 3-.9 2 3.5-2.4 2.1v2.4l2.4 2.1-2 3.5-3-.9-1.8 1-.6 3.1h-4l-.6-3.1-1.8-1-3 .9-2-3.5 2.4-2.1v-2.4L2.6 8.7l2-3.5 3 .9 1.8-1z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
 }

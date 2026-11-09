@@ -15,7 +15,7 @@
       trayMode: 'Строка меню',
       accountsHint: 'В строке меню показаны лимиты выбранного аккаунта. Остальные аккаунты — ниже.',
       notchMode: 'Чёлка',
-      notchOpen: 'Открыть лимиты', notchClose: 'Свернуть к чёлке',
+      notchOpen: 'Открыть лимиты', notchHint: 'Нажмите, чтобы открыть', notchClose: 'Свернуть к чёлке',
       inNotch: 'В чёлке', useNotch: 'В чёлку', notchAccounts: 'Чёлка показывает лимиты выбранного аккаунта. Остальные аккаунты — ниже.'
     },
     en: {
@@ -32,7 +32,7 @@
       trayMode: 'Menu bar',
       accountsHint: 'The menu bar shows limits for the selected account. Other accounts appear below.',
       notchMode: 'Notch',
-      notchOpen: 'Open limits', notchClose: 'Collapse to notch',
+      notchOpen: 'Open limits', notchHint: 'Click to open', notchClose: 'Collapse to notch',
       inNotch: 'In notch', useNotch: 'Use in notch', notchAccounts: 'The notch shows limits for the selected account. Other accounts appear below.'
     }
   };

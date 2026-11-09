@@ -47,6 +47,10 @@
     const resetTime = document.createElement('time'); resetTime.id = 'apple-short-reset'; resetHint.append(resetLabel, resetTime);
     const trigger = document.createElement('button'); trigger.className = 'apple-trigger'; trigger.id = 'apple-trigger';
     const preview = document.createElement('div'); preview.className = 'apple-preview';
+    const heading = document.createElement('div'); heading.className = 'apple-preview-heading';
+    const title = document.createElement('span'); title.textContent = 'Limits';
+    const hint = document.createElement('span'); hint.id = 'apple-hint';
+    heading.append(title, hint); preview.append(heading);
     for (const [kind, label] of [['short', '5h'], ['weekly', '7d']]) {
       const row = document.createElement('div'); row.className = `apple-preview-row ${kind}`;
       const name = document.createElement('span'); name.textContent = label; name.className = 'metric-label';
@@ -104,6 +108,8 @@
       body.dataset.islandIndicators = layout.indicatorMode;
       body.dataset.notchHoverStyle = layout.hoverStyle;
       body.toggleAttribute('data-peek-values', layout.peekShowsValues);
+      body.toggleAttribute('data-peek-fallback', layout.peekFallback);
+      body.classList.toggle('apple-narrow-preview', layout.peekFallback && layout.closedWidth < 340);
       body.dataset.notchPhase = layout.phase;
       body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
       const properties = { 'cap-height': layout.capHeight, 'content-top': layout.contentTop, 'menu-bar-width': layout.capWidth, 'meters-width': layout.metersWidth, 'meters-top': layout.metersTop, 'meters-height': layout.metersHeight, 'full-width': layout.fullWidth, 'full-height': layout.fullHeight, 'closed-width': layout.closedWidth, 'closed-height': layout.closedHeight, 'peek-width': layout.peekWidth, 'peek-height': layout.peekHeight, 'notification-width': layout.notificationWidth, 'notification-height': layout.notificationHeight };
@@ -122,6 +128,7 @@
       loginNotice.textContent = t('browserOpening');
       trigger.setAttribute('aria-label', t('notchOpen'));
       islandIndicators.render(next, layout);
+      document.getElementById('apple-hint').textContent = t('notchHint');
       window.limitsMetricElements?.compact(document.querySelector('.apple-preview'), next);
       const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets[0];
       for (const kind of ['short', 'weekly']) {
@@ -129,7 +136,7 @@
         document.getElementById(`apple-${kind}-value`).textContent = value === null ? '—' : `${value}%`;
         const meter = document.getElementById(`apple-${kind}-bar`);
         meter.value = value ?? 0;
-        meter.hidden = layout.phase === 'peek' && value === null;
+        meter.hidden = !layout.peekFallback && layout.phase === 'peek' && value === null;
         document.querySelector(`.apple-preview-row.${kind}`).classList.toggle('low', value !== null && value <= 10);
       }
       const message = layout.notification;
@@ -147,16 +154,19 @@
     },
     renderCountdown() {
       const next = this.state;
+      const fallback = next.appleNotch.peekFallback;
       const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets[0];
       const hint = document.querySelector('.apple-preview-reset');
+      const time = document.getElementById('apple-short-reset');
+      const parent = fallback ? document.querySelector('.apple-preview-row.short .metric-label') : hint;
+      if (time.parentElement !== parent) parent.append(time);
       const reset = next.displaySchema && next.displaySchema.layout !== 'quota-windows'
         ? window.limitsMetrics.view(next).primary?.resetsAt / 1000
         : bucket?.short?.resetsAt;
-      hint.hidden = !Number.isFinite(reset) || reset <= 0;
-      if (!hint.hidden) {
-        hint.firstElementChild.textContent = window.limitsI18n.t(next.language, 'resetIn');
-        window.limitsCountdown.render(hint.lastElementChild, reset, next.language);
-      }
+      hint.hidden = fallback || !Number.isFinite(reset) || reset <= 0;
+      if (!hint.hidden) hint.firstElementChild.textContent = window.limitsI18n.t(next.language, 'resetIn');
+      if (fallback || !hint.hidden) window.limitsCountdown.render(time, reset, next.language);
+      if (fallback) window.limitsMetricElements?.countdowns(document.querySelector('.apple-preview'));
     }
   };
 })();
