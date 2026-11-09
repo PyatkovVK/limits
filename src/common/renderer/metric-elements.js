@@ -2,10 +2,11 @@
 (function (root) {
   const rowsByContainer = new WeakMap();
   const statesByContainer = new WeakMap();
-  function render(container, state, { compact = false, profile = false } = {}) {
+  function render(container, state, { compact = false, profile = false, primaryOnly = false } = {}) {
     statesByContainer.set(container, state);
     const view = root.limitsMetrics.view(state);
-    const ordered = compact ? [view.primary, ...view.metrics.filter(metric => metric.id !== view.primary?.id)].filter(Boolean).slice(0, 2) : view.metrics;
+    const ordered = primaryOnly ? [view.primary].filter(Boolean)
+      : compact ? [view.primary, ...view.metrics.filter(metric => metric.id !== view.primary?.id)].filter(Boolean).slice(0, 2) : view.metrics;
     let rows = rowsByContainer.get(container);
     if (!rows) { rows = new Map(); rowsByContainer.set(container, rows); }
     for (const [id, row] of rows) if (!ordered.some(metric => metric.id === id)) { row.node.remove(); rows.delete(id); }

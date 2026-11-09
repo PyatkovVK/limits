@@ -12,7 +12,6 @@
 body:has(dialog[open]) .titlebar { -webkit-app-region: no-drag; }
 .settings-content { padding: 12px 18px 18px; max-height: calc(100vh - 100px); overflow-y: auto; }
 .settings-content :is(.settings-group, .settings-widget) { margin: 0 0 14px; padding: 0 0 14px; border-bottom: 1px solid var(--edge); }
-.settings-content .accounts-section { margin-top: 0; padding-top: 0; border-top: 0; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0; font-size: 12px; }
 .settings-row select { flex: none; width: 120px; }
 #settings-widget-reset-display { width: 156px; }

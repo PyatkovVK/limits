@@ -1,8 +1,44 @@
-.profile-toggle {
+.settings-content .accounts-section { margin: 0; padding: 0; border: 0; }
+.accounts-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.accounts-heading h3 { margin: 0 0 0 2px; }
+.subscription-controls { border-bottom: 1px solid var(--group-divider); }
+.subscription-controls label { font-size: 14px; }
+#subscription-providers {
+  position-area: block-end span-inline-start;
+  position-try-fallbacks: flip-block;
+  inset: auto;
+  margin: 4px 0;
+  padding: 5px;
+  border: 1px solid var(--group-divider);
+  border-radius: 9px;
+  background: var(--group-fill);
+  color: var(--ink);
+}
+#subscription-providers:popover-open { display: grid; gap: 2px; }
+#subscription-providers button { text-align: start; }
+#settings-dialog :is(.subscription-button, .profile-select, .profile-action, .profile-remove-icon) {
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid var(--group-divider);
+  border-radius: 8px;
+  background: var(--control);
+  color: inherit;
+  font-size: 12px;
+}
+#settings-dialog :is(.subscription-button, .profile-select, .profile-action):enabled:hover { background: var(--group-hover); }
+.profile-card:not([hidden]) ~ .profile-card:not([hidden]) { border-top: 1px solid var(--group-divider); }
+.profile-heading { display: flex; align-items: center; gap: 8px; padding-block: 10px; }
+#settings-dialog .profile-toggle {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -12,20 +48,65 @@
   font: inherit;
   text-align: start;
 }
+#settings-dialog .profile-toggle:hover:enabled { background: transparent; }
 .profile-toggle::before {
   content: '';
   flex: none;
   width: 6px;
   height: 6px;
-  border: solid currentColor;
+  border: solid var(--muted);
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(-45deg);
 }
 .profile-toggle[aria-expanded="true"]::before { transform: translateY(-2px) rotate(45deg); }
 .profile-copy { min-width: 0; overflow-wrap: anywhere; }
+.profile-name, .profile-status { display: block; }
+.profile-name { font-size: 14px; font-weight: 500; }
+.profile-status { margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+.profile-select { flex: none; min-width: 76px; }
+#settings-dialog .profile-select[aria-pressed="true"] {
+  opacity: 1;
+  border-color: transparent;
+  background: transparent;
+  color: color-mix(in srgb, var(--group-accent) 55%, var(--ink));
+}
+#settings-dialog .profile-remove-icon { display: grid; place-items: center; flex: none; width: 30px; padding: 5px; }
+.profile-remove-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+#settings-dialog .profile-remove:enabled:hover { color: var(--group-error); }
 .profile-fold { display: grid; grid-template-rows: 1fr; opacity: 1; }
 .profile-fold[data-collapsed] { grid-template-rows: 0fr; opacity: 0; }
 .profile-fold-content { min-height: 0; overflow: hidden; }
+.profile-quotas { display: grid; gap: 8px; margin: 0 0 12px 15px; }
+.profile-metrics { display: contents; }
+.profile-quota {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12px;
+}
+.profile-quota > span:first-child { color: var(--muted); }
+.profile-quota > span:last-child { text-align: end; font-variant-numeric: tabular-nums; }
+#settings-dialog .profile-quota progress { grid-area: 2 / 1 / auto / -1; height: 4px; border-radius: 4px; background: var(--track); }
+#settings-dialog .profile-quota progress::-webkit-progress-bar { background: var(--track); }
+#settings-dialog .profile-quota:not(.limit-67) progress::-webkit-progress-value { background: var(--ink); }
+#settings-dialog .profile-card.stale .profile-quota:not(.limit-67) progress::-webkit-progress-value { background: var(--muted); }
+.profile-quota .metric-reset { display: none; }
+.profile-edit { margin: 0 0 12px 15px; color: var(--muted); font-size: 12px; }
+.profile-edit summary { cursor: pointer; }
+.profile-editor, .profile-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+#settings-dialog .profile-editor input {
+  flex: 1 1 110px;
+  min-width: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--group-divider);
+  border-radius: 8px;
+  background: var(--control);
+  color: var(--ink);
+}
+.subscription-empty { margin: 0; padding-block: 10px; color: var(--muted); font-size: 12px; }
+.subscription-error { margin-top: 8px; }
+#settings-dialog .accounts-section :is(button, input, summary):focus-visible { outline: 2px solid var(--group-accent); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: no-preference) {
   body:not(.reduced-motion) .profile-fold {

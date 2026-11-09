@@ -69,13 +69,14 @@ app.whenReady().then(async () => {
     const get = () => run('window.limits.get()');
     const screenshot = async name => { panel.showInactive(); await pause(); fs.writeFileSync(path.join(root, name), (await panel.webContents.capturePage()).toPNG()); };
     await run('window.limitsSettings.open()');
-    assert.deepEqual(await run('[...document.getElementById("account-provider").options].map(option => option.textContent)'), ['ChatGPT (Codex)', 'DeepSeek', 'GLM Coding Plan (Z.ai)']);
-    assert.equal(await run('document.getElementById("account-provider").hidden'), false);
-    assert.equal(await run('document.getElementById("account-provider").parentElement.className'), 'subscription-controls');
-    await run('document.getElementById("account-provider").value = "deepseek"');
+    assert.deepEqual(await run('[...document.querySelectorAll("#subscription-providers button")].map(button => button.textContent)'), ['ChatGPT (Codex)', 'DeepSeek', 'GLM Coding Plan (Z.ai)']);
+    await run('document.querySelector(".accounts-section").scrollIntoView({ block: "end", behavior: "instant" }); document.getElementById("add-account").click()');
     await screenshot('subscriptions.png');
-    const begin = async () => {
+    await run('document.getElementById("subscription-providers").hidePopover()');
+    const begin = async (provider = 'deepseek') => {
       await run('document.getElementById("add-account").click()');
+      assert.equal(await run('document.getElementById("subscription-providers").matches(":popover-open")'), true);
+      await run(`document.querySelector('#subscription-providers [data-provider="${provider}"]').click()`);
       await waitFor(() => run('document.getElementById("key-connection-dialog").open'), 'key dialog');
     };
     const submit = async value => {
@@ -99,6 +100,10 @@ app.whenReady().then(async () => {
     await waitFor(async () => (await get()).profiles.length === 2, 'connect');
     assert.equal(apiCalls - before, 1, 'key validation must not trigger a duplicate balance read');
     const id = (await get()).profiles.find(profile => profile.providerId === 'deepseek').id;
+    const deepseekCard = `[data-profile-id="${id}"]`;
+    await waitFor(() => run(`Boolean(document.querySelector('${deepseekCard} [data-metric-id="total_balance"]'))`), 'subscription balance');
+    assert.deepEqual(await run(`[...document.querySelectorAll('${deepseekCard} [data-metric-id]')].map(row => row.dataset.metricId)`), ['total_balance']);
+    assert.equal(await run(`document.querySelector('${deepseekCard} .profile-edit').hidden`), true);
     const keyFile = path.join(root, 'profile', 'accounts', id, 'deepseek-key.bin');
     assert.equal(safeStorage.decryptString(fs.readFileSync(keyFile)), key);
     assert.equal(fs.readFileSync(keyFile).includes(Buffer.from(key)), false);
@@ -136,8 +141,7 @@ app.whenReady().then(async () => {
     assert.equal(fs.existsSync(keyFile), false); assert.equal((await get()).profiles.length, 1);
     assert.equal((await get()).providerId, 'codex');
     await run('window.limitsSettings.open()');
-    await run('document.getElementById("account-provider").value = "zai"');
-    await begin();
+    await begin('zai');
     assert.equal(opened.at(-1), ZAI_KEY_URL);
     assert.match(await run('document.getElementById("key-connection-hint").textContent'), /Personal Coding Plan/);
     await submit('no-plan');

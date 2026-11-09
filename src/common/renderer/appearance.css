@@ -1,6 +1,6 @@
 body[data-background] { color: var(--appearance-ink); }
-body[data-background] :is(.brand, .plan, #short-reset, #widget-plan, .profile-status, .profile-edit, .profile-quota time, .footnote, .connection, footer, .other) { color: var(--appearance-muted); }
-body[data-background] :is(.quota-card, .profile-card, .notice) { border-color: var(--edge); background-color: var(--surface); }
+body[data-background] :is(.brand, .plan, #short-reset, #widget-plan, .footnote, .connection, footer, .other) { color: var(--appearance-muted); }
+body[data-background] :is(.quota-card, .notice) { border-color: var(--edge); background-color: var(--surface); }
 body[data-background] :is(button, select, input) { color: var(--appearance-ink); border-color: var(--edge); background-color: var(--control); }
 body[data-background] :is(progress, progress::-webkit-progress-bar) { background-color: var(--track); }
 body[data-background="light"] progress:not(#settings-dialog *)::-webkit-progress-value { background-color: #15171c; }

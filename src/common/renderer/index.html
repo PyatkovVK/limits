@@ -28,6 +28,8 @@
   <script src="../settings/common/group.js" defer></script>
   <script src="../settings/general/group.js" defer></script>
   <script src="../settings/common/dialog.js" defer></script>
+  <link rel="stylesheet" href="../settings/subscriptions/style.css">
+  <script src="../settings/subscriptions/group.js" defer></script>
   <script src="renderer.js" defer></script>
   <link rel="stylesheet" href="../settings/background/style.css">
   <script src="../settings/background/group.js" defer></script>
@@ -39,8 +41,6 @@
   <script src="../settings/updates/group.js" defer></script>
   <script src="../../linux_feature/renderer/panel.js" defer></script>
   <script src="../../apple_feature/renderer/panel.js" defer></script>
-  <link rel="stylesheet" href="../settings/subscriptions/style.css">
-  <script src="../settings/subscriptions/group.js" defer></script>
   <script src="../../windows_feature/i18n.js" defer></script>
   <script src="../../windows_feature/renderer/panel.js" defer></script>
 </head>
@@ -63,9 +63,21 @@
     <section id="provider-metrics" class="provider-metrics" hidden></section>
     <div class="actions"><button id="refresh" class="refresh-button" data-i18n="refresh"></button><button id="login" class="login-button"></button></div>
     <footer><span class="live-dot"></span><span id="updated"></span></footer>
-    <section class="accounts-section">
-      <div class="accounts-heading"><span data-i18n="accounts"></span><button id="add-account" class="refresh-button" data-i18n="addAccount"></button></div>
-      <div id="accounts"></div>
+    <section class="accounts-section settings-group" aria-labelledby="subscriptions-title">
+      <div class="accounts-heading">
+        <h3 id="subscriptions-title"></h3>
+        <button id="add-account" class="subscription-button" type="button" popovertarget="subscription-providers" data-i18n="addAccount" disabled></button>
+        <div id="subscription-providers" popover role="group" aria-labelledby="add-account"></div>
+      </div>
+      <div class="settings-group-card">
+        <div class="subscription-controls settings-item">
+          <label id="subscription-source"></label>
+          <span class="settings-item-select"><select></select></span>
+        </div>
+        <div id="accounts"></div>
+        <p class="subscription-empty" hidden></p>
+      </div>
+      <p class="subscription-error settings-item-error" role="status" hidden></p>
     </section>
   </main>
 </body>

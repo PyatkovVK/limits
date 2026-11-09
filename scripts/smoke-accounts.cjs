@@ -82,26 +82,26 @@ app.whenReady().then(async () => {
     for (const language of ['ru', 'en']) {
       base.language = language; publish();
       await waitFor(() => run(`document.documentElement.lang === '${language}'`), 'language');
-      const button = await run(`(() => { const card = document.querySelector('${workCard}'); const button = card.querySelector('.profile-remove'); return { collapsed: !card.querySelector('details').open, inHeading: button.parentElement.classList.contains('profile-heading'), label: button.getAttribute('aria-label'), icon: Boolean(button.querySelector('svg')), enabled: !button.disabled, sharedHidden: document.querySelector('[data-profile-id="default"] .profile-remove').hidden }; })()`);
-      assert.equal(button.collapsed && button.inHeading && button.icon && button.enabled && button.sharedHidden, true);
+      const button = await run(`(() => { const card = document.querySelector('${workCard}'); const button = card.querySelector('.profile-remove'); return { collapsed: !card.querySelector('details').open, managed: Boolean(button.closest('.profile-edit')), label: button.getAttribute('aria-label'), enabled: !button.disabled, sharedHidden: document.querySelector('[data-profile-id="default"] .profile-remove').hidden }; })()`);
+      assert.equal(button.collapsed && button.managed && button.enabled && button.sharedHidden, true);
       assert.equal(button.label, `${language === 'ru' ? 'Отключить' : 'Disconnect'}: Work`);
       await run('document.querySelector(".accounts-section").scrollIntoView({block:"center",behavior:"instant"})');
       await pause(120);
-      fs.writeFileSync(path.join(root, `trash-${language}.png`), (await panel.webContents.capturePage()).toPNG());
+      fs.writeFileSync(path.join(root, `subscriptions-${language}.png`), (await panel.webContents.capturePage()).toPNG());
     }
-    await run(`document.querySelector('${workCard} .profile-remove').click(); document.querySelector('${workCard} .profile-remove').click()`);
-    publish(); await pause(50);
-    assert.equal(await run(`document.querySelector('${workCard} .profile-remove').disabled`), true);
-    await waitFor(() => run('!document.getElementById("error").hidden'), 'disconnect error');
-    assert.equal(removeCalls, 1);
-    assert.equal(await run(`!document.querySelector('${workCard} .profile-remove').disabled && !document.querySelector('${workCard} details').open`), true);
-    failRemoval = false;
     await run(`document.querySelector('${workCard} .profile-select').click()`);
     await waitFor(() => run(`document.querySelector('${workCard}').classList.contains('selected')`), 'selected work account');
     assert.deepEqual(await foldState(), { expanded: 'false', inert: true, height: 0 });
     await run(`document.querySelector('${workCard} .profile-toggle').click()`);
     await waitFor(async () => (await foldState()).height > 0, 'expand subscription limits');
     assert.equal((await foldState()).inert, false);
+    await run(`document.querySelector('${workCard} .profile-edit summary').click(); document.querySelector('${workCard} .profile-remove').click(); document.querySelector('${workCard} .profile-remove').click()`);
+    publish(); await pause(50);
+    assert.equal(await run(`document.querySelector('${workCard} .profile-remove').disabled`), true);
+    await waitFor(() => run('!document.querySelector(".subscription-error").hidden'), 'disconnect error');
+    assert.equal(removeCalls, 1);
+    assert.equal(await run(`!document.querySelector('${workCard} .profile-remove').disabled && document.querySelector('${workCard} details').open`), true);
+    failRemoval = false;
     panel.show(); panel.focus(); panel.webContents.focus(); await pause(100);
     await run(`document.querySelector('${workCard} .profile-remove').focus()`);
     assert.equal(await run(`document.activeElement === document.querySelector('${workCard} .profile-remove')`), true);
@@ -155,7 +155,7 @@ app.whenReady().then(async () => {
     await run('document.querySelector(".accounts-section").scrollIntoView({block:"end",behavior:"instant"})'); await pause(150);
     assert.equal(await run('(() => { const el = document.querySelector(".settings-content"); return el.scrollWidth <= el.clientWidth + 1; })()'), true);
     fs.writeFileSync(path.join(root, 'accounts-narrow.png'), (await panel.webContents.capturePage()).toPNG());
-    const report = { platform: process.platform, accordion: true, trashInHeading: true, localized: true, keyboardDisconnect: true, pendingAndErrors: true, selectedRemovalPersisted: true, sixtySeven: ['short', 'weekly', 'unselected account', ...(widget ? ['Windows widget'] : [])], pollingStable: true, reducedMotion: true, narrowLayout: true, artifacts: root };
+    const report = { platform: process.platform, accordion: true, disconnectInManagement: true, localized: true, keyboardDisconnect: true, pendingAndErrors: true, selectedRemovalPersisted: true, sixtySeven: ['short', 'weekly', 'unselected account', ...(widget ? ['Windows widget'] : [])], pollingStable: true, reducedMotion: true, narrowLayout: true, artifacts: root };
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify(report, null, 2));
     console.log('ACCOUNTS_SMOKE_OK', JSON.stringify(report));
     accounts.stop(); widget?.destroy(); app.quit();

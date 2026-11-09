@@ -58,14 +58,6 @@ body[data-platform="darwin"] #settings-dialog select {
 }
 body[data-platform="darwin"] #settings-dialog button { appearance: none; -webkit-appearance: none; }
 body[data-platform="darwin"] #settings-dialog .refresh-button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 7px 12px; font-size: 11px; line-height: 18px; box-shadow: none; }
-body[data-platform="darwin"] #settings-dialog .accounts-heading,
-body[data-platform="darwin"] #settings-dialog .subscription-controls {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 168px); align-items: center; gap: 8px;
-}
-body[data-platform="darwin"] #settings-dialog .accounts-heading .refresh-button,
-body[data-platform="darwin"] #settings-dialog .subscription-controls > button { width: 100%; min-height: 34px; padding: 7px 10px; font-size: 11px; line-height: 18px; box-shadow: none; }
-body[data-platform="darwin"] #settings-dialog .subscription-controls > .footnote { grid-column: 1 / -1; margin: 0; }
-body[data-platform="darwin"] #settings-dialog .subscription-controls:has(> button[hidden]) select { grid-column: 1 / -1; }
 body[data-platform="darwin"] #settings-dialog .settings-content { flex: 1 1 auto; min-height: 0; max-height: none; overscroll-behavior: contain; }
 body[data-platform="darwin"].apple-notch #settings-dialog[open] {
   --settings-inset: 12px;
@@ -85,10 +77,8 @@ body[data-platform="darwin"] progress { height: 6px; border-radius: 6px; backgro
 body[data-platform="darwin"] progress::-webkit-progress-bar { background: var(--track); border-radius: 6px; }
 body[data-platform="darwin"] progress::-webkit-progress-value { background: var(--short); border-radius: 6px; }
 body[data-platform="darwin"] .weekly progress::-webkit-progress-value,
-body[data-platform="darwin"] .profile-quota:nth-child(2) progress::-webkit-progress-value { background: var(--weekly); }
 body[data-platform="darwin"] .low progress::-webkit-progress-value { background: #e75d70; }
 body[data-platform="darwin"].stale progress::-webkit-progress-value,
-body[data-platform="darwin"] .profile-card.stale progress::-webkit-progress-value { background: #949bab; }
 body[data-platform="darwin"] button,
 body[data-platform="darwin"] select,
 body[data-platform="darwin"] input { color: var(--ink); background: var(--control); border: 1px solid var(--edge); border-radius: 10px; }
@@ -102,20 +92,11 @@ body[data-platform="darwin"] .icon-button { border: 0; background: transparent; 
 body[data-platform="darwin"] .connection,
 body[data-platform="darwin"] #short-reset,
 body[data-platform="darwin"] #weekly-reset,
-body[data-platform="darwin"] .profile-status,
-body[data-platform="darwin"] .profile-edit,
-body[data-platform="darwin"] .profile-quota time,
 body[data-platform="darwin"] footer,
 body[data-platform="darwin"] .footnote,
 body[data-platform="darwin"] .other { color: var(--muted); }
 body[data-platform="darwin"] .live-dot { width: 5px; height: 5px; background: var(--short); }
 body[data-platform="darwin"].stale .live-dot { background: #949bab; }
-body[data-platform="darwin"] .accounts-section { border-top-color: var(--edge); margin-top: 18px; padding-top: 14px; }
-body[data-platform="darwin"] .accounts-heading { font-weight: 600; }
-body[data-platform="darwin"] .profile-card { padding: 12px; margin-top: 8px; border-color: var(--edge); background: var(--surface); border-radius: 13px; }
-body[data-platform="darwin"] .profile-card.selected { border-color: color-mix(in srgb, var(--short), transparent 55%); }
-body[data-platform="darwin"] .profile-select,
-body[data-platform="darwin"] .profile-action { padding: 5px 8px; border-radius: 7px; }
 body[data-platform="darwin"] .notice { color: var(--ink); background: var(--surface); border-color: var(--edge); border-radius: 12px; padding: 10px 12px; line-height: 1.5; }
 body[data-platform="darwin"] .warning,
 body[data-platform="darwin"] .connection.stale { color: #b36c16; }
@@ -185,8 +166,6 @@ body[data-platform="darwin"].apple-notch main { padding-top: 6px; scrollbar-widt
 body[data-platform="darwin"].apple-notch .quota-card { background: linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.018)); }
 body[data-platform="darwin"].apple-notch .quota-card.short { border-top-color: rgba(120,231,202,.22); }
 body[data-platform="darwin"].apple-notch .quota-card.weekly { border-top-color: rgba(182,160,255,.22); }
-body[data-platform="darwin"].apple-notch .accounts-section { margin-top: 14px; padding-top: 12px; }
-body[data-platform="darwin"].apple-notch .profile-card { padding: 10px 12px; }
 body[data-platform="darwin"].apple-notch .footnote { line-height: 1.45; }
 body[data-platform="darwin"].apple-notch.stale :is(.apple-mini, .apple-preview) progress:not(#settings-dialog *)::-webkit-progress-value { background: #949bab; }
 body.apple-notch.reduced-motion .apple-shell,
@@ -196,9 +175,6 @@ body.apple-notch.reduced-motion .apple-mini { transition-duration: 1ms; transiti
 @media (prefers-reduced-motion: reduce) {
   .apple-shell, .apple-content, .apple-preview, .apple-mini { transition-duration: 1ms !important; transition-delay: 0ms !important; }
 }
-body[data-platform="darwin"] .apple-subscription-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-body[data-platform="darwin"] .apple-subscription-controls select { max-width: 100%; min-width: 0; }
-body[data-platform="darwin"] .profile-card[hidden] { display: none; }
 
 /* A continuous black surface with concave joins into the physical notch. */
 .apple-island-meters { display: none; }

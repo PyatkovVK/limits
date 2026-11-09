@@ -2,11 +2,7 @@
 const $ = id => document.getElementById(id);
 let state = null;
 let actionError = null;
-const profileCards = new Map();
 const removingProfiles = new Set();
-const providerSelect = document.createElement('select'); providerSelect.id = 'account-provider'; providerSelect.hidden = true;
-document.querySelector('.accounts-heading').insertBefore(providerSelect, $('add-account'));
-const bucketFor = profile => profile.buckets.find(item => item.id === profile.selectedId) || profile.buckets[0];
 async function accountAction(action, id, value) {
   if (action === 'remove' && removingProfiles.has(id)) return;
   if (action === 'remove') removingProfiles.add(id);
@@ -18,128 +14,6 @@ async function accountAction(action, id, value) {
   finally { if (action === 'remove') removingProfiles.delete(id); }
   render(await window.limits.get());
 }
-function element(tag, className, parent) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (parent) parent.append(node);
-  return node;
-}
-function renderAccounts(next, t) {
-  const providers = next.providers || [];
-  const providerSignature = JSON.stringify(providers);
-  if (providerSelect.dataset.signature !== providerSignature) {
-    const selected = providerSelect.value;
-    providerSelect.replaceChildren(...providers.map(provider => { const option = document.createElement('option'); option.value = provider.id; option.textContent = provider.name; return option; }));
-    if (providers.some(provider => provider.id === selected)) providerSelect.value = selected;
-    providerSelect.dataset.signature = providerSignature;
-  }
-  providerSelect.hidden = providers.length < 2; providerSelect.disabled = next.demo || Boolean(next.loginProfileId || next.keyConnection);
-  providerSelect.setAttribute('aria-label', t('provider'));
-  const profiles = next.profiles || [];
-  for (const [id, card] of profileCards) {
-    if (!profiles.some(profile => profile.id === id)) { card.node.remove(); profileCards.delete(id); }
-  }
-  for (const profile of profiles) {
-    let card = profileCards.get(profile.id);
-    if (!card) {
-      const node = element('article', 'profile-card', $('accounts'));
-      node.dataset.profileId = profile.id;
-      const heading = element('div', 'profile-heading', node);
-      const toggle = element('button', 'profile-toggle', heading);
-      toggle.type = 'button';
-      toggle.setAttribute('aria-expanded', 'true');
-      const copy = element('span', 'profile-copy', toggle);
-      const name = element('span', 'profile-name', copy);
-      const status = element('span', 'profile-status', copy);
-      const select = element('button', 'profile-select', heading);
-      select.onclick = () => accountAction('select', profile.id);
-      const remove = element('button', 'profile-remove', heading);
-      remove.type = 'button';
-      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      icon.setAttribute('viewBox', '0 0 24 24'); icon.setAttribute('aria-hidden', 'true');
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5');
-      icon.append(path); remove.append(icon);
-      remove.onclick = () => {
-        remove.disabled = true;
-        void accountAction('remove', profile.id);
-      };
-      const fold = element('div', 'profile-fold', node);
-      fold.id = `profile-limits-${profile.id}`;
-      toggle.setAttribute('aria-controls', fold.id);
-      const clip = element('div', 'profile-fold-content', fold);
-      const quotas = element('div', 'profile-quotas', clip);
-      toggle.onclick = () => {
-        const collapsed = fold.toggleAttribute('data-collapsed');
-        fold.inert = collapsed;
-        toggle.setAttribute('aria-expanded', String(!collapsed));
-      };
-      const values = {};
-      for (const kind of ['short', 'weekly']) {
-        const row = element('div', 'profile-quota', quotas);
-        const label = element('span', '', row);
-        const bar = element('progress', '', row); bar.max = 100;
-        const value = element('span', 'profile-value', row);
-        values[kind] = { row, label, bar, value };
-      }
-      const reset = element('time', 'profile-reset', values.short.label);
-      const edit = element('details', 'profile-edit', node);
-      const summary = element('summary', '', edit);
-      const editor = element('div', 'profile-editor', edit);
-      const input = element('input', '', editor); input.maxLength = 80;
-      const save = element('button', 'profile-action', editor);
-      save.onclick = () => accountAction('rename', profile.id, input.value);
-      const buttons = element('div', 'profile-buttons', edit);
-      const login = element('button', 'profile-action', buttons);
-      login.onclick = () => beginLogin(profile.id);
-      const cancel = element('button', 'profile-action', buttons);
-      cancel.onclick = () => accountAction('cancel', profile.id);
-      card = { node, name, select, status, quotas, values, reset, edit, summary, input, save, login, cancel, remove };
-      profileCards.set(profile.id, card);
-    }
-    const selected = profile.id === next.selectedProfileId;
-    card.node.classList.toggle('selected', selected);
-    card.node.classList.toggle('stale', profile.stale);
-    card.node.classList.toggle('fresh', !profile.stale);
-    card.name.textContent = profile.displayName || t('connectAccount');
-    card.name.title = profile.account?.email || '';
-    card.select.textContent = t(selected ? 'inWidget' : 'useWidget');
-    card.select.disabled = selected;
-    card.status.textContent = [profile.account?.planType, t(profile.error || (profile.accountAvailable === false ? 'insufficientBalance' : profile.status === 'ready' ? profile.stale ? 'stale' : 'online' : profile.status === 'signing-in' ? 'signingIn' : profile.status === 'signed-out' ? 'signedOut' : 'connecting'))].filter(Boolean).join(' · ');
-    const generic = Boolean(profile.displaySchema && profile.displaySchema.layout !== 'quota-windows');
-    for (const value of Object.values(card.values)) value.row.hidden = generic;
-    let metrics = card.quotas.querySelector('.profile-metrics');
-    if (generic) {
-      if (!metrics) { metrics = element('div', 'profile-metrics', card.quotas); }
-      metrics.hidden = false; window.limitsMetricElements.render(metrics, { ...profile, language: next.language, platform: next.platform }, { profile: true });
-    } else if (metrics) metrics.hidden = true;
-    const bucket = bucketFor(profile);
-    for (const kind of ['short', 'weekly']) {
-      const quota = bucket?.[kind];
-      // Keep the countdown node and input focus intact while refreshing.
-      if (kind === 'short') {
-        if (!card.values[kind].label.firstChild || card.values[kind].label.firstChild.nodeType !== Node.TEXT_NODE) card.values[kind].label.prepend(document.createTextNode(''));
-        card.values[kind].label.firstChild.textContent = t('shortCompact');
-      } else card.values[kind].label.textContent = t('weeklyCompact');
-      card.values[kind].bar.value = quota?.remaining ?? 0;
-      card.values[kind].bar.setAttribute('aria-label', t(kind));
-      card.values[kind].value.textContent = quota?.remaining == null ? '—' : `${quota.remaining}%`;
-      card.values[kind].row.classList.toggle('limit-67', quota?.remaining === 67);
-    }
-    card.edit.hidden = Boolean(profile.readOnly) || profile.providerId === 'deepseek';
-    card.summary.textContent = t('editAccount');
-    card.input.placeholder = t('nickname'); card.input.setAttribute('aria-label', t('nickname'));
-    if (document.activeElement !== card.input) card.input.value = profile.nickname;
-    card.save.textContent = t('save');
-    card.login.textContent = t(profile.capabilities?.apiKey ? profile.account ? 'replaceApiKey' : 'connectApiKey' : profile.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
-    card.login.disabled = (profile.capabilities?.signIn === false && !profile.capabilities?.apiKey) || next.demo || Boolean(next.keyConnection || next.loginProfileId && next.loginProfileId !== profile.id) || profile.refreshing;
-    card.cancel.textContent = t('cancelLogin'); card.cancel.hidden = next.loginProfileId !== profile.id;
-    const removeLabel = `${t('removeAccount')}: ${card.name.textContent}`;
-    card.remove.title = removeLabel; card.remove.setAttribute('aria-label', removeLabel);
-    card.remove.hidden = profile.id === 'default'; card.remove.disabled = next.demo || removingProfiles.has(profile.id);
-  }
-  $('add-account').disabled = next.demo || Boolean(next.loginProfileId || next.keyConnection) || !profiles.length;
-}
 function renderCountdown() {
   if (!state) return;
   window.limitsMetricElements?.countdowns($('provider-metrics'), state);
@@ -149,11 +23,6 @@ function renderCountdown() {
   const weeklyReset = $('weekly-reset');
   weeklyReset.hidden = !state.capabilities?.apiKey || bucket?.weekly?.resetsAt == null;
   if (!weeklyReset.hidden) timer.render(weeklyReset, bucket.weekly.resetsAt, state.language || 'ru', Date.now(), { compactDays: true });
-  for (const profile of state.profiles || []) {
-    const card = profileCards.get(profile.id);
-    if (card) { const metrics = card.quotas.querySelector('.profile-metrics'); if (metrics) window.limitsMetricElements.countdowns(metrics, state); }
-    if (card) timer.render(card.reset, bucketFor(profile)?.short?.resetsAt, state.language || 'ru');
-  }
 }
 
 function render(next) {
@@ -212,7 +81,7 @@ function render(next) {
   $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
   $('login').textContent = t(next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
   $('updated').textContent = next.updatedAt ? `${t('updated')} ${new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}` : t('waiting');
-  renderAccounts(next, t);
+  renderSubscriptions(next, t, actionError);
   renderCountdown();
   window.limitsApple?.render(next);
 }
@@ -227,13 +96,16 @@ async function beginLogin(id) {
   render(await window.limits.get());
 }
 $('login').addEventListener('click', () => beginLogin());
-$('add-account').addEventListener('click', async () => {
-  actionError = null; $('add-account').disabled = true;
-  const result = await window.limits.addAccount(providerSelect.value || undefined);
-  window.limitsKeyConnection?.open(result);
-  actionError = result.connection ? null : result.error || null;
+async function addAccount(providerId) {
+  actionError = null;
+  try {
+    const result = await window.limits.addAccount(providerId);
+    window.limitsKeyConnection?.open(result);
+    actionError = result.connection ? null : result.error || null;
+  } catch { actionError = 'accountActionFailed'; }
   render(await window.limits.get());
-});
+}
+const renderSubscriptions = window.limitsSubscriptions({ accountAction, beginLogin, addAccount, isRemoving: id => removingProfiles.has(id) });
 $('bucket').addEventListener('change', () => window.limits.select($('bucket').value));
 window.limits.subscribe(render);
 window.renderReady = window.limits.get().then(render);
