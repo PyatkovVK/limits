@@ -14,7 +14,9 @@ function changePreference(key, value, { app, settings, platform, taskbarSupporte
     return changed;
   }
   if (key === 'linuxTrayStyle' && platform === 'linux') return require('../linux_feature/preferences.cjs').changeTrayStyle(value, { settings, save, update });
-  if (key === 'islandHoverStyle' && platform === 'darwin' && settings.displayMode === 'island' && require('../apple_feature/presentation.cjs').islandHoverStyles.includes(value)) {
+  if (key === 'islandHoverStyle' && platform === 'darwin') {
+    const { isNotchMode, islandHoverStyles } = require('../apple_feature/presentation.cjs');
+    if (!isNotchMode(settings.displayMode) || !islandHoverStyles.includes(value)) return false;
     settings.islandHoverStyle = value;
     save(); update(); return true;
   }

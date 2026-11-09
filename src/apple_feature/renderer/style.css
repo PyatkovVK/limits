@@ -35,9 +35,9 @@ body[data-platform="darwin"][data-theme="dark"] {
   background: radial-gradient(ellipse at 0 0, rgba(157,195,224,.14), transparent 65%), linear-gradient(145deg, rgba(23,30,43,.32), rgba(33,28,48,.38));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(255,255,255,.04);
 }
-body[data-platform="darwin"] .titlebar { height: 48px; flex-shrink: 0; padding: 0 20px; gap: 10px; border-bottom: 1px solid var(--edge); }
-body[data-platform="darwin"] .brand { color: var(--ink); font-size: 14px; font-weight: 650; letter-spacing: -.3px; }
-body[data-platform="darwin"] main { flex: 1; min-height: 0; padding: 18px 20px; max-height: none; }
+body[data-platform="darwin"] .titlebar { height: 40px; flex-shrink: 0; padding: 0 13px; gap: 4px; border-bottom: 0; }
+body[data-platform="darwin"] .brand { color: var(--ink); font-size: 16px; font-weight: 650; letter-spacing: -.5px; }
+body[data-platform="darwin"] main { flex: 1; min-height: 0; padding: 0 12px 7px; max-height: none; scrollbar-width: thin; }
 /* Intrinsic wrappers stay measurable when the viewport shrinks or scrolls. */
 .mac-panel-content, .mac-settings-content { display: flow-root; }
 body[data-platform="darwin"] #settings-dialog { --settings-inset: 14px; box-sizing: border-box; }
@@ -135,23 +135,6 @@ body[data-platform="darwin"].apple-notch .apple-trigger:hover {
   border: 0; border-radius: inherit; background: transparent; color: var(--ink);
   -webkit-app-region: no-drag;
 }
-.apple-mini { display: flex; gap: 5px; position: absolute; width: 100px; bottom: 5px; left: 50%; transform: translateX(-50%); transition: opacity 150ms; }
-body[data-platform="darwin"].apple-notch .apple-mini progress { height: 2px; }
-/* The notch chrome keeps its colors independently of the details background. */
-body[data-platform="darwin"].apple-notch :is(.apple-mini, .apple-preview) progress:not(#settings-dialog *)::-webkit-progress-value { background: var(--short); }
-body[data-platform="darwin"].apple-notch :is(.apple-mini-weekly, .apple-preview-row.weekly progress):not(#settings-dialog *)::-webkit-progress-value { background: var(--weekly); }
-body[data-platform="darwin"].apple-notch .apple-preview-row.low progress:not(#settings-dialog *)::-webkit-progress-value { background: #e75d70; }
-.apple-preview { position: absolute; top: calc(var(--content-top) + 12px); left: 22px; right: 22px; opacity: 0; transform: translateY(-8px); transition: opacity 160ms, transform 300ms cubic-bezier(.16,1,.3,1); }
-.apple-preview-heading { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; letter-spacing: -.2px; margin-bottom: 18px; }
-#apple-hint { font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
-.apple-preview-row { display: grid; grid-template-columns: 76px 1fr 34px; align-items: center; gap: 12px; margin-top: 12px; text-align: left; font-variant-numeric: tabular-nums; font-size: 11px; }
-.apple-period { display: flex; align-items: center; gap: 9px; }
-#apple-short-reset { color: var(--muted); font-size: 10px; }
-.apple-preview-row > span:last-child { text-align: right; color: var(--ink); }
-body[data-platform="darwin"].apple-notch .apple-preview progress { height: 4px; }
-body[data-notch-phase="peek"] .apple-preview { opacity: 1; transform: translateY(0); transition-delay: 80ms; }
-body[data-notch-phase="peek"] .apple-mini,
-body[data-notch-phase="expanded"] .apple-mini { opacity: 0; }
 body[data-notch-phase="expanded"] .apple-trigger { pointer-events: none; }
 .apple-content {
   position: absolute; top: var(--content-top); left: 50%; width: var(--full-width); height: calc(var(--full-height) - var(--content-top));
@@ -160,20 +143,15 @@ body[data-notch-phase="expanded"] .apple-trigger { pointer-events: none; }
   transition: opacity 140ms, transform 350ms cubic-bezier(.16,1,.3,1), height 440ms cubic-bezier(.16,1,.3,1);
 }
 body[data-notch-phase="expanded"] .apple-content { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; transition-delay: 100ms; }
-body[data-platform="darwin"].apple-notch .titlebar { -webkit-app-region: no-drag; border-bottom: 0; height: 48px; }
-body[data-platform="darwin"].apple-notch .brand { font-size: 16px; letter-spacing: -.5px; }
-body[data-platform="darwin"].apple-notch main { padding-top: 6px; scrollbar-width: thin; }
+body[data-platform="darwin"].apple-notch .titlebar { -webkit-app-region: no-drag; }
 body[data-platform="darwin"].apple-notch .quota-card { background: linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.018)); }
 body[data-platform="darwin"].apple-notch .quota-card.short { border-top-color: rgba(120,231,202,.22); }
 body[data-platform="darwin"].apple-notch .quota-card.weekly { border-top-color: rgba(182,160,255,.22); }
 body[data-platform="darwin"].apple-notch .footnote { line-height: 1.45; }
-body[data-platform="darwin"].apple-notch.stale :is(.apple-mini, .apple-preview) progress:not(#settings-dialog *)::-webkit-progress-value { background: #949bab; }
 body.apple-notch.reduced-motion .apple-shell,
-body.apple-notch.reduced-motion .apple-content,
-body.apple-notch.reduced-motion .apple-preview,
-body.apple-notch.reduced-motion .apple-mini { transition-duration: 1ms; transition-delay: 0ms; }
+body.apple-notch.reduced-motion .apple-content { transition-duration: 1ms; transition-delay: 0ms; }
 @media (prefers-reduced-motion: reduce) {
-  .apple-shell, .apple-content, .apple-preview, .apple-mini { transition-duration: 1ms !important; transition-delay: 0ms !important; }
+  .apple-shell, .apple-content { transition-duration: 1ms !important; transition-delay: 0ms !important; }
 }
 
 /* A continuous black surface with concave joins into the physical notch. */
@@ -186,73 +164,108 @@ body.apple-notch:not([data-notch-phase="expanded"]) .apple-shell { background: #
 body.apple-notch:not([data-notch-phase="expanded"]) {
   --ink: #f4f5f8 !important; --muted: #9b9ca9 !important;
   --appearance-ink: #f4f5f8 !important; --appearance-muted: #9b9ca9 !important;
+  --track: #ffffff26 !important;
 }
-.apple-island .apple-cap { background: #000; border-radius: inherit; }
-.apple-island .apple-trigger { overflow: hidden; }
-.apple-island .apple-content { clip-path: inset(0 round 0 0 28px 28px); }
-.apple-island .apple-mini { display: none; }
-.apple-panel-quotas { display: contents; }
+.apple-cap { background: #000; border-radius: inherit; }
+.apple-trigger { overflow: hidden; }
+.apple-content { clip-path: inset(0 round 0 0 28px 28px); }
 .apple-surface-outline { display: none; }
-body.apple-island:is([data-notch-phase="peek"], [data-notch-phase="expanded"]) .apple-surface-outline {
+body.apple-notch:is([data-notch-phase="peek"], [data-notch-phase="expanded"]) .apple-surface-outline {
   position: absolute; inset: 0; width: 100%; height: 100%;
   display: block; clip-path: inset(1px 0 0); pointer-events: none; fill: none; stroke: #656a77; stroke-width: 2px;
 }
-body.apple-island[data-notch-phase="peek"]:not([data-island-indicators="hidden"]) .apple-preview { display: none; }
-body.apple-island[data-notch-phase="peek"]:not([data-island-indicators="hidden"]) .apple-mini {
-  position: absolute; top: calc(var(--cap-height) + 6px); bottom: auto;
-  width: calc(100% - 36px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 36px; opacity: 1;
+/* Both notch modes use the same hover layout, with values only when needed below the camera. */
+.apple-preview {
+  display: none; position: absolute; top: calc(var(--cap-height) + 6px); left: 18px; right: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 36px; text-align: left;
+  font-size: 10px; font-variant-numeric: tabular-nums;
 }
-.apple-island .apple-mini-weekly { grid-column: 2; justify-self: end; }
-body[data-platform="darwin"].apple-island .apple-mini progress { height: 3px; max-width: 106px; }
-.apple-island .apple-mini .metric-compact { display: contents; }
-.apple-island .apple-mini .metric-compact-row { display: block; }
-.apple-island .apple-mini .metric-compact-row:nth-child(2) { width: min(100%, 106px); justify-self: end; }
-.apple-island .apple-mini :is(.metric-label, .metric-value, .metric-empty) { display: none; }
-body[data-platform="darwin"].apple-island:not(.stale) .apple-mini .metric-compact-row:nth-child(2) progress::-webkit-progress-value { background: var(--weekly); }
-.apple-island-reset { display: none; }
-body.apple-island[data-notch-phase="peek"][data-island-hover-style="informative"]:not([data-island-indicators="hidden"]) .apple-island-reset {
+body[data-notch-phase="peek"] .apple-preview,
+body.apple-notch:not(.apple-island)[data-notch-phase="closed"] .apple-preview { display: grid; }
+body[data-notch-phase="closed"] .apple-preview { top: auto; bottom: 5px; left: calc(50% - 50px); right: calc(50% - 50px); column-gap: 5px; }
+.apple-preview .metric-compact { display: contents; }
+.apple-preview :is(.apple-preview-row, .metric-compact-row) {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 5px;
+  width: min(100%, 106px); align-content: start;
+}
+.apple-preview :is(.weekly, .metric-compact-row:nth-child(2)) {
+  grid-column: 2; justify-self: end; --preview-progress: var(--weekly);
+}
+.apple-preview .low { --preview-progress: #e75d70; }
+.apple-preview :is(.metric-label, .metric-value, .metric-reset, .metric-empty) { display: none; }
+.apple-preview .metric-label > span { display: block; }
+body[data-notch-phase="peek"][data-peek-values] .apple-preview :is(.metric-label, .metric-value),
+body.apple-notch:not(.apple-island)[data-notch-phase="peek"] .apple-preview .metric-compact-row:not(:has(progress:not([hidden]))) :is(.metric-label, .metric-value) { display: block; }
+body[data-notch-phase="closed"] .apple-preview .metric-compact-row:first-child {
+  width: 100%; grid-column: 1 / -1; display: block; text-align: center;
+}
+body[data-notch-phase="closed"] .apple-preview .metric-compact-row:not(:first-child),
+body[data-notch-phase="closed"] .apple-preview .metric-compact-row progress { display: none; }
+body[data-notch-phase="closed"] .apple-preview .metric-compact :is(.metric-value, .metric-empty),
+body[data-notch-phase="peek"][data-peek-values] .apple-preview .metric-empty {
+  display: block; grid-column: 1 / -1; text-align: center;
+}
+body[data-platform="darwin"].apple-notch .apple-preview progress { height: 3px; grid-row: 1; grid-column: 1 / -1; }
+body[data-platform="darwin"].apple-notch[data-notch-phase="closed"] .apple-preview progress { height: 2px; }
+/* The notch chrome keeps its colors independently of the details background. */
+body[data-platform="darwin"].apple-notch .apple-preview progress:not(#settings-dialog *)::-webkit-progress-value { background: var(--preview-progress, var(--short)); }
+body[data-platform="darwin"].apple-notch.stale .apple-preview progress:not(#settings-dialog *)::-webkit-progress-value { background: #949bab; }
+.apple-preview-reset { display: none; }
+body[data-notch-phase="peek"][data-notch-hover-style="informative"] .apple-preview-reset {
   position: absolute; top: calc(var(--cap-height) + 16px); left: 18px; right: 18px;
   display: flex; gap: 5px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums;
 }
-body[data-platform="darwin"].apple-island:not([data-background]) .apple-content { background: #17191f; }
-body.apple-island[data-notch-phase="expanded"]:not([data-background]) .apple-cap {
+body[data-peek-values] .apple-preview-reset { margin-top: 17px; }
+body[data-platform="darwin"].apple-notch:not([data-background]) .apple-content { background: #17191f; }
+body.apple-notch[data-notch-phase="expanded"]:not([data-background]) .apple-cap {
   height: var(--content-top); background: linear-gradient(#000 var(--cap-height), #17191f);
 }
-body[data-platform="darwin"].apple-island .apple-content .titlebar { height: 38px; padding-inline: 13px; gap: 4px; }
-body[data-platform="darwin"].apple-island .apple-content main { padding: 0 12px 7px; }
-.apple-island .apple-content :is(#connection, .actions, #plan) { display: none; }
-body[data-platform="darwin"].apple-island .apple-content #settings-button {
-  width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
-  background: transparent; color: var(--muted); font-size: 0;
+/* All macOS presentation modes use the same details panel. */
+body[data-platform="darwin"] :is(#connection, main .actions, #plan) { display: none; }
+body[data-platform="darwin"] .titlebar :is(#settings-button, #hide) {
+  position: relative; flex: 0 0 32px;
+  width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--ink); font-size: 0;
 }
-.apple-island #settings-button::after { content: "⚙"; font-size: 15px; }
-.apple-island .apple-panel-quotas:has(.quota-card:not([hidden])) {
+body[data-platform="darwin"] .titlebar :is(#settings-button, #hide):hover { background: var(--control); }
+body[data-platform="darwin"] .titlebar :is(#settings-button, #hide)::after {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 20px; height: 20px; background: currentColor; pointer-events: none;
+  mask: var(--titlebar-icon) center / contain no-repeat;
+}
+.titlebar #settings-button {
+  --titlebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M10 2h4l.6 3.1 1.8 1 3-.9 2 3.5-2.4 2.1v2.4l2.4 2.1-2 3.5-3-.9-1.8 1-.6 3.1h-4l-.6-3.1-1.8-1-3 .9-2-3.5 2.4-2.1v-2.4L2.6 8.7l2-3.5 3 .9 1.8-1z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+}
+.titlebar #hide {
+  --titlebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m5 5 14 14M19 5 5 19' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+.apple-panel-quotas { display: contents; }
+.apple-panel-quotas:has(.quota-card:not([hidden])) {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 9px 0; border-radius: 9px; background: var(--surface);
 }
-body[data-platform="darwin"].apple-island:not([data-background]) .apple-panel-quotas { background: #242527; }
-body[data-platform="darwin"].apple-island .apple-panel-quotas .quota-card {
+body[data-platform="darwin"]:is(.apple-notch, [data-theme="dark"]):not([data-background]) .apple-panel-quotas { background: #242527; }
+body[data-platform="darwin"] .apple-panel-quotas .quota-card {
   margin: 0; padding: 0 10px; border: 0; border-radius: 0; background: none; box-shadow: none;
 }
-body[data-platform="darwin"].apple-island .apple-panel-quotas .weekly { border-inline-start: 1px solid var(--edge); }
-.apple-island .apple-panel-quotas .quota-meta { display: grid; gap: 3px; margin-bottom: 5px; }
-.apple-island .apple-panel-quotas .period { gap: 5px; font-weight: 500; color: var(--muted); }
-body[data-platform="darwin"].apple-island .apple-panel-quotas .remaining-value { font-size: 23px; line-height: 1.15; }
-body[data-platform="darwin"].apple-island .apple-panel-quotas progress { height: 3px; }
-body[data-platform="darwin"].apple-island:not(.stale) .apple-panel-quotas .weekly:not(.low) progress::-webkit-progress-value { background: var(--weekly); }
-body[data-platform="darwin"].apple-island .apple-content footer {
+body[data-platform="darwin"] .apple-panel-quotas .weekly { border-inline-start: 1px solid var(--edge); }
+body[data-platform="darwin"] .apple-panel-quotas .quota-meta { display: grid; gap: 3px; margin-bottom: 5px; }
+body[data-platform="darwin"] .apple-panel-quotas .period { gap: 5px; font-weight: 500; color: var(--muted); }
+body[data-platform="darwin"] .apple-panel-quotas .remaining-value { font-size: 23px; line-height: 1.15; }
+body[data-platform="darwin"] .apple-panel-quotas progress { height: 3px; }
+body[data-platform="darwin"]:not(.stale) .apple-panel-quotas .weekly:not(.low) progress::-webkit-progress-value { background: var(--weekly); }
+body[data-platform="darwin"] footer {
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto;
   margin-top: 5px; font-size: 11px; font-variant-numeric: tabular-nums;
 }
-body[data-platform="darwin"].apple-island .apple-content .account-row { margin: 0; }
-body[data-platform="darwin"].apple-island .apple-content #account { font-size: 11px; font-weight: 400; color: var(--muted); }
-body[data-platform="darwin"].apple-island .apple-content #refresh {
+body[data-platform="darwin"] footer .account-row { margin: 0; }
+body[data-platform="darwin"] footer #account { font-size: 11px; font-weight: 400; color: var(--muted); }
+body[data-platform="darwin"] footer #refresh {
   width: 26px; height: 25px; padding: 0; border: 0; background: transparent;
   box-shadow: none; color: var(--muted); font-size: 0;
 }
-.apple-island #refresh::after { content: "↻"; font-size: 15px; }
-body[data-platform="darwin"].apple-island #settings-dialog[open] { border-color: #656a77; }
+body[data-platform="darwin"] footer #refresh::after { content: "↻"; font-size: 15px; }
+body[data-platform="darwin"]:is(.apple-notch, [data-theme="dark"]) #settings-dialog[open] { border-color: #656a77; }
 body.apple-island[data-island-indicators="values"] .apple-island-meter:not(.quota-period) .apple-island-label { display: none; }
 body.apple-island[data-island-indicators="values"] .apple-island-dot { display: none; }
 body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meters {
@@ -261,10 +274,6 @@ body[data-platform="darwin"].apple-island[data-island-indicators="values"] .appl
 body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter { color: var(--short); }
 body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter.weekly { color: var(--weekly); }
 body[data-platform="darwin"].apple-island[data-island-indicators="values"] .apple-island-meter.unknown { color: #949bab; }
-body.apple-island.apple-narrow-preview .apple-preview { left: 12px; right: 12px; }
-body.apple-island.apple-narrow-preview #apple-hint { display: none; }
-body.apple-island.apple-narrow-preview .apple-preview-row { grid-template-columns: 56px minmax(0, 1fr) 30px; gap: 8px; }
-body.apple-island.apple-narrow-preview .apple-period { gap: 4px; }
 body[data-platform="darwin"].apple-island .apple-island-meters {
   position: absolute; top: var(--meters-top); left: 50%; transform: translateX(-50%); height: var(--meters-height);
   display: flex; align-items: center; justify-content: space-between;

@@ -62,6 +62,7 @@ async function verifyMacPanel({ window, trayPresentation, artifactRoot, demo }) 
   const themes = [];
   let contentSizing;
   try {
+    await verifyCompactMacPanel(window);
     contentSizing = await verifyContentSizing(window);
     for (const theme of ['light', 'dark']) {
       const report = await window.webContents.executeJavaScript(`(() => {
@@ -164,7 +165,7 @@ async function verifyAppleIsland(options) {
   }
 }
 
-async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, artifactRoot, demo, monitor, showResetNotification, layoutFixture }) {
+async function verifyAppleIslandContent({ appleNotch, target, trayWindow, trayPresentation, artifactRoot, demo, monitor, showResetNotification, layoutFixture }) {
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   const run = source => target.webContents.executeJavaScript(source);
   const renderState = () => run('window.limits.get().then(render)');
@@ -182,8 +183,16 @@ async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, 
   await renderState(); await delay(550);
   if (appleNotch.mode !== 'island' || trayPresentation.entries.length) throw new Error('Side panel mode did not activate');
   if (layoutFixture) {
-    const hover = await verifyIslandHover({ appleNotch, target, preview });
-    return { ...await verifyMenuBarProtection({ appleNotch, target, artifactRoot }), hover };
+    const island = await verifyNotchHover({ appleNotch, target, preview });
+    const menu = await verifyMenuBarProtection({ appleNotch, target, artifactRoot });
+    await run("window.limits.displayMode('notch')");
+    for (let i = 0; i < 100 && (appleNotch.mode !== 'notch' || appleNotch.phase !== 'expanded'); i++) await delay(20);
+    if (appleNotch.mode !== 'notch' || appleNotch.phase !== 'expanded') throw new Error('Notch mode did not activate');
+    clearInterval(appleNotch.timer); appleNotch.timer = null;
+    const notch = await verifyNotchHover({ appleNotch, target, preview });
+    await run("window.limits.displayMode('tray')");
+    await verifyCompactMacPanel(trayWindow);
+    return { ...menu, hover: { island, notch }, trayPreview: true };
   }
   const surface = await verifyNotchSurface({ appleNotch, target, artifactRoot });
   const contentSizing = await verifyContentSizing(target, appleNotch);
@@ -262,10 +271,29 @@ async function verifyAppleIslandContent({ appleNotch, target, trayPresentation, 
   return { header, notification, many, surface, contentSizing, compactAppearance, menuBarProtection, transparent, queue: true, resetRouting: true, updateRouting: true, settings: true, accountSwitch: demo };
 }
 
-async function verifyIslandHover({ appleNotch, target, preview }) {
+async function verifyCompactMacPanel(target) {
+  const report = await target.webContents.executeJavaScript(`(() => {
+    const short = document.querySelector('.apple-panel-quotas .short').getBoundingClientRect();
+    const weekly = document.querySelector('.apple-panel-quotas .weekly').getBoundingClientRect();
+    return {
+      quotas: short.width > 0 && weekly.width > 0 && short.top === weekly.top && short.right <= weekly.left,
+      footer: Boolean(document.querySelector('footer #account')) && Boolean(document.querySelector('footer #refresh')),
+      loginHidden: !document.getElementById('login').getClientRects().length,
+      icons: ['settings-button', 'hide'].every(id => {
+        const button = document.getElementById(id);
+        const icon = getComputedStyle(button, '::after');
+        return button.offsetWidth === 32 && button.offsetHeight === 32 && icon.width === '20px' && icon.maskImage !== 'none';
+      }),
+    };
+  })()`);
+  if (Object.values(report).some(value => !value)) throw new Error('Compact subscription preview failed: ' + JSON.stringify(report));
+}
+
+async function verifyNotchHover({ appleNotch, target, preview }) {
   const run = source => target.webContents.executeJavaScript(source);
   const settle = () => new Promise(resolve => setTimeout(resolve, 500));
-  const indicators = `[...document.querySelectorAll('.apple-island-meter:not([hidden])')].map(node => {
+  const mode = appleNotch.mode;
+  const indicators = `[...document.querySelectorAll('.apple-island-meter:not([hidden])')].filter(node => node.getClientRects().length).map(node => {
     const { x, y, width, height } = node.getBoundingClientRect();
     return { text: node.textContent, x, y, width, height };
   })`;
@@ -288,36 +316,31 @@ async function verifyIslandHover({ appleNotch, target, preview }) {
     appleNotch.setPhase('peek');
     await settle();
     const report = await run(`(() => {
-      const meters = [...document.querySelectorAll('.apple-mini progress:not([hidden])')].map(node => {
+      const meters = [...document.querySelectorAll('.apple-preview progress:not([hidden])')].map(node => {
         const { top, width, bottom } = node.getBoundingClientRect();
         return { top, bottom, width, value: node.value };
       });
       return {
         indicators: ${indicators}, meters,
-        reset: Boolean(document.querySelector('.apple-island-reset').getClientRects().length),
+        reset: Boolean(document.querySelector('.apple-preview-reset').getClientRects().length),
+        values: Boolean(document.getElementById('apple-short-value').getClientRects().length),
         border: getComputedStyle(document.querySelector('.apple-surface-outline')).display !== 'none',
       };
     })()`);
     const layout = appleNotch.snapshot();
-    if (closed.length !== 2 || JSON.stringify(report.indicators) !== JSON.stringify(closed) ||
+    if (closed.length !== (mode === 'island' ? 2 : 0) || JSON.stringify(report.indicators) !== JSON.stringify(closed) ||
         report.meters.map(meter => meter.value).join(',') !== '72,46' ||
         report.meters.some(meter => !meter.width || meter.top < layout.capHeight || meter.bottom > layout.peekHeight) ||
-        report.reset !== (style === 'informative') || !report.border) {
+        report.reset !== (style === 'informative') || report.values !== (mode === 'notch' && style === 'informative') || !report.border) {
       throw new Error('Hover changed the top indicators or lost the preview below them: ' + JSON.stringify({ style, closed, report }));
     }
-    await preview(`apple-island-hover-${style}.png`, layout.peekHeight + 12);
+    await preview(`apple-${mode}-hover-${style}.png`, layout.peekHeight + 12);
     await run("document.getElementById('apple-trigger').click()");
     await settle();
-    const expanded = await run(`(() => {
-      const short = document.querySelector('.apple-panel-quotas .short').getBoundingClientRect();
-      const weekly = document.querySelector('.apple-panel-quotas .weekly').getBoundingClientRect();
-      return short.top === weekly.top && short.right <= weekly.left &&
-        Boolean(document.querySelector('footer #account')) && Boolean(document.querySelector('footer #refresh')) &&
-        !document.getElementById('login').getClientRects().length;
-    })()`);
-    if (appleNotch.phase !== 'expanded' || !expanded) throw new Error('Hover click did not open the compact subscription preview');
+    if (appleNotch.phase !== 'expanded') throw new Error('Hover click did not open the compact subscription preview');
+    await verifyCompactMacPanel(target);
   }
-  await preview('apple-island-subscription-preview.png', appleNotch.snapshot().fullHeight + 12);
+  await preview(`apple-${mode}-subscription-preview.png`, appleNotch.snapshot().fullHeight + 12);
   return { minimal: true, informative: true, unchangedIndicators: true, clickOpensPreview: true };
 }
 

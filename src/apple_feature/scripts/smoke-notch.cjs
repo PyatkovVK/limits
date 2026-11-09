@@ -56,7 +56,7 @@ app.whenReady().then(async () => {
     await instances.notch.prepare();
     const initialMenuSpace = instances.notch.screenInfo;
     const report = await require('../smoke.cjs').verifyAppleIsland({
-      appleNotch: instances.notch, target: instances.notch.window, trayPresentation: instances.tray,
+      appleNotch: instances.notch, target: instances.notch.window, trayWindow: panel, trayPresentation: instances.tray,
       artifactRoot: root, demo: true, monitor: instances.accounts, layoutFixture,
       showResetNotification(event) {
         const count = instances.notch.notifications.length;

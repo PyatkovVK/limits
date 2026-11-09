@@ -49,7 +49,7 @@
           kind: 'select',
           title: translate('islandHoverStyle'),
           description: translate(hoverStyle === 'minimal' ? 'islandHoverMinimalDescription' : 'islandHoverInformativeDescription'),
-          hidden: next.platform !== 'darwin' || next.displayMode !== 'island',
+          hidden: next.platform !== 'darwin' || !['notch', 'island'].includes(next.displayMode),
           value: hoverStyle,
           options: [
             { value: 'minimal', label: translate('islandHoverMinimal') },

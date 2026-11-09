@@ -47,10 +47,11 @@ function fitMenuBar(layout, mode, metricCount = 2, hoverStyle = 'minimal') {
   // Leave a full inset after the curved shoulder before details and Settings.
   layout.contentTop = layout.capHeight + 12;
   layout.closedHeight = island ? layout.notchHeight : layout.capHeight + 9;
-  layout.peekWidth = island ? layout.closedWidth : Math.min(layout.fullWidth, Math.max(340, layout.closedWidth + 40));
+  layout.peekWidth = layout.closedWidth;
   layout.hoverStyle = hoverStyle;
-  layout.peekHeight = !island || layout.indicatorMode === 'hidden' ? layout.contentTop + 116
-    : layout.capHeight + (hoverStyle === 'informative' ? 37 : 19);
+  const informative = hoverStyle === 'informative';
+  layout.peekShowsValues = island ? layout.indicatorMode === 'hidden' : informative;
+  layout.peekHeight = layout.capHeight + 19 + (layout.peekShowsValues ? 17 : 0) + (informative ? 18 : 0);
   layout.notificationHeight = Math.min(layout.maxFullHeight, layout.closedHeight + 164);
 }
 

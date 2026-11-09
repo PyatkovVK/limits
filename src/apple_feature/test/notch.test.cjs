@@ -26,7 +26,7 @@ test('hit testing includes the visible island and passes through the transparent
   const layout = notchLayout(display, info);
   assert.ok(contains(hitBounds(layout, 'closed'), { x: 900, y: 40 }));
   assert.ok(!contains(hitBounds(layout, 'closed'), { x: 900, y: 110 }));
-  assert.ok(contains(hitBounds(layout, 'peek'), { x: 900, y: 110 }));
+  assert.ok(contains(hitBounds(layout, 'peek'), { x: 900, y: layout.capHeight + 10 }));
   assert.ok(!contains(hitBounds(layout, 'expanded'), { x: 650, y: 300 }));
 });
 test('the compact notch fills both side margins and keeps them interactive', () => {
@@ -37,25 +37,29 @@ test('the compact notch fills both side margins and keeps them interactive', () 
   }
   assert.equal(contains(hitBounds(layout, 'closed'), { x: 900 + layout.closedWidth / 2 + 1, y: info.top / 2 }), false);
 });
-test('island hover styles keep the top indicators aligned and only change the height below them', () => {
-  const layout = notchLayout(display, info, 'island');
-  const closed = hitBounds(layout, 'closed');
-  const minimal = hitBounds(layout, 'peek');
-  assert.equal(layout.hoverStyle, 'minimal');
-  assert.equal(minimal.width, closed.width);
-  assert.equal(minimal.x, closed.x);
-  assert.ok(minimal.height > layout.capHeight);
-  fitMenuBar(layout, 'island', 2, 'informative');
-  const informative = hitBounds(layout, 'peek');
-  assert.deepEqual({ ...informative, height: minimal.height }, minimal);
-  assert.ok(informative.height > minimal.height);
-
+test('both notch hover styles retain the closed width and fit extra information below the cap', () => {
+  for (const mode of ['notch', 'island']) {
+    const layout = notchLayout(display, info, mode);
+    const closed = hitBounds(layout, 'closed');
+    const minimal = hitBounds(layout, 'peek');
+    assert.equal(layout.hoverStyle, 'minimal');
+    assert.equal(layout.peekShowsValues, false);
+    assert.equal(minimal.width, closed.width);
+    assert.equal(minimal.x, closed.x);
+    assert.ok(minimal.height > layout.capHeight);
+    fitMenuBar(layout, mode, 2, 'informative');
+    const informative = hitBounds(layout, 'peek');
+    assert.equal(layout.peekShowsValues, mode === 'notch');
+    assert.deepEqual({ ...informative, height: minimal.height }, minimal);
+    assert.ok(informative.height > minimal.height);
+  }
   const narrow = notchLayout(display, { ...info, menuBarLeft: info.notchX }, 'island');
   assert.equal(narrow.indicatorMode, 'hidden');
-  assert.ok(narrow.peekHeight > informative.height);
+  assert.equal(narrow.peekShowsValues, true);
   const fallbackHeight = narrow.peekHeight;
   fitMenuBar(narrow, 'island', 2, 'informative');
-  assert.equal(narrow.peekHeight, fallbackHeight);
+  assert.equal(narrow.peekShowsValues, true);
+  assert.ok(narrow.peekHeight > fallbackHeight);
 });
 class FakeWindow extends EventEmitter {
   constructor() { super(); this.webContents = new EventEmitter(); this.webContents.send = (_channel, state) => { this.state = state; }; this.webContents.executeJavaScript = async () => {}; }
