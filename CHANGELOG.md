@@ -4,26 +4,10 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ## 1.8.0
 
-### Changed
-
-- Group language, display mode and launch at login in a single General settings card on Windows, macOS and Linux. Shorten display labels and use a switch for launch at login.
-- Put update status and actions in an Updates settings card. Show the download action only when a newer version is available, then show progress and an Update button after verification.
-- Show Codex Resets as a settings card with a switch, status and expandable source details when a Codex subscription is signed in.
-- Add a live background preview to Settings with the active macOS panel style. Keep the 67% animation and gradient without the text badge.
-
-### Added
-
-- Add GLM Coding Plan to Subscriptions on Windows, macOS and Linux. Connect a personal Z.ai API key and track the 5-hour and weekly allowances, including reset times when available.
-- Add three reset-time display options to the Windows taskbar widget: hidden, countdown, or date and time. Hiding reset times moves the period labels next to the bars; countdowns show hours:minutes for the five-hour limit and days:hours:minutes for the weekly limit. Keep date and time as the default and remember the selected option.
-
-### Fixed
-
-- Match the approved mirrored quota order and spacing in the Settings preview for the macOS notch side panel.
-- On macOS, align the bottom of the collapsed side panel with the physical notch. Scale the 5h and 7d labels together with their percentages and keep the period labels closest to the notch.
-- Keep the macOS notch side panel steady during regular menu-bar checks by reading the current layout without adding a temporary status item on every check and ignoring small width changes.
-- Restore the wider macOS notch side panel when switching apps frees up room in the menu bar. Small variations in free space no longer stall expansion.
-- Keep Windows widget quota rows on one line while connecting or waiting for data; show a dash without a percent sign for unknown values.
-- Highlight only the low quota bar in the Windows widget and tighten the five-hour period label.
+- **GLM Coding Plan (Z.ai).** Connect a personal API key on Windows, macOS and Linux to track the remaining 5-hour and weekly allowances and see reset times when available.
+- **Redesigned Settings.** General, Subscriptions, Updates and Codex Resets have dedicated cards, and Background shows a live preview.
+- **Reset times in the Windows widget.** Show the date and time, switch to a countdown, or hide reset times. Limits saves your choice.
+- **macOS notch side panel display fixes.** The collapsed panel lines up with the physical notch and returns to its wider layout when there is room in the menu bar.
 
 ## 1.7.0
 

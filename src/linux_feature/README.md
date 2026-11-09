@@ -4,7 +4,7 @@ Linux implementation, renderer controls and tests live in this directory. The co
 
 ## Display modes
 
-Choose **Settings → Display**, in this order:
+Choose **Settings → General → Display**, in this order:
 
 1. **Percentages and bar** uses the classic colored percentage badges. This is the default for profiles without an explicit selection.
 2. **Bar · 5h / 7d** displays the fixed quota duration above a proportional remaining-usage bar. Russian labels are `5ч` / `7д`. Unknown values use a dashed bar.
@@ -14,7 +14,7 @@ The `displayMode` and `linuxTrayStyle` preferences are saved in `widget-settings
 
 ## Launch at login
 
-Enable **Settings → Launch at login** in a packaged DEB or AppImage build. Limits creates only its own `limits.desktop` entry in `$XDG_CONFIG_HOME/autostart` (default `~/.config/autostart`), without administrator privileges. Disabling removes that entry. Source, demo and smoke runs cannot enable startup.
+Enable **Settings → General → Launch at login** in a packaged DEB or AppImage build. Limits creates only its own `limits.desktop` entry in `$XDG_CONFIG_HOME/autostart` (default `~/.config/autostart`), without administrator privileges. Disabling removes that entry. Source, demo and smoke runs cannot enable startup.
 
 Login starts Limits with `--hidden`, preserving the selected tray/widget presentation and position without opening details. AppImage startup points at the original AppImage file; keep it at that location or disable and enable startup after moving it. Read-only configuration or unavailable executables disable the control, and save failures display the settings error.
 

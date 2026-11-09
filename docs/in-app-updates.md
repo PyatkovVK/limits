@@ -2,7 +2,7 @@
 
 Limits checks stable public GitHub Releases at startup, every six hours and after overdue wake-up. The Actions publication job uploads platform packages and SHA256SUMS.txt from numeric release branches. Ordinary branch artifacts are inspection builds; main/demo branches run only tests. No GitHub token is required. Private/temporary Actions downloads are deliberately not an update source.
 
-Installed builds offer a new version first. Matching packages download only after choosing **Download update** in Settings → Updates or the offer dialog. Postponing or checking again does not download a package or retry a failed download. Download progress, verification, retry and a separate **Install and restart** action appear in both places. A checksum mismatch prevents installation. Account homes and settings are separate from application files and remain in place. Source/unpacked builds keep the manual release action.
+Installed builds offer a new version first. Matching packages download only after choosing **Download update** in Settings → Updates or the offer dialog. Postponing or checking again does not download a package or retry a failed download. Both places show download progress, verification and retry. Once the package is verified, choose **Update** in Settings or **Install and restart** in the offer dialog. A checksum mismatch prevents installation. Account homes and settings are separate from application files and remain in place. Source/unpacked builds keep the manual release action.
 
 | Installation | Package | Installation action |
 | --- | --- | --- |

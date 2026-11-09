@@ -86,11 +86,11 @@ macOS remembers this exception for the app, so subsequent launches can use a nor
 
 ![Limits in the macOS menu bar with a light details panel](docs/screenshots/apple-menu-bar-light.png)
 
-Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. After installing the app, enable **Settings → Launch at macOS login** to start in the background at login. This also works with local ad hoc signed builds; disabling the option removes the startup entry.
+Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. After installing the app, enable **Settings → General → Launch at login** to start in the background at login. This also works with local ad hoc signed builds; disabling the option removes the startup entry.
 
-**Settings → Display → Notch side panel** adds a third mode: a black panel with curved joins into the notch and persistent **5h** / **7d** values on either side. Low-allowance warnings, enabled Codex Resets alerts, and update announcements expand inside this panel. Messages queue, dismiss automatically after ten seconds when the pointer is away, and can be closed with × or Esc. Both notch modes require a physical MacBook notch.
+**Settings → General → Display → Around the notch** selects a black panel with curved joins into the notch and persistent **5h** / **7d** values on either side. Low-allowance warnings, enabled Codex Resets alerts, and update announcements expand inside this panel. Messages queue, dismiss automatically after ten seconds when the pointer is away, and can be closed with × or Esc. Both notch modes require a physical MacBook notch.
 
-The bottom of the collapsed panel aligns with the physical notch. As neighbouring items leave less room, the panel narrows and scales the 5h and 7d labels together with their percentages. The narrowest layout uses two lines. If the wings are too narrow for the values, hover over the notch to see them. Unavailable menu metadata does not hide the side values, and a temporary probe failure keeps the last measured layout. The collapsed panel and hover preview always share the same width and side edges. The collapsed notch stays black; a selected background appears inside the expanded details panel. Areas outside the notch chrome remain transparent and pass clicks through. This does not request additional macOS permissions.
+The bottom of the collapsed panel aligns with the physical notch. The panel widens again when space opens up in the menu bar. As neighbouring items leave less room, the panel narrows and scales the 5h and 7d labels together with their percentages. The narrowest layout uses two lines. If the wings are too narrow for the values, hover over the notch to see them. Unavailable menu metadata does not hide the side values, and a temporary probe failure keeps the last measured layout. The collapsed panel and hover preview always share the same width and side edges. The collapsed notch stays black; a selected background appears inside the expanded details panel. Areas outside the notch chrome remain transparent and pass clicks through. This does not request additional macOS permissions.
 
 The side panel adapts to additional metrics. Values that do not fit move into a **+N** control, which opens the complete list in the scrollable details panel.
 
@@ -113,25 +113,27 @@ The notch mode uses the compatible MacBook screen, including when an external di
 
 The turquoise **5h** and purple **7d** indicators show remaining usage with numbers and short bars. Tooltips expose account details and reset information where supported by the desktop environment. The details panel adapts to its contents and scrolls for long account lists.
 
-Enable **Settings → Launch at login** to start an installed DEB or AppImage automatically, using your saved tray/widget mode without opening details.
+Enable **Settings → General → Launch at login** to start an installed DEB or AppImage automatically, using your saved tray/widget mode without opening details.
 
-In **Settings → Display**, Linux offers three choices in order: classic percentage tray icons, quota-period labels with remaining-usage bars, and the desktop widget. Classic remains the default, and your selection is saved. Clicking either quota icon or the widget’s bars again closes details. In widget mode, the Limits tray icon hides or restores the widget.
+In **Settings → General → Display**, Linux offers three choices in order: classic percentage tray icons, quota-period labels with remaining-usage bars, and the desktop widget. Classic remains the default, and your selection is saved. Clicking either quota icon or the widget’s bars again closes details. In widget mode, the Limits tray icon hides or restores the widget.
 
 ### Windows — taskbar or tray
 
 If the details panel is open, it follows the widget as you drag it along the taskbar and stays within the screen. Moving the widget keeps a dismissed panel closed.
 
-The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in **Settings**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Windows widget**. Drag the details title bar to keep a preferred position across openings and restarts. The details panel fits its content and resizes when Settings opens or closes. Reset labels show the local clock time and include the date for other days; hover for the full date. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
+The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in **Settings → General → Display**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Panel settings**. Drag the details title bar to keep a preferred position across openings and restarts. The details panel fits its content and resizes when Settings opens or closes. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
 
 When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. If neither side has room, it stays visible just above the taskbar. The preferred width and taskbar placement return when more space becomes available.
+
+In **Settings → Panel settings → Widget reset times**, choose **Date and time** (the default), **Time until reset**, or **Do not show**. The countdown shows hours and minutes for the 5-hour limit and includes days for the weekly limit. Limits saves your choice.
 
 ![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows-widget-compact.png)
 
 ## Everyday use
 
 - Click the widget or an indicator to open details, view accounts, and refresh usage.
-- Add an account from **Accounts**, complete browser sign-in, give it a local name, and select it for the compact display.
-- Open **Settings** to change the language, display mode, account settings, widget size, or supported autostart options. The tray menu also opens Settings.
+- Open **Settings → Subscriptions → + Add** and choose a provider. Expand a profile to see its usage and choose **Use in panel** to show it in the compact display.
+- Open **Settings → General** to change the language, display mode or launch at login. The tray menu also opens Settings.
 - Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
 - Drag the details title bar to keep a custom position across openings and restarts. The panel stays inside the available screen after monitor changes.
 
@@ -139,9 +141,9 @@ On Linux, select **Widget** in Settings for a compact floating window with two q
 
 ## Application updates
 
-Limits checks stable releases on GitHub in the background at startup and every six hours. After waking, it checks if the scheduled time has passed. Open **Settings → Updates → Check for updates** for a manual check, the installed version and the last check result.
+Limits checks stable releases on GitHub in the background at startup and every six hours. After waking, it checks if the scheduled time has passed. Open **Settings → Updates → Check** for a manual check, the installed version and the last check result.
 
-When a new version is found, choose **Download update** in the offer or Settings to start downloading. **Later** postpones the offer without downloading. After verification, choose **Install and restart** when convenient.
+When a new version is found, choose **Download update** in the offer or Settings to start downloading. **Later** postpones the offer without downloading. After verification, choose **Update** in Settings or **Install and restart** in the offer.
 
 **macOS:** installed copies in `/Applications` or `~/Applications` download the matching Apple Silicon or Intel ZIP on request from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
 
@@ -155,13 +157,13 @@ Demo mode simulates update checks without contacting GitHub or opening a browser
 
 For Codex, Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required for Codex subscription limits; API-key authentication does not expose those allowances. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
 
-**DeepSeek:** open Settings → Subscriptions, select DeepSeek, and choose **+ Add**. Limits opens the API-key page in your browser. Sign in, create a key, return to Limits and paste it into **Connect DeepSeek**. The profile is added after a successful balance check; cancellation leaves no empty profile. Keys are encrypted on this device using the OS credential storage through Electron; connecting fails if secure storage is unavailable. Use **Name and connection → Replace API key** to change a key, or disconnect the profile to delete its saved key locally. This does not revoke the key in DeepSeek. Balances refresh about one minute after each completed request, independently from Codex. Different currencies are kept separate. Account-wide token or spending history is not included.
+**DeepSeek:** open **Settings → Subscriptions → + Add** and choose DeepSeek. Limits opens the API-key page in your browser. Sign in, create a key, return to Limits and paste it into **Connect DeepSeek**. The profile is added after a successful balance check; cancellation leaves no empty profile. Keys are encrypted on this device using the OS credential storage through Electron; connecting fails if secure storage is unavailable. Use the trash button to disconnect the profile and delete its saved key from the device. The key remains valid in DeepSeek. To use a different key, disconnect and add DeepSeek again. Balances refresh about one minute after each completed request, independently from Codex. Different currencies are kept separate. Account-wide token or spending history is not included.
 
-**GLM Coding Plan (Z.ai)** is available in Settings → Subscriptions. Choose **+ Add** and paste a key from **Personal Coding Plan** in the Z.ai console. After validating the key, Limits stores it encrypted on this device and checks the 5-hour and weekly allowances independently about once per minute. The panel shows a reset time when Z.ai reports one. Use **Name and connection → Replace API key** to update the key or disconnect the profile to remove its local copy.
+**GLM Coding Plan (Z.ai)** is available in Settings → Subscriptions. Open **+ Add**, choose **GLM Coding Plan (Z.ai)** and paste a key from **Personal Coding Plan** in the Z.ai console. After validating the key, Limits stores it encrypted on this device and checks the 5-hour and weekly allowances independently about once per minute. The panel shows a reset time when Z.ai reports one. Use **Manage → Replace API key** to update the key or disconnect the profile to remove its local copy.
 
-**macOS:** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Add subscriptions using the provider selector and **+ Add**. Extra local `CODEX_HOME` folders are not tracked. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
+**macOS:** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Extra local `CODEX_HOME` folders are not tracked. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
 
-On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically and reloads sign-in changes on polling; sign in or out in Codex / VS Code. Extra CODEX_HOME folders are not tracked. Add subscriptions using the provider selector and **+ Add**. Codex accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
+On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically and reloads sign-in changes on polling; sign in or out in Codex / VS Code. Extra CODEX_HOME folders are not tracked. Codex accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
 
 Limits has no app-level analytics or telemetry integration in its source. Codex connects to OpenAI services for sign-in and usage data; its behavior is managed by Codex. See [data storage and privacy](docs/privacy.md).
 
@@ -169,7 +171,7 @@ Limits has no app-level analytics or telemetry integration in its source. Codex 
 
 ## Backgrounds
 
-Use **Background** to choose the platform default, a solid color, or a local PNG/JPG image. It applies to the details panel and Windows widget. Images are copied into the app profile and remain available if the original file is moved.
+Use **Background** to choose the platform default, a solid color, or a local PNG/JPG image. The live preview shows the selected background in the current panel style. The background applies to the details panel and Windows widget. Images are copied into the app profile and remain available if the original file is moved.
 
 ## Help and contribute
 
