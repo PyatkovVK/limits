@@ -49,7 +49,7 @@ app.whenReady().then(async () => {
     });
     if (process.platform === 'win32') {
       widget = new BrowserWindow({ width: 280, height: 39, show: false, frame: false, webPreferences: { preload: path.resolve(__dirname, '../src/common/preload.cjs'), contextIsolation: true, sandbox: true } });
-      await widget.loadFile(path.resolve(__dirname, '../src/windows_feature/renderer/widget.html'));
+      await widget.loadFile(path.resolve(__dirname, '../src/windows_feature/panel/widget.html'));
       await widget.webContents.executeJavaScript('window.renderReady');
     }
     for (const language of ['en', 'ru']) {

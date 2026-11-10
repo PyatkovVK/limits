@@ -35,6 +35,23 @@
   border-radius: 8px; background: var(--surface) center / cover no-repeat; color: var(--ink); font-size: 12px;
 }
 .background-preview[data-presentation="window"] .background-preview-window { width: 100%; }
+.background-preview:is([data-presentation="window"], [data-presentation="tray"]) .background-preview-window[data-layout="columns"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  background-color: transparent;
+  padding: 0;
+}
+.background-preview-window[data-layout="columns"] .background-preview-title { grid-column: 1 / -1; }
+.background-preview-window[data-layout="columns"] .background-preview-quota {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+.background-preview-window[data-layout="columns"] .background-preview-quota .background-preview-line {
+  flex-direction: column;
+  gap: 3px;
+}
+.background-preview-window[data-layout="columns"] .background-preview-value { font-size: 22px; }
 .background-preview[data-presentation="tray"] .background-preview-window { margin: 6px 6px 6px auto; width: min(224px, calc(100% - 12px)); }
 .background-preview:is([data-presentation="notch"], [data-presentation="island"]) .background-preview-window { border-radius: 7px 7px 10px 10px; }
 .background-preview-window[data-tone="light"] { color: #111318; }

@@ -52,6 +52,8 @@ function render(next) {
   $('error').hidden = !message;
   $('error').textContent = message || '';
   const groups = next.groups || next.buckets;
+  $('panel-provider').textContent = next.providerId === 'zai' ? 'Z.ai' : 'Codex';
+  document.querySelector('.panel-quotas').hidden = generic;
   for (const kind of ['short', 'weekly']) $(`${kind}-bar`).closest('.quota-card').hidden = generic;
   $('provider-metrics').hidden = !generic;
   if (generic) window.limitsMetricElements.render($('provider-metrics'), next);

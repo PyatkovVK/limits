@@ -11,12 +11,9 @@
 /* Native drag regions underneath a top-layer dialog can intercept its buttons. */
 body:has(dialog[open]) .titlebar { -webkit-app-region: no-drag; }
 .settings-content { padding: 12px 18px 18px; max-height: calc(100vh - 100px); overflow-y: auto; }
-.settings-content :is(.settings-group, .settings-widget) { margin: 0 0 14px; padding: 0 0 14px; border-bottom: 1px solid var(--edge); }
-.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0; font-size: 12px; }
-.settings-row select { flex: none; width: 120px; }
-#settings-widget-reset-display { width: 156px; }
-.settings-row input[type="checkbox"] { flex: none; width: 16px; height: 16px; margin: 0; accent-color: #7ecfba; }
-.settings-widget h3 { font-size: 12px; margin: 4px 0; }
+.settings-content .settings-group { margin: 0 0 14px; padding: 0 0 14px; border-bottom: 1px solid var(--edge); }
+#settings-dialog #settings-reset { min-height: 32px; padding: 4px 8px; font-size: 13px; color: var(--muted); background: transparent; border-color: transparent; }
+#settings-dialog #settings-reset:enabled:hover { color: var(--ink); background: var(--group-hover); }
 body[data-platform="darwin"][data-theme="light"]:not(.apple-notch) #settings-dialog { --ink: #202431; --muted: #606575; --edge: #c4c8d2; --surface: #ffffff55; --control: #dce0e8; --appearance-ink: #202431; --appearance-muted: #606575; background: #eef1f7; color: #202431; border-color: #c4c8d2; }
 body[data-platform="darwin"].apple-notch #settings-dialog { margin: 0; top: 18px; left: 50%; transform: translateX(-50%); width: calc(var(--full-width) - 24px); max-height: calc(var(--full-height) - 36px); }
 body.apple-notch #settings-dialog::backdrop { background: transparent; }

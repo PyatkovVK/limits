@@ -3,19 +3,21 @@
   const strings = {
     ru: {
       title: 'Фон', type: 'Тип фона', description: 'Для окна с лимитами', default: 'Стандартный', color: 'Цвет',
+      layout: 'Тип отображения', standard: 'Обычная', columns: 'Две колонки',
       colorTitle: 'Цвет фона', image: 'Изображение', choose: 'Выбрать файл…', replace: 'Заменить файл…',
       hint: 'PNG или JPEG до 10 МБ', preview: 'Предпросмотр', compact: 'Свернуто', fiveHours: '5 ч', sevenDays: '7 д',
       invalidImage: 'Не удалось прочитать изображение. Выберите PNG или JPEG',
       imageTooLarge: 'Изображение слишком большое. Выберите файл поменьше',
-      appearanceFailed: 'Не удалось изменить фон. Попробуйте ещё раз',
+      appearanceFailed: 'Не удалось сохранить настройку. Попробуйте ещё раз',
     },
     en: {
       title: 'Background', type: 'Background type', description: 'For the limits window', default: 'Default', color: 'Color',
+      layout: 'Display layout', standard: 'Standard', columns: 'Two columns',
       colorTitle: 'Background color', image: 'Image', choose: 'Choose file…', replace: 'Replace file…',
       hint: 'PNG or JPEG up to 10 MB', preview: 'Preview', compact: 'Collapsed', fiveHours: '5 h', sevenDays: '7 d',
       invalidImage: 'Could not read the image. Choose a PNG or JPEG',
       imageTooLarge: 'The image is too large. Choose a smaller file',
-      appearanceFailed: 'Could not change the background. Try again',
+      appearanceFailed: 'Could not save the setting. Try again',
     },
   };
   const appearance = window.limitsAppearance;
@@ -47,6 +49,12 @@
   const hint = make(imageCopy, 'p', 'settings-item-description'); hint.id = 'background-file-hint';
   const choose = make(imageRow, 'button', 'refresh-button'); choose.type = 'button'; choose.id = 'background-choose';
   choose.setAttribute('aria-describedby', hint.id);
+  const layoutRow = make(card, 'div', 'settings-item');
+  const layoutLabel = make(make(layoutRow, 'div', 'settings-item-copy'), 'label');
+  layoutLabel.htmlFor = 'background-layout';
+  const layout = make(make(layoutRow, 'div', 'settings-item-select'), 'select');
+  layout.id = layoutLabel.htmlFor;
+  for (const value of ['standard', 'columns']) layout.add(new Option('', value));
   const error = make(card, 'p', 'settings-item-error'); error.setAttribute('role', 'status');
 
   const preview = make(card, 'div', 'background-preview');
@@ -97,14 +105,16 @@
     color.value = saved.color;
     colorRow.hidden = selection !== 'color';
     imageRow.hidden = selection !== 'image';
-    mode.disabled = color.disabled = choose.disabled = pending;
+    layout.value = saved.layout || 'standard';
+    sample.dataset.layout = layoutRow.hidden ? 'standard' : layout.value;
+    mode.disabled = color.disabled = choose.disabled = layout.disabled = pending;
     choose.textContent = saved.hasImage ? text.replace : text.choose;
     error.textContent = issue ? text[issue] || text.appearanceFailed : '';
     paint(saved.mode, saved.color, saved.image);
   }
   async function change(action) {
     if (pending) return;
-    pending = mode.disabled = color.disabled = choose.disabled = true;
+    pending = mode.disabled = color.disabled = choose.disabled = layout.disabled = true;
     issue = null;
     error.textContent = '';
     try { await appearance.update(action()); }
@@ -124,6 +134,7 @@
     const value = color.value;
     return change(() => window.limits.setAppearance({ mode: 'color', color: value }));
   };
+  layout.onchange = () => void change(() => window.limits.setAppearance({ layout: layout.value }));
   choose.onclick = () => void change(() => window.limits.chooseBackground());
   appearance.subscribe((value, errorKey) => {
     saved = value;
@@ -140,6 +151,8 @@
     text = strings[language] || strings.en;
     title.textContent = text.title;
     modeLabel.textContent = text.type;
+    layoutLabel.textContent = text.layout;
+    for (const option of layout.options) option.textContent = text[option.value];
     description.textContent = text.description;
     for (const option of mode.options) option.textContent = text[option.value];
     colorLabel.textContent = text.colorTitle;
@@ -151,11 +164,11 @@
       periods[index].textContent = text[period];
     }
     compact.hidden = presentation === 'window';
+    layoutRow.hidden = presentation === 'notch' || presentation === 'island';
     preview.dataset.presentation = presentation;
     // The collapsed side panel uses the approved reference values.
     compactValues[1].textContent = presentation === 'island' ? '28%' : `${quotas[1].value}%`;
-    choose.textContent = saved.hasImage ? text.replace : text.choose;
-    error.textContent = issue ? text[issue] || text.appearanceFailed : '';
+    render();
   }
   window.limits.subscribe(localize);
   window.limitsBackgroundReady = window.limits.get().then(localize);

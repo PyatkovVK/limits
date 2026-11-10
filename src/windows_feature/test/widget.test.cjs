@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { TaskbarWidget } = require('../widget.cjs');
+const { TaskbarWidget } = require('../panel/widget.cjs');
 const { widgetBounds } = require('../taskbar.cjs');
 const { EventEmitter } = require('node:events');
 

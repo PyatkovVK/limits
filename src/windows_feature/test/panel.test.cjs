@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { panelPosition, createPanelController } = require('../panel.cjs');
+const { panelPosition, createPanelController } = require('../panel/panel.cjs');
 
 const area = { x: 0, y: 0, width: 1920, height: 1032 };
 const bounds = { x: 800, y: 1032, width: 280, height: 34 };

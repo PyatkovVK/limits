@@ -1,10 +1,10 @@
 'use strict';
 const { EventEmitter } = require('node:events');
 const path = require('node:path');
-const { TaskbarProbe, WidgetPlacement } = require('./taskbar.cjs');
+const { TaskbarProbe, WidgetPlacement } = require('../taskbar.cjs');
 
 function taskbarHelperPath(resourcesPath) {
-  return resourcesPath ? path.join(resourcesPath, 'taskbar-helper.exe') : path.join(__dirname, '..', '..', 'build', 'taskbar-helper.exe');
+  return resourcesPath ? path.join(resourcesPath, 'taskbar-helper.exe') : path.join(__dirname, '..', '..', '..', 'build', 'taskbar-helper.exe');
 }
 class TaskbarWidget extends EventEmitter {
   constructor({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove, resourcesPath }) {
@@ -74,7 +74,7 @@ class TaskbarWidget extends EventEmitter {
     // explicit pointer gesture handled by drag(), including its grab offset.
     created.on('will-move', event => event.preventDefault());
     created.webContents.on('context-menu', () => this.Menu.buildFromTemplate(this.getMenu()).popup({ window: created }));
-    await created.loadFile(path.join(__dirname, 'renderer', 'widget.html'));
+    await created.loadFile(path.join(__dirname, 'widget.html'));
     if (created.isDestroyed() || this.stopped) return;
     const handle = created.getNativeWindowHandle();
     const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());

@@ -15,7 +15,8 @@ let appearance;
 let stopSessionWatch;
 const { selectedBucket, isStale } = require('./limits.cjs');
 const { widgetBounds } = require('../windows_feature/taskbar.cjs');
-const { TaskbarWidget, taskbarHelperPath } = require('../windows_feature/widget.cjs');
+const { TaskbarWidget, taskbarHelperPath } = require('../windows_feature/panel/widget.cjs');
+const { normalize: normalizeWidgetStyle } = require('../windows_feature/panel/widget-style.js');
 const { TrayPresentation } = require('./tray.cjs');
 const { t: translate } = require('./renderer/i18n.js');
 const { startupState, changePreference } = require('./preferences.cjs');
@@ -65,6 +66,7 @@ function publicState() { return { ...state, platform: process.platform, dark: na
   updates: updates?.snapshot(),
   resetNotifications: resetNotifications?.snapshot(),
   preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported || linuxWidgetSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle, widgetResetDisplay: widgetSettings.widgetResetDisplay,
+    ...(taskbarSupported ? { widgetStyle: normalizeWidgetStyle(widgetSettings.widgetStyle) } : {}),
     ...(applePresentation && { islandHoverStyle: widgetSettings.islandHoverStyle || 'minimal' }),
     startup: startupState({ app, platform: process.platform, demo, smoke }) } }; }
 function persistWidgetSettings() {
@@ -232,6 +234,7 @@ async function setup() {
     if (process.platform === 'linux') widgetSettings.linuxTrayStyle = require('../linux_feature/preferences.cjs').trayStyle(saved.linuxTrayStyle);
     if (applePresentation?.islandHoverStyles.includes(saved.islandHoverStyle)) widgetSettings.islandHoverStyle = saved.islandHoverStyle;
     widgetSettings.widgetResetDisplay = ['hidden', 'countdown', 'clock'].includes(saved.widgetResetDisplay) ? saved.widgetResetDisplay : 'clock';
+    if (taskbarSupported) widgetSettings.widgetStyle = normalizeWidgetStyle(saved.widgetStyle);
   } catch { /* Defaults on first launch. */ }
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
@@ -242,7 +245,7 @@ async function setup() {
     notify: showResetNotification, openExternal: url => shell.openExternal(url) });
   window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
-  if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel.cjs').createPanelController({
+  if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel/panel.cjs').createPanelController({
     window, screen, ipcMain, getWidgetHost: () => widgetHost, root: app.getPath('userData'),
     resourcesPath: app.isPackaged ? process.resourcesPath : null,
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),

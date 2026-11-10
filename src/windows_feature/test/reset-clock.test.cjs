@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { format } = require('../renderer/reset-clock.js');
+const { format } = require('../panel/reset-clock.js');
 
 test('Windows reset clocks distinguish today, tomorrow and weekly dates in local time', () => {
   const now = new Date(2026, 9, 26, 23, 30).getTime();
