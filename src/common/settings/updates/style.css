@@ -7,10 +7,7 @@
 #settings-dialog .updates-progress::-webkit-progress-bar { background: var(--group-divider); }
 #settings-dialog .updates-progress::-webkit-progress-value { background: var(--group-accent); }
 .updates-section .settings-item-error { margin: 0; padding: 0 0 10px; }
-@container (max-width: 295px) {
-  .updates-section .settings-item:has(button:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
-  .updates-section .refresh-button { justify-self: start; }
-}
+.updates-section .settings-item-copy { overflow-wrap: anywhere; }
 .updates-version { font-size: 12px; font-weight: 600; margin: 8px 0; }
 .updates-result { font-size: 11px; line-height: 1.5; margin: 8px 0; }
 .updates-section .footnote { color: var(--muted, #aab3c3); line-height: 1.5; }
