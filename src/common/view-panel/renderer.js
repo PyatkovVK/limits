@@ -77,7 +77,7 @@ function render(next) {
   $('other').hidden = !bucket?.other?.length;
   $('other').textContent = bucket?.other?.map(item => `${item.duration ?? '?'} ${t('minutes')}: ${item.remaining === null ? t('noData') : `${item.remaining}%`}`).join(' · ') || '';
   $('refresh').disabled = next.refreshing || next.demo;
-  $('login').hidden = next.demo || Boolean(next.account && !next.readOnly && next.status !== 'signing-in');
+  $('login').hidden = next.demo || next.readOnly || Boolean(next.account && next.status !== 'signing-in');
   $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
   $('login').textContent = t(next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
   const updatedTime = next.updatedAt ? new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
