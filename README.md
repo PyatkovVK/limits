@@ -22,7 +22,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 **Limits** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
 
 <p align="center">
-  <img src="docs/screenshots/windows-accounts.png" width="440" alt="Windows account panel with demo accounts and remaining usage">
+  <img src="docs/screenshots/windows-accounts.png" width="400" alt="Windows details panel showing the five-hour and weekly Codex limits side by side">
   <br><br>
   <img src="docs/screenshots/windows-widget.png" width="280" alt="Windows taskbar widget with demo usage and a reset timer">
 </p>
@@ -121,11 +121,23 @@ In **Settings → General → Display**, Linux offers three choices in order: cl
 
 If the details panel is open, it follows the widget as you drag it along the taskbar and stays within the screen. Moving the widget keeps a dismissed panel closed.
 
-The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in **Settings → General → Display**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Panel settings**. Drag the details title bar to keep a preferred position across openings and restarts. The details panel fits its content and resizes when Settings opens or closes. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
+The widget and details panel are shown above. Switch between a taskbar widget and two tray icons in **Settings → General → Display**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Panel settings**. Drag the details title bar to keep a preferred position across openings and restarts. The details panel fits its content and resizes when Settings opens or closes. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
 
 When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. If neither side has room, it stays visible just above the taskbar. The preferred width and taskbar placement return when more space becomes available.
 
 In **Settings → Panel settings → Widget reset times**, choose **Date and time** (the default), **Time until reset**, or **Do not show**. The countdown shows hours and minutes for the 5-hour limit and includes days for the weekly limit. Limits saves your choice.
+
+Choose a layout in **Settings → Panel settings → Widget style**. **Classic** is the default. **Rows** places the reset time after each bar, and **Cells** puts the two limits side by side.
+
+- **Classic**
+
+  ![Windows taskbar widget in Classic style](docs/screenshots/windows-widget.png)
+- **Rows**
+
+  ![Windows taskbar widget in Rows style](docs/screenshots/windows-widget-rows.png)
+- **Cells**
+
+  ![Windows taskbar widget in Cells style](docs/screenshots/windows-widget-cells.png)
 
 ![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows-widget-compact.png)
 
