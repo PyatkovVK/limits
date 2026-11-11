@@ -17,6 +17,7 @@ progress { display: block; width: 100%; border: 0; overflow: hidden; }
 select { flex: 1; min-width: 0; background-color: #111; color: inherit; border: 1px solid #333; border-radius: 6px; padding: 6px 28px 6px 8px; appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 13px) 50%, calc(100% - 9px) 50%; background-size: 4px 4px; background-repeat: no-repeat; }
 .other { margin-top: 8px; color: #999; font-size: 10px; }
 
+body, dialog::backdrop { --panel-radius: 22px; }
 body {
   --ink: #202431;
   --muted: #606575;
@@ -32,7 +33,7 @@ body {
   color: var(--ink);
   background: radial-gradient(ellipse at 0 0, rgba(255,255,255,.45), transparent 65%), linear-gradient(145deg, rgba(243,250,255,.34), rgba(233,232,249,.2));
   border: 1px solid var(--edge);
-  border-radius: 22px;
+  border-radius: var(--panel-radius);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -42,6 +43,7 @@ body {
 }
 /* Keep the body background inside the rounded panel instead of painting the canvas. */
 body:not(.apple-notch) { contain: paint; }
+body:not(.apple-notch) dialog::backdrop { clip-path: inset(0 round var(--panel-radius)); }
 body[data-theme="dark"] {
   --ink: #f2f4fc;
   --muted: #b6bed0;
