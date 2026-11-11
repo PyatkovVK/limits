@@ -5,17 +5,17 @@ const path = require('node:path');
 async function verifyContentSizing(window, notch = null) {
   const delay = () => new Promise(resolve => setTimeout(resolve, 600));
   async function height() {
-    await window.webContents.executeJavaScript('window.limitsMacPanelReady.then(() => window.limitsMacPanel.report())');
+    await window.webContents.executeJavaScript('window.limitsViewPanelReady.then(() => window.limitsViewPanel.report())');
     await delay();
     return notch ? notch.snapshot().fullHeight : window.getBounds().height;
   }
   const compact = await height();
-  const expected = await window.webContents.executeJavaScript('window.limitsMacPanel.measure()');
+  const expected = await window.webContents.executeJavaScript('window.limitsViewPanel.measure()');
   if (Math.abs(compact - expected - (notch?.snapshot().contentTop || 0)) > 2) throw new Error('Mac panel has empty space below content');
   await window.webContents.executeJavaScript(`(() => {
     const notice = document.createElement('div'); notice.id = 'sizing-smoke'; notice.className = 'notice';
     notice.textContent = 'A longer connection message that wraps onto several lines. '.repeat(8);
-    document.querySelector('.mac-panel-content').append(notice);
+    document.querySelector('.panel-content').append(notice);
   })()`);
   const expanded = await height();
   if (expanded <= compact) throw new Error('Mac panel did not grow for a notice');
@@ -42,7 +42,7 @@ async function verifyContentSizing(window, notch = null) {
   if (await height() !== compact) throw new Error('Mac panel did not shrink after closing Settings');
   await window.webContents.executeJavaScript(`(() => {
     const overflow = document.createElement('div'); overflow.id = 'sizing-smoke'; overflow.style.height = '2000px';
-    document.querySelector('.mac-panel-content').append(overflow);
+    document.querySelector('.panel-content').append(overflow);
   })()`);
   const capped = await height();
   const scrolls = await window.webContents.executeJavaScript("document.querySelector('main').scrollHeight > document.querySelector('main').clientHeight");
@@ -273,8 +273,8 @@ async function verifyAppleIslandContent({ appleNotch, target, trayWindow, trayPr
 
 async function verifyCompactMacPanel(target) {
   const report = await target.webContents.executeJavaScript(`(() => {
-    const short = document.querySelector('.apple-panel-quotas .short').getBoundingClientRect();
-    const weekly = document.querySelector('.apple-panel-quotas .weekly').getBoundingClientRect();
+    const short = document.querySelector('.panel-quotas .short').getBoundingClientRect();
+    const weekly = document.querySelector('.panel-quotas .weekly').getBoundingClientRect();
     const titlebar = document.querySelector('.titlebar').getBoundingClientRect();
     const island = document.body.classList.contains('apple-island');
     const buttonSize = island ? 30 : 32;

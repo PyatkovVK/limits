@@ -243,7 +243,7 @@ async function setup() {
   updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
   resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'),
     notify: showResetNotification, openExternal: url => shell.openExternal(url) });
-  window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, backgroundColor: '#000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
+  window = new BrowserWindow({ width: 440, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, transparent: true, backgroundColor: '#00000000', ...(process.platform === 'darwin' ? require('../apple_feature/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
   if (process.platform === 'win32') windowsPanel = require('../windows_feature/panel/panel.cjs').createPanelController({
     window, screen, ipcMain, getWidgetHost: () => widgetHost, root: app.getPath('userData'),
@@ -310,7 +310,7 @@ async function setup() {
     if (!trusted(event)) throw new Error('Unauthorized');
     if (event.sender === appleNotch?.window?.webContents) return appleNotch.resize(height);
     if (event.sender !== window.webContents) return false;
-    return (macPanel || linuxPanel)?.resize(height) || false;
+    return (windowsPanel || macPanel || linuxPanel)?.resize(height) || false;
   });
   handle('limits:hide', () => usesNotch() ? appleNotch?.collapse() : window.hide());
   handle('limits:quit', () => app.quit());
@@ -389,9 +389,8 @@ async function setup() {
     if (!monitor?.setMode) return { error: 'accountActionFailed' };
     try { monitor.setMode(mode); return {}; } catch { return { error: 'accountActionFailed' }; }
   });
-  await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  if (linuxPanel) await window.webContents.executeJavaScript('window.limitsLinuxPanelReady');
-  if (macPanel) await window.webContents.executeJavaScript('window.limitsMacPanelReady');
+  await window.loadFile(path.join(__dirname, 'view-panel', 'index.html'));
+  await window.webContents.executeJavaScript('window.limitsViewPanelReady');
   if (process.platform === 'darwin') {
     const { AppleNotch } = require('../apple_feature/notch.cjs');
     appleNotch = new AppleNotch({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, resourcesPath: app.isPackaged ? process.resourcesPath : null, getState: publicState, getMenu: presentationMenu, onChange: update, onUnavailable: () => setDisplayMode('tray') });
@@ -503,8 +502,8 @@ async function setup() {
       for (const language of ['ru', 'en']) {
         await window.webContents.executeJavaScript(`window.limits.language('${language}').then(render)`);
         await widget.webContents.executeJavaScript('window.limits.get().then(render)');
-        const labels = await window.webContents.executeJavaScript(`({ language: document.documentElement.lang, short: document.querySelector('.short [data-i18n="short"]').textContent, reset: document.getElementById('short-reset').textContent, refresh: document.getElementById('refresh').textContent, clean: !/До сброса|Осталось|каждые 30|Resets in|Remaining|every 30/.test(document.body.textContent) })`);
-        if (labels.language !== language || labels.short !== translate(language, 'short') || labels.refresh !== translate(language, 'refresh') || !labels.clean) throw new Error(JSON.stringify(labels));
+        const labels = await window.webContents.executeJavaScript(`({ language: document.documentElement.lang, short: document.querySelector('.short [data-i18n="shortPeriod"]').textContent, reset: document.getElementById('short-reset').textContent, refresh: document.getElementById('refresh').textContent, clean: !/До сброса|Осталось|каждые 30|Resets in|Remaining|every 30/.test(document.body.textContent) })`);
+        if (labels.language !== language || labels.short !== translate(language, 'shortPeriod') || labels.refresh !== translate(language, 'refresh') || !labels.clean) throw new Error(JSON.stringify(labels));
         const reset = await widget.webContents.executeJavaScript(`document.getElementById('short-reset').textContent`);
         const expectedClock = await widget.webContents.executeJavaScript(`window.limits.get().then(s => window.limitsWindowsResetClock.format(s.buckets.find(b => b.id === s.selectedId).short.resetsAt, s.language))`);
         if (reset !== labels.reset || reset !== expectedClock) throw new Error('Short reset clock is missing or inconsistent.');

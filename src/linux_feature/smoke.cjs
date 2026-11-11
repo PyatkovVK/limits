@@ -48,7 +48,7 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
       const content = document.querySelector('.linux-panel-content');
       window.linuxSmokeChildren = [...content.childNodes];
       content.replaceChildren();
-      return window.limitsLinuxPanel.report();
+      return window.limitsViewPanel.report();
     })()`);
     await delay(150);
     const compactHeight = window.getBounds().height;

@@ -22,7 +22,7 @@ app.whenReady().then(async () => {
   backdrop.showInactive();
   const ready = setInterval(async () => {
     const panel = BrowserWindow.getAllWindows().find(window => window !== backdrop &&
-      window.webContents.getURL().endsWith('/renderer/index.html'));
+      window.webContents.getURL().endsWith('/view-panel/index.html'));
     if (!panel) return;
     try {
       const state = await panel.webContents.executeJavaScript('window.limits.get()');

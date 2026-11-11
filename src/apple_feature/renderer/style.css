@@ -1,45 +1,5 @@
-/* macOS panel: native vibrancy supplies the backdrop, CSS supplies the glass surface. */
-body[data-platform="darwin"] {
-  --ink: #202431;
-  --muted: #606575;
-  --edge: rgba(255, 255, 255, .68);
-  --surface: rgba(255, 255, 255, .26);
-  --control: rgba(255, 255, 255, .44);
-  --track: rgba(48, 57, 78, .12);
-  --short: #008e76;
-  --weekly: #7852ce;
-  color-scheme: light;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 12px;
-  color: var(--ink);
-  background: radial-gradient(ellipse at 0 0, rgba(255,255,255,.45), transparent 65%), linear-gradient(145deg, rgba(243,250,255,.34), rgba(233,232,249,.2));
-  border: 1px solid var(--edge);
-  border-radius: 22px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(255,255,255,.15);
-  -webkit-font-smoothing: antialiased;
-}
-body[data-platform="darwin"][data-theme="dark"] {
-  --ink: #f2f4fc;
-  --muted: #b6bed0;
-  --edge: rgba(255,255,255,.18);
-  --surface: rgba(255,255,255,.055);
-  --control: rgba(255,255,255,.09);
-  --track: rgba(255,255,255,.12);
-  --short: #6ce6c7;
-  --weekly: #baa0ff;
-  color-scheme: dark;
-  background: radial-gradient(ellipse at 0 0, rgba(157,195,224,.14), transparent 65%), linear-gradient(145deg, rgba(23,30,43,.32), rgba(33,28,48,.38));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(255,255,255,.04);
-}
-body[data-platform="darwin"] .titlebar { height: 40px; flex-shrink: 0; padding: 0 13px; gap: 4px; border-bottom: 0; }
-body[data-platform="darwin"] .brand { color: var(--ink); font-size: 16px; font-weight: 650; letter-spacing: -.5px; }
-body[data-platform="darwin"] main { flex: 1; min-height: 0; padding: 0 12px 7px; max-height: none; scrollbar-width: thin; }
-/* Intrinsic wrappers stay measurable when the viewport shrinks or scrolls. */
-.mac-panel-content, .mac-settings-content { display: flow-root; }
+/* macOS supplies the native backdrop and the notch presentation. */
+body[data-platform="darwin"] { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
 body[data-platform="darwin"] #settings-dialog { --settings-inset: 14px; box-sizing: border-box; }
 body[data-platform="darwin"] #settings-dialog[open] { display: flex; flex-direction: column; }
 body[data-platform="darwin"] #settings-dialog .settings-header { flex: none; min-height: 56px; padding: 12px 16px; }
@@ -64,50 +24,6 @@ body[data-platform="darwin"].apple-notch #settings-dialog[open] {
   top: calc(var(--content-top) + var(--settings-inset));
   max-height: calc(var(--full-height) - var(--content-top) - 2 * var(--settings-inset));
 }
-body[data-platform="darwin"] .account-row { margin-bottom: 16px; gap: 10px; }
-body[data-platform="darwin"] #account { font-size: 13px; }
-body[data-platform="darwin"] .plan { border-color: var(--edge); color: var(--muted); background: var(--surface); border-radius: 8px; padding: 4px 7px; }
-body[data-platform="darwin"] .quota-card { padding: 15px 16px; border: 1px solid var(--edge); border-radius: 16px; background: linear-gradient(140deg, var(--surface), transparent); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
-body[data-platform="darwin"] .quota-card.weekly { margin-top: 10px; }
-body[data-platform="darwin"] .quota-meta { margin-bottom: 12px; }
-body[data-platform="darwin"] .period { font-size: 12px; font-weight: 600; }
-body[data-platform="darwin"] .quota-meta > span { font-size: 11px; color: var(--muted); }
-body[data-platform="darwin"] .remaining-value { font-size: 25px; font-weight: 600; letter-spacing: -1px; color: var(--ink); }
-body[data-platform="darwin"] progress { height: 6px; border-radius: 6px; background: var(--track); }
-body[data-platform="darwin"] progress::-webkit-progress-bar { background: var(--track); border-radius: 6px; }
-body[data-platform="darwin"] progress::-webkit-progress-value { background: var(--short); border-radius: 6px; }
-body[data-platform="darwin"] .weekly progress::-webkit-progress-value,
-body[data-platform="darwin"] .low progress::-webkit-progress-value { background: #e75d70; }
-body[data-platform="darwin"].stale progress::-webkit-progress-value,
-body[data-platform="darwin"] button,
-body[data-platform="darwin"] select,
-body[data-platform="darwin"] input { color: var(--ink); background: var(--control); border: 1px solid var(--edge); border-radius: 10px; }
-body[data-platform="darwin"] .refresh-button,
-body[data-platform="darwin"] .login-button { padding: 9px 13px; font-size: 11px; box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
-body[data-platform="darwin"] button:hover:enabled { background: var(--surface); }
-body[data-platform="darwin"] button:focus-visible,
-body[data-platform="darwin"] select:focus-visible,
-body[data-platform="darwin"] input:focus-visible { outline: 2px solid var(--short); outline-offset: 2px; }
-body[data-platform="darwin"] .icon-button { border: 0; background: transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; }
-body[data-platform="darwin"] .connection,
-body[data-platform="darwin"] #short-reset,
-body[data-platform="darwin"] #weekly-reset,
-body[data-platform="darwin"] footer,
-body[data-platform="darwin"] .footnote,
-body[data-platform="darwin"] .other { color: var(--muted); }
-body[data-platform="darwin"] .live-dot { width: 5px; height: 5px; background: var(--short); }
-body[data-platform="darwin"].stale .live-dot { background: #949bab; }
-body[data-platform="darwin"] .notice { color: var(--ink); background: var(--surface); border-color: var(--edge); border-radius: 12px; padding: 10px 12px; line-height: 1.5; }
-body[data-platform="darwin"] .warning,
-body[data-platform="darwin"] .connection.stale { color: #b36c16; }
-body[data-platform="darwin"][data-theme="dark"] .warning,
-body[data-platform="darwin"][data-theme="dark"] .connection.stale { color: #f1c182; }
-body[data-platform="darwin"].reduced-transparency { background: #edf0f6; }
-body[data-platform="darwin"][data-theme="dark"].reduced-transparency { background: #202632; }
-@media (prefers-contrast: more) {
-  body[data-platform="darwin"] { --edge: #9299a8; --muted: var(--ink); }
-}
-
 /* The transparent native window stays stationary while only the island morphs. */
 body[data-platform="darwin"].apple-notch,
 body[data-platform="darwin"][data-theme="dark"].apple-notch {
@@ -251,57 +167,12 @@ body[data-platform="darwin"].apple-notch:not([data-background]) .apple-content {
 body.apple-notch[data-notch-phase="expanded"]:not([data-background]) .apple-cap {
   height: var(--content-top); background: linear-gradient(#000 var(--cap-height), #17191f);
 }
-/* All macOS presentation modes use the same details panel. */
-body[data-platform="darwin"] :is(#connection, main .actions, #plan) { display: none; }
-body[data-platform="darwin"] .titlebar :is(#settings-button, #hide) {
-  position: relative; flex: 0 0 32px;
-  width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
-  background: transparent; color: var(--ink); font-size: 0;
-}
-body[data-platform="darwin"] .titlebar :is(#settings-button, #hide):hover { background: var(--control); }
-body[data-platform="darwin"] .titlebar :is(#settings-button, #hide)::after {
-  content: ""; position: absolute; inset: 0; margin: auto;
-  width: 20px; height: 20px; background: currentColor; pointer-events: none;
-  mask: var(--titlebar-icon) center / contain no-repeat;
-}
 /* Keep the approved island header and icon centers with the larger symbols. */
 body[data-platform="darwin"].apple-island .titlebar { height: 38px; padding-right: 11px; gap: 0; }
 body[data-platform="darwin"].apple-island .titlebar :is(#settings-button, #hide) {
   flex-basis: 30px; width: 30px; height: 30px; color: var(--muted);
 }
 body[data-platform="darwin"].apple-island .titlebar :is(#settings-button, #hide)::after { width: 18px; height: 18px; }
-.titlebar #settings-button {
-  --titlebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M10 2h4l.6 3.1 1.8 1 3-.9 2 3.5-2.4 2.1v2.4l2.4 2.1-2 3.5-3-.9-1.8 1-.6 3.1h-4l-.6-3.1-1.8-1-3 .9-2-3.5 2.4-2.1v-2.4L2.6 8.7l2-3.5 3 .9 1.8-1z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
-}
-.titlebar #hide {
-  --titlebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m5 5 14 14M19 5 5 19' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-.apple-panel-quotas { display: contents; }
-.apple-panel-quotas:has(.quota-card:not([hidden])) {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: 9px 0; border-radius: 9px; background: var(--surface);
-}
-body[data-platform="darwin"]:is(.apple-notch, [data-theme="dark"]):not([data-background]) .apple-panel-quotas { background: #242527; }
-body[data-platform="darwin"] .apple-panel-quotas .quota-card {
-  margin: 0; padding: 0 10px; border: 0; border-radius: 0; background: none; box-shadow: none;
-}
-body[data-platform="darwin"] .apple-panel-quotas .weekly { border-inline-start: 1px solid var(--edge); }
-body[data-platform="darwin"] .apple-panel-quotas .quota-meta { display: grid; gap: 3px; margin-bottom: 5px; }
-body[data-platform="darwin"] .apple-panel-quotas .period { gap: 5px; font-weight: 500; color: var(--muted); }
-body[data-platform="darwin"] .apple-panel-quotas .remaining-value { font-size: 23px; line-height: 1.15; }
-body[data-platform="darwin"] .apple-panel-quotas progress { height: 3px; }
-body[data-platform="darwin"]:not(.stale) .apple-panel-quotas .weekly:not(.low) progress::-webkit-progress-value { background: var(--weekly); }
-body[data-platform="darwin"] footer {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto;
-  margin-top: 5px; font-size: 11px; font-variant-numeric: tabular-nums;
-}
-body[data-platform="darwin"] footer .account-row { margin: 0; }
-body[data-platform="darwin"] footer #account { font-size: 11px; font-weight: 400; color: var(--muted); }
-body[data-platform="darwin"] footer #refresh {
-  width: 26px; height: 25px; padding: 0; border: 0; background: transparent;
-  box-shadow: none; color: var(--muted); font-size: 0;
-}
-body[data-platform="darwin"] footer #refresh::after { content: "↻"; font-size: 15px; }
 body[data-platform="darwin"]:is(.apple-notch, [data-theme="dark"]) #settings-dialog[open] { border-color: #656a77; }
 body.apple-island[data-island-indicators="values"] .apple-island-meter:not(.quota-period) .apple-island-label { display: none; }
 body.apple-island[data-island-indicators="values"] .apple-island-dot { display: none; }
