@@ -14,6 +14,11 @@ function changePreference(key, value, { app, settings, platform, taskbarSupporte
     return changed;
   }
   if (key === 'linuxTrayStyle' && platform === 'linux') return require('../linux_feature/preferences.cjs').changeTrayStyle(value, { settings, save, update });
+  if (key === 'widgetStyle' && platform === 'win32') {
+    if (!taskbarSupported || !require('../windows_feature/panel/widget-style.js').styles.includes(value)) return false;
+    settings.widgetStyle = value;
+    save(); update(); return true;
+  }
   if (key === 'islandHoverStyle' && platform === 'darwin') {
     const { isNotchMode, islandHoverStyles } = require('../apple_feature/presentation.cjs');
     if (!isNotchMode(settings.displayMode) || !islandHoverStyles.includes(value)) return false;

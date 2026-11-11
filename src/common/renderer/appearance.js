@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   let generation = 0, imageId, imageData;
-  let current = { mode: 'default', color: '#202632', hasImage: false };
+  let current = { mode: 'default', color: '#202632', hasImage: false, layout: 'standard' };
   const subscribers = new Set();
   const target = document.querySelector('[data-background-target]') || document.body;
 
@@ -33,6 +33,7 @@
     for (const property of properties) target.style.removeProperty(property);
     for (const property of variables) document.body.style.removeProperty(property);
     delete document.body.dataset.background;
+    document.body.dataset.panelLayout = next.layout || 'standard';
     if (next.mode !== 'default') {
       const light = next.mode === 'color' && isLight(next.color);
       document.body.dataset.background = light ? 'light' : 'dark';

@@ -20,10 +20,15 @@ test('background color persists independently of widget preferences and default 
 test('selected images use an app-owned copy and remain usable after the original is moved', t => {
   const { root, value } = store(t); const source = path.join(root, 'original.png'); fs.writeFileSync(source, png);
   value.importImage(source, decoder); fs.unlinkSync(source);
+  value.set({ layout: 'columns' });
   const restored = new AppearanceStore(root);
   assert.equal(restored.state().mode, 'image'); assert.equal(restored.state().hasImage, true);
+  assert.equal(restored.state().layout, 'columns');
   assert.equal(restored.imageData(), `data:image/png;base64,${png.toString('base64')}`);
   restored.set({ mode: 'default' }); assert.equal(restored.state().hasImage, true);
+  assert.equal(restored.state().layout, 'columns');
+  assert.throws(() => restored.set({ layout: 'unknown' }), /invalidAppearance/);
+  assert.equal(restored.state().layout, 'columns');
 });
 test('invalid files and excessive images fail before being stored', () => {
   assert.throws(() => encodeBackground(Buffer.from('<svg>unsafe</svg>'), decoder), /invalidImage/);
@@ -36,4 +41,5 @@ test('saved paths are never trusted and missing images return to the platform de
   fs.writeFileSync(path.join(folder, 'settings.json'), JSON.stringify({ mode: 'image', color: 'red', imageId: '../../private' }));
   const restored = new AppearanceStore(root);
   assert.equal(restored.state().mode, 'default'); assert.equal(restored.imageData(), null);
+  assert.equal(restored.state().layout, 'standard');
 });

@@ -11,6 +11,7 @@ function render(next) {
   language = next.language || 'ru';
   resetDisplay = next.preferences?.widgetResetDisplay || 'clock';
   document.body.dataset.resetDisplay = resetDisplay;
+  document.body.dataset.widgetStyle = window.limitsWindowsWidgetStyle.normalize(next.preferences?.widgetStyle);
   const translate = (lang, key) => window.limitsWindowsI18n.t(lang, key) || window.limitsI18n.t(lang, key, 'win32');
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);

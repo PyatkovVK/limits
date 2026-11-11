@@ -96,7 +96,7 @@ function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWi
     return place(lastAnchor || getAnchorBounds?.() || null);
   }
   const controller = { show, follow, resize, withModal };
-  if (ipcMain) require('./ipc.cjs').installWindowsBridge({ window, screen, ipcMain, getWidgetHost, panel: controller });
+  if (ipcMain) require('../ipc.cjs').installWindowsBridge({ window, screen, ipcMain, getWidgetHost, panel: controller });
   return controller;
 }
 

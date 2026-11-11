@@ -1,0 +1,88 @@
+body:is([data-widget-style="rows"], [data-widget-style="cells"]) {
+  --widget-divider: var(--edge, #363a43);
+  --widget-secondary: var(--appearance-muted, #aeb6c7);
+  grid-template-columns: minmax(0, 30%) minmax(0, 1fr);
+  gap: 7px;
+  border-radius: 5px;
+}
+body:is([data-widget-style="rows"], [data-widget-style="cells"]):not([data-background]) {
+  background-color: #1b1d21;
+  border-color: #363a43;
+}
+body:is([data-widget-style="rows"], [data-widget-style="cells"]) #widget-account { font-size: 11px; }
+body:is([data-widget-style="rows"], [data-widget-style="cells"]) #widget-plan {
+  color: var(--widget-secondary);
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+}
+body:is([data-widget-style="rows"], [data-widget-style="cells"]) :is(.quota, .metric-compact-row) {
+  line-height: 11px;
+  font-size: 10px;
+}
+body:is([data-widget-style="rows"], [data-widget-style="cells"]) :is(.percentage, .metric-value) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  text-align: right;
+}
+body:is([data-widget-style="rows"], [data-widget-style="cells"]) :is(.period > span, .metric-label > span, time) {
+  color: var(--widget-secondary);
+  font-size: 9px;
+}
+body:is([data-widget-style="rows"], [data-widget-style="cells"]) .metric-label { display: contents; }
+body:is([data-widget-style="rows"], [data-widget-style="cells"]) progress { border-radius: 10px; overflow: hidden; }
+body:is([data-widget-style="rows"], [data-widget-style="cells"]):not([data-background], .stale) progress::-webkit-progress-value { background: #9cbeff; }
+body:is([data-widget-style="rows"], [data-widget-style="cells"]):not([data-background], .stale) .low progress::-webkit-progress-value { background: #ff9d8f; }
+body:is([data-widget-style="rows"], [data-widget-style="cells"]):not(.stale) .low :is(.percentage, .metric-value) { color: #ff9d8f; }
+body:is([data-widget-style="rows"], [data-widget-style="cells"])[data-background="light"]:not(.stale) .low :is(.percentage, .metric-value) { color: #a53626; }
+
+body[data-widget-style="rows"] :is(.quotas, .metric-compact) {
+  grid-template-columns: max-content minmax(12px, 1fr) max-content max-content;
+  gap: 2px 4px;
+}
+body[data-widget-style="rows"] .quotas {
+  border-inline-start: 1px solid var(--widget-divider);
+  padding-inline-start: 6px;
+}
+body[data-widget-style="rows"] :is(.quota, .metric-compact-row) {
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  gap: inherit;
+}
+body[data-widget-style="rows"] :is(.period > span, .metric-label > span) { grid-area: 1 / 1; }
+body[data-widget-style="rows"] progress { grid-area: 1 / 2; }
+body[data-widget-style="rows"] time { grid-area: 1 / 3; text-align: right; }
+body[data-widget-style="rows"] :is(.percentage, .metric-value) { grid-area: 1 / 4; }
+body[data-widget-style="rows"] .metric-value { max-width: 10ch; }
+
+body[data-widget-style="cells"] { border-radius: 8px; }
+body[data-widget-style="cells"] :is(.quotas, .metric-compact) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+body[data-widget-style="cells"] :is(.quota, .metric-compact-row) {
+  grid-column: auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'period value' 'reset reset' 'bar bar';
+  gap: 0 2px;
+  padding-inline: 4px;
+  border-inline-start: 1px solid var(--widget-divider);
+}
+body[data-widget-style="cells"] :is(.period > span, .metric-label > span) { grid-area: period; }
+body[data-widget-style="cells"] :is(.percentage, .metric-value) { grid-area: value; font-size: 11px; }
+body[data-widget-style="cells"] time { grid-area: reset; text-align: right; line-height: 10px; }
+body[data-widget-style="cells"] progress { grid-area: bar; height: 2px; margin-block-start: 1px; }
+body[data-widget-style="cells"] .metric-compact-row:has(progress[hidden]):has(time[hidden]) {
+  grid-template-areas: 'value value' 'period period';
+}
+body[data-widget-style="cells"] .metric-compact-row:has(progress[hidden]):has(time[hidden]) .metric-value { text-align: left; }
+
+@media (max-width: 220px) {
+  body:is([data-widget-style="rows"], [data-widget-style="cells"]) { grid-template-columns: 54px minmax(0, 1fr); gap: 4px; }
+  body[data-widget-style="rows"] .quotas { padding-inline-start: 4px; }
+  body[data-widget-style="cells"] .quota time { font-size: 8px; }
+}

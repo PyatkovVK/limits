@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const MODES = ['default', 'color', 'image'];
+const LAYOUTS = ['standard', 'columns'];
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_STORED = 3 * 1024 * 1024;
 function validColor(value) { return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value); }
@@ -33,10 +34,11 @@ class AppearanceStore {
   constructor(root) {
     this.root = path.join(root, 'appearance');
     this.file = path.join(this.root, 'settings.json');
-    this.value = { mode: 'default', color: '#202632', imageId: '' };
+    this.value = { mode: 'default', color: '#202632', imageId: '', layout: 'standard' };
     try {
       const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
       if (MODES.includes(saved.mode)) this.value.mode = saved.mode;
+      if (LAYOUTS.includes(saved.layout)) this.value.layout = saved.layout;
       if (validColor(saved.color)) this.value.color = saved.color;
       if (typeof saved.imageId === 'string' && /^[a-f0-9-]{36}$/.test(saved.imageId)) this.value.imageId = saved.imageId;
     } catch { /* Use the platform default for absent or invalid saved preferences. */ }
@@ -47,16 +49,29 @@ class AppearanceStore {
     if (!this.value.imageId) return false;
     try { const file = fs.statSync(this.imagePath()); return file.isFile() && file.size > 0 && file.size <= MAX_STORED; } catch { return false; }
   }
-  state() { return { mode: this.value.mode, color: this.value.color, hasImage: this.hasImage(), imageId: this.value.imageId }; }
+  state() { return { ...this.value, hasImage: this.hasImage() }; }
   save(next) {
     fs.mkdirSync(this.root, { recursive: true });
     fs.writeFileSync(this.file, JSON.stringify(next));
     this.value = next;
     return this.state();
   }
-  set({ mode, color } = {}) {
-    if (!MODES.includes(mode) || (color !== undefined && !validColor(color)) || (mode === 'image' && !this.hasImage())) throw new Error('invalidAppearance');
-    return this.save({ ...this.value, mode, ...(color === undefined ? {} : { color: color.toLowerCase() }) });
+  set({ mode, color, layout } = {}) {
+    if (mode === undefined && layout === undefined) throw new Error('invalidAppearance');
+    const next = { ...this.value };
+    if (mode !== undefined) {
+      if (!MODES.includes(mode) || (mode === 'image' && !this.hasImage())) throw new Error('invalidAppearance');
+      next.mode = mode;
+    }
+    if (color !== undefined) {
+      if (!validColor(color)) throw new Error('invalidAppearance');
+      next.color = color.toLowerCase();
+    }
+    if (layout !== undefined) {
+      if (!LAYOUTS.includes(layout)) throw new Error('invalidAppearance');
+      next.layout = layout;
+    }
+    return this.save(next);
   }
   importImage(filename, nativeImage) {
     const stat = fs.statSync(filename);

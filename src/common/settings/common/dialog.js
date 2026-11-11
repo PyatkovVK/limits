@@ -1,8 +1,8 @@
 'use strict';
 (() => {
   const texts = {
-    ru: { settings: 'Настройки', close: 'Закрыть настройки', widget: 'Настройки панели', width: 'Ширина', visible: 'Показывать виджет', reset: 'Сбросить положение', error: 'Не удалось изменить настройку. Попробуйте ещё раз.' },
-    en: { settings: 'Settings', close: 'Close settings', widget: 'Panel settings', width: 'Width', visible: 'Show widget', reset: 'Reset position', error: 'Could not change this setting. Try again.' },
+    ru: { settings: 'Настройки', close: 'Закрыть настройки', widget: 'Настройки панели', width: 'Ширина', widthHint: 'Размер виджета на рабочем столе', visible: 'Показать виджет', position: 'Положение', reset: 'Сбросить', error: 'Не удалось изменить настройку. Попробуйте ещё раз.' },
+    en: { settings: 'Settings', close: 'Close settings', widget: 'Panel settings', width: 'Width', widthHint: 'Size of the desktop widget', visible: 'Show widget', position: 'Position', reset: 'Reset', error: 'Could not change this setting. Try again.' },
   };
   const resetTexts = {
     ru: { label: 'Время сброса', hidden: 'Не отображать', countdown: 'Время до сброса', clock: 'Дата и время', hint: 'Отсчёт: 5ч — часы:минуты; 7д — дни:часы:минуты.' },
@@ -18,18 +18,35 @@
   const title = make('h2', header); title.id = 'settings-title';
   const close = make('button', header, 'settings-close'); close.type = 'button';
   const content = make('div', dialog, 'settings-content');
-  const widgetSection = make('section', content, 'settings-widget');
-  const widgetTitle = make('h3', widgetSection);
-  const widthRow = make('label', widgetSection, 'settings-row'); const widthText = make('span', widthRow);
-  const width = make('select', widthRow); width.id = 'settings-width';
+  const widgetSection = make('section', content, 'settings-group settings-widget');
+  const widgetTitle = make('h3', widgetSection); widgetTitle.id = 'settings-widget-title';
+  widgetSection.setAttribute('aria-labelledby', widgetTitle.id);
+  const widgetCard = make('div', widgetSection, 'settings-group-card');
+  function widgetRow(id, kind, hasHint = false) {
+    const row = make('div', widgetCard, 'settings-item');
+    const copy = make('div', row, 'settings-item-copy');
+    const label = make('label', copy); label.htmlFor = id;
+    const control = kind === 'select'
+      ? make('select', make('div', row, 'settings-item-select'))
+      : make(kind, row, kind === 'input' ? 'settings-item-toggle' : 'refresh-button');
+    control.id = id;
+    const hint = hasHint ? make('p', copy, 'settings-item-description') : null;
+    if (hint) {
+      hint.id = `${id}-hint`;
+      control.setAttribute('aria-describedby', hint.id);
+    }
+    return { row, label, control, hint };
+  }
+  const { label: visibleText, control: visible } = widgetRow('settings-visible', 'input');
+  visible.type = 'checkbox'; visible.setAttribute('role', 'switch');
+  const { label: widthText, control: width, hint: widthHint } = widgetRow('settings-width', 'select', true);
   for (const value of [240, 280, 320, 400]) { const option = make('option', width); option.value = value; option.textContent = `${value} px`; }
-  const resetDisplayRow = make('label', widgetSection, 'settings-row'); const resetDisplayText = make('span', resetDisplayRow);
-  const resetDisplay = make('select', resetDisplayRow); resetDisplay.id = 'settings-widget-reset-display';
+  const { row: resetDisplayRow, label: resetDisplayText, control: resetDisplay, hint: resetDisplayHint } =
+    widgetRow('settings-widget-reset-display', 'select', true);
   for (const value of ['hidden', 'countdown', 'clock']) { const option = make('option', resetDisplay); option.value = value; }
-  const resetDisplayHint = make('p', widgetSection, 'footnote'); resetDisplayHint.id = 'settings-widget-reset-hint'; resetDisplay.setAttribute('aria-describedby', resetDisplayHint.id);
-  const visibleRow = make('label', widgetSection, 'settings-row'); const visibleText = make('span', visibleRow);
-  const visible = make('input', visibleRow); visible.type = 'checkbox'; visible.id = 'settings-visible';
-  const reset = make('button', widgetSection, 'refresh-button'); reset.type = 'button'; reset.id = 'settings-reset';
+  const { label: positionText, control: reset } = widgetRow('settings-reset', 'button');
+  reset.type = 'button';
+  const renderWindowsWidgetSettings = window.limitsWindowsWidgetSettings?.create(widgetCard, change);
   const extensions = make('div', content); extensions.id = 'settings-extensions';
   for (const section of document.querySelectorAll('[data-setting-section]')) extensions.append(section);
   content.append(document.querySelector('.accounts-section'));
@@ -62,9 +79,12 @@
     button.textContent = t.settings; button.title = t.settings;
     title.textContent = t.settings; close.setAttribute('aria-label', t.close);
     widgetTitle.textContent = t.widget;
-    widthText.textContent = t.width; visibleText.textContent = t.visible; reset.textContent = t.reset;
+    widthText.textContent = t.width; widthHint.textContent = t.widthHint; visibleText.textContent = t.visible;
+    positionText.textContent = t.position; reset.textContent = t.reset;
+    reset.setAttribute('aria-label', `${t.reset} — ${t.position.toLowerCase()}`);
     const prefs = next.preferences;
     widgetSection.hidden = !prefs?.widgetSupported || next.displayMode !== 'widget';
+    renderWindowsWidgetSettings?.(next);
     width.value = String(prefs?.width || 280); visible.checked = prefs?.visible !== false;
     width.disabled = visible.disabled = reset.disabled = next.displayMode !== 'widget';
   }
