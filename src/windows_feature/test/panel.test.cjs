@@ -6,7 +6,7 @@ const { panelPosition, createPanelController } = require('../panel/panel.cjs');
 
 const area = { x: 0, y: 0, width: 1920, height: 1032 };
 const bounds = { x: 800, y: 1032, width: 280, height: 34 };
-function controller(root) {
+function controller(root, ipcMain) {
   const window = Object.assign(new EventEmitter(), {
     destroyed: false, visible: false, position: [0, 0], moves: 0, shows: 0, focuses: 0,
     isDestroyed() { return this.destroyed; },
@@ -22,6 +22,7 @@ function controller(root) {
     show() { this.visible = true; this.shows++; },
     focus() { this.focuses++; },
     hide() { this.visible = false; },
+    webContents: { session: { registerPreloadScript: () => 'windows-preload' } },
   });
   const widget = {
     destroyed: false, visible: true, bounds: { ...bounds },
@@ -30,9 +31,16 @@ function controller(root) {
     getBounds() { return this.bounds; },
   };
   const screen = { getDisplayMatching: () => ({ workArea: area }), getPrimaryDisplay: () => ({ workArea: area }) };
-  const panel = createPanelController({ window, screen, getAnchorBounds: () => widget.bounds, root });
+  const panel = createPanelController({ window, screen, getAnchorBounds: () => widget.bounds, root, ipcMain });
   return { window, widget, screen, panel };
 }
+
+test('creating the Windows panel registers its IPC handlers', () => {
+  const handlers = new Map();
+  controller(undefined, { handle: (channel, handler) => handlers.set(channel, handler) });
+  assert.equal(typeof handlers.get('limits:windows-panel-size'), 'function');
+  assert.equal(typeof handlers.get('limits:widget-drag'), 'function');
+});
 
 test('open Windows details follow the widget without showing or focusing again', () => {
   const { window, widget, panel } = controller();
