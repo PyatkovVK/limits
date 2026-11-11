@@ -2,37 +2,7 @@
 (function () {
   const isNotch = new URLSearchParams(location.search).get('apple') === 'notch';
   const body = document.body;
-  let islandIndicators, updateSurface, panel;
-
-  function preparePanel() {
-    const main = document.querySelector('main');
-    const footer = main.querySelector('footer');
-    const refresh = main.querySelector('#refresh');
-    footer.prepend(main.querySelector('.account-row'));
-    footer.append(refresh);
-    const cards = [...main.querySelectorAll('.quota-card.short, .quota-card.weekly')];
-    const quotas = document.createElement('div'); quotas.className = 'apple-panel-quotas';
-    cards[0].before(quotas);
-    quotas.append(...cards);
-    return {
-      periods: cards.map(card => card.querySelector('[data-i18n]')),
-      refresh,
-      updated: footer.querySelector('#updated'),
-      status: footer.querySelector('.live-dot'),
-      connection: document.getElementById('connection'),
-    };
-  }
-
-  function renderPanel(updatedTime, t) {
-    const { periods, refresh, updated, status, connection } = panel ??= preparePanel();
-    periods[0].textContent = t('shortPeriod');
-    periods[1].textContent = t('weeklyPeriod');
-    updated.title = updated.textContent;
-    updated.textContent = updatedTime || '—';
-    status.title = connection.textContent;
-    refresh.title = [refresh.textContent, status.title, updated.title].join(' · ');
-    refresh.setAttribute('aria-label', refresh.title);
-  }
+  let islandIndicators, updateSurface;
 
   if (isNotch) {
     body.classList.add('apple-notch');
@@ -97,10 +67,9 @@
       }
       return window.limitsAppleI18n.t(language, key);
     },
-    render(next, updatedTime) {
+    render(next) {
       if (next.platform !== 'darwin') return;
       const t = key => window.limitsAppleI18n.t(next.language, key);
-      renderPanel(updatedTime, t);
       if (!isNotch || !next.appleNotch) return;
       this.state = next;
       const layout = next.appleNotch;
@@ -141,7 +110,7 @@
       }
       const message = layout.notification;
       const notification = document.querySelector('.apple-notification');
-      const notificationParent = expanded ? document.querySelector('dialog[open] .mac-settings-content') || document.querySelector('dialog[open] .settings-content') || document.querySelector('.mac-panel-content') || document.querySelector('.apple-content main') : document.querySelector('.apple-shell');
+      const notificationParent = expanded ? document.querySelector('dialog[open] .panel-settings-content') || document.querySelector('dialog[open] .settings-content') || document.querySelector('.panel-content') || document.querySelector('.apple-content main') : document.querySelector('.apple-shell');
       if (notification.parentElement !== notificationParent) notificationParent.prepend(notification);
       notification.hidden = !message || layout.mode !== 'island';
       document.getElementById('apple-notification-title').textContent = message?.title || '';

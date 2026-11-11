@@ -41,20 +41,17 @@ function render(next) {
   const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets[0];
   document.body.classList.toggle('stale', Boolean(stale));
   $('demo').hidden = !next.demo;
-  $('connection').textContent = t(next.demo ? 'demo' : next.status === 'signing-in' ? 'signingIn' : next.status === 'signed-out' ? 'signedOut' : next.status === 'connecting' ? 'connecting' : stale ? 'stale' : 'online');
-  $('connection').classList.toggle('stale', Boolean(stale));
+  const connection = t(next.demo ? 'demo' : next.status === 'signing-in' ? 'signingIn' : next.status === 'signed-out' ? 'signedOut' : next.status === 'connecting' ? 'connecting' : stale ? 'stale' : 'online');
+  $('connection').title = connection;
+  $('connection').setAttribute('aria-label', connection);
   $('account').textContent = next.displayName || next.account?.email || t(next.status === 'signed-out' ? 'connectAccount' : 'account');
-  $('account').title = next.account?.email || '';
-  $('plan').hidden = !next.account?.planType;
-  $('plan').textContent = next.account?.planType || '';
+  $('account').title = [next.account?.email, next.account?.planType].filter(Boolean).join(' · ');
   const messageKey = actionError || next.error || next.widgetError || (next.accountAvailable === false ? 'insufficientBalance' : next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
   const message = messageKey ? t(messageKey) : null;
   $('error').hidden = !message;
   $('error').textContent = message || '';
   const groups = next.groups || next.buckets;
-  $('panel-provider').textContent = next.providerId === 'zai' ? 'Z.ai' : 'Codex';
   document.querySelector('.panel-quotas').hidden = generic;
-  for (const kind of ['short', 'weekly']) $(`${kind}-bar`).closest('.quota-card').hidden = generic;
   $('provider-metrics').hidden = !generic;
   if (generic) window.limitsMetricElements.render($('provider-metrics'), next);
   $('bucket-row').hidden = groups.length < 2;
@@ -80,13 +77,18 @@ function render(next) {
   $('other').hidden = !bucket?.other?.length;
   $('other').textContent = bucket?.other?.map(item => `${item.duration ?? '?'} ${t('minutes')}: ${item.remaining === null ? t('noData') : `${item.remaining}%`}`).join(' · ') || '';
   $('refresh').disabled = next.refreshing || next.demo;
+  $('login').hidden = next.demo || next.readOnly || Boolean(next.account && next.status !== 'signing-in');
   $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
   $('login').textContent = t(next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
   const updatedTime = next.updatedAt ? new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-  $('updated').textContent = updatedTime ? `${t('updated')} ${updatedTime}` : t('waiting');
+  $('updated').title = updatedTime ? t('updated') + ' ' + updatedTime : t('waiting');
+  $('updated').textContent = updatedTime || '—';
+  $('updated').dateTime = next.updatedAt ? new Date(next.updatedAt).toISOString() : '';
+  $('updated').setAttribute('aria-label', $('updated').title);
+  $('refresh').title = [t('refresh'), connection, $('updated').title].join(' · ');
   renderSubscriptions(next, t, actionError);
   renderCountdown();
-  window.limitsApple?.render(next, updatedTime);
+  window.limitsApple?.render(next);
 }
 
 $('hide').addEventListener('click', () => window.limits.hide());

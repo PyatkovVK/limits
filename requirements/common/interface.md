@@ -3,7 +3,7 @@
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
 | COM-UI-001 | Support Russian and English interfaces. | Labels, tooltips, states, and settings switch together; the chosen language persists. First launch respects the system locale. |
-| COM-UI-002 | Open details from the compact indicator. | The window shows the selected account/name and plan, five-hour and weekly bars with remaining percentages, reset countdown, connection state, last update time, refresh and account-switch actions, and access to account management and display settings. |
+| COM-UI-002 | Open details from either quota indicator or from the widget. | For Codex, the five-hour and weekly limits appear side by side with a period label, remaining percentage, progress bar, and available reset time. The header contains Settings and Close icons. The footer contains the selected account name, connection indicator, last update time, and Refresh icon. Settings contains account management, plan details, and display options. |
 | COM-UI-003 | Consolidate user settings in the Settings dialog. | The dialog is accessible through the window button and menu item; language, accounts, display modes, and background are in one place. |
 | COM-UI-004 | Show only modes and options available on the platform. | Windows widths are inactive in tray mode; notch mode is unavailable without a suitable display; unsupported startup is not presented as working. |
 | COM-UI-005 | Persist language, display mode, and platform options. | Restart restores the selection; corrupt/unsupported values fall back to safe settings. |
@@ -37,6 +37,8 @@ These requirements describe the shared details window and its account/settings c
 | COM-UI-026 | Keep modal operations consistent with their details container. | A native background-image picker does not collapse the macOS notch or dismiss the Windows details panel on temporary focus loss; the guard is released after success, cancellation, or error. Collapsing the notch closes Settings so reopening cannot expose a leftover dialog. |
 | COM-UI-027 | Offer sign-in from details when no account is authenticated. | Account controls explain that sign-in is needed. Windows opens the panel once at the first signed-out state; later polls do not reopen a window hidden by the user. |
 | COM-UI-028 | Keep details separate from an ordinary launcher window. | macOS does not add an ordinary application window to the Dock; compact indicators/notch and details remain the entry points, with Quit available from the menu. |
+| COM-UI-032 | Share the details layout and sizing logic across Windows, macOS, and Linux. | The renderer lives in `src/common/view-panel/`. Standalone details have a nominal width of 400 logical pixels, with transparent space outside the rounded corners. Standard shows both quotas on one surface with a divider. Two columns uses separate cards. The expanded macOS notch and Around the notch modes use the Standard quota layout. |
+| COM-UI-033 | Keep account connection actions out of the compact signed-in layout. | The selected account can be managed in Settings. A signed-out account eligible for sign-in can start it from details. An externally managed read-only account shows its quotas without a “Connect account in Limits” button. |
 
 ## Planned controller-driven display
 
