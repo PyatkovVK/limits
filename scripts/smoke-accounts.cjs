@@ -4,8 +4,8 @@ const { app, BrowserWindow, ipcMain, shell, Notification } = require('electron')
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { Accounts } = require('../src/common/accounts.cjs');
-const { DemoMonitor } = require('../src/common/demo-monitor.cjs');
+const { Accounts } = require('../src/common/core/accounts.cjs');
+const { DemoMonitor } = require('../src/common/demo/demo-monitor.cjs');
 app.getVersion = () => require('../package.json').version;
 const artifacts = path.resolve(__dirname, '../artifacts');
 fs.mkdirSync(artifacts, { recursive: true });

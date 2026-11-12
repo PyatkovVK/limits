@@ -1,10 +1,10 @@
 'use strict';
-const { percentage, icon } = require('../windows_feature/tray-icon.cjs');
-const { icon: macIcon } = require('../apple_feature/tray-icon.cjs');
-const { icon: linuxIcon } = require('../linux_feature/tray-icon.cjs');
-const { t } = require('./renderer/i18n.js');
-const { format } = require('./renderer/countdown.js');
-const { view } = require('./renderer/metrics.js');
+const { percentage, icon } = require('../../windows_feature/tray-icon.cjs');
+const { icon: macIcon } = require('../../apple_feature/tray-icon.cjs');
+const { icon: linuxIcon } = require('../../linux_feature/tray-icon.cjs');
+const { t } = require('../renderer/i18n.js');
+const { format } = require('../renderer/countdown.js');
+const { view } = require('../renderer/metrics.js');
 const { icon: metricIcon } = require('./metric-icon.cjs');
 
 // Stable GUIDs let Windows keep icon visibility preferences across mode switches.

@@ -1,7 +1,7 @@
 'use strict';
 const { ApiKeyController } = require('../api-key-controller.cjs');
 const { displaySchema } = require('../quota-display.cjs');
-const { ZAI_POLL_INTERVAL_MINUTES } = require('../../polling-defaults.cjs');
+const { ZAI_POLL_INTERVAL_MINUTES } = require('../../core/polling-defaults.cjs');
 const { ZaiClient, KEY_URL } = require('./client.cjs');
 const { normalizeQuota } = require('./quota.cjs');
 

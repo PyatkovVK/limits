@@ -2,7 +2,7 @@
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
 const path = require('node:path');
-const { RESET_CHECK_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
+const { RESET_CHECK_INTERVAL_MINUTES } = require('../../core/polling-defaults.cjs');
 
 const CHECK_INTERVAL = RESET_CHECK_INTERVAL_MINUTES * 60 * 1000;
 const REQUEST_TIMEOUT = 15000;

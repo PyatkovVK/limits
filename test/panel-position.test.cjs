@@ -2,7 +2,7 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { createPanelPosition } = require('../src/common/panel-position.cjs');
+const { createPanelPosition } = require('../src/common/panel/panel-position.cjs');
 function setup(t, root) {
   root ||= fs.mkdtempSync(path.join(os.tmpdir(), 'limits-placement-'));
   const window = new EventEmitter(); window.bounds = { x: 100, y: 150, width: 440, height: 590 };

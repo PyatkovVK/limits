@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { bitmap, png } = require('../tray-icon.cjs');
 const { createHash } = require('node:crypto');
 const { EventEmitter } = require('node:events');
-const { TrayPresentation } = require('../../common/tray.cjs');
+const { TrayPresentation } = require('../../common/tray/tray.cjs');
 
 test('classic pixels match the archived Linux renderer exactly', () => {
   const digest = createHash('sha256');

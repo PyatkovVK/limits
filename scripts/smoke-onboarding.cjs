@@ -4,8 +4,8 @@ const { app, BrowserWindow, shell } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { findCodex } = require('../src/common/codex-path.cjs');
-const { AUTH_ENV_VARIABLES } = require('../src/common/accounts.cjs');
+const { findCodex } = require('../src/common/ai-connects/codex/path.cjs');
+const { AUTH_ENV_VARIABLES } = require('../src/common/core/accounts.cjs');
 if (process.platform !== 'win32') throw new Error('Run the Windows onboarding check on Windows.');
 
 const parent = path.resolve(__dirname, '../artifacts');

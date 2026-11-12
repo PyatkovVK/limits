@@ -1,6 +1,6 @@
-# Pluggable AI controllers (planned)
+# Pluggable AI controllers
 
-This document defines a planned shared infrastructure for connecting AI services to Limits on Windows, macOS, and Linux. It does not describe an already completed refactor. The first implementation includes only OpenAI Codex, adapted from the existing integration. DeepSeek, Claude, Qwen, Alice AI, and other services are examples of future extensions; their integration is outside this task.
+This document defines the shared infrastructure for connecting AI services to Limits on Windows, macOS, and Linux. The production registry contains the OpenAI Codex, DeepSeek, and Z.ai (GLM Coding Plan) providers. Codex uses browser sign-in; DeepSeek and Z.ai are API-key providers documented separately in [DeepSeek](providers/deepseek.md) and [Z.ai](providers/zai.md).
 
 ## Location and responsibilities
 
@@ -24,7 +24,7 @@ The shared monitor schedules updates and reconnects through the controller contr
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
 | COM-AI-001 | Place the shared connection infrastructure in `src/common/ai-connects/`. | All supported operating systems use the same controller contracts and registry. Provider logic is not duplicated in platform implementations. |
-| COM-AI-002 | Add a provider through a subclass of the abstract controller and one registry entry. | A provider using the existing data types and display primitives can be added with its own directory and registry entry, without adding provider branches to the shared monitor, account management, or renderer. The production registry initially contains only `codex`. Runtime installation of third-party plugins is outside this task. |
+| COM-AI-002 | Add a provider through a subclass of the abstract controller and one registry entry. | A provider using the existing data types and display primitives can be added with its own directory and registry entry, without adding provider branches to the shared monitor, account management, or renderer. The production registry contains `codex`, `deepseek`, and `zai`. Runtime installation of third-party plugins is outside this task. |
 | COM-AI-003 | Keep service details behind the controller contract. | Codex RPC method names, authentication environment variables, credential-home rules, and response field names remain in the Codex implementation. Shared orchestration does not access a controller's transport or raw responses directly. |
 | COM-AI-004 | Distinguish connection readiness, authentication, and access to limit data. | Starting a transport does not imply a signed-in account or supported quota access. The controller reports signed-out, unsupported, and failed access separately; a network failure is not reported as a successful sign-out or a zero balance. |
 | COM-AI-005 | Refresh data through one common operation. | Automatic polling and manual refresh obtain the same normalized snapshot through `refresh()`. Service notifications are translated into the same snapshot/state events rather than exposed as provider-specific RPC events to consumers. |
@@ -77,7 +77,7 @@ For example, Codex can describe five-hour and weekly percentage bars with reset 
 
 ## Implementation acceptance
 
-These checks apply when implementing the planned architecture, not to this requirements-only change:
+These checks verify the shared architecture:
 
 - Run the shared test suite and verify Codex login/cancellation/logout, profile/source persistence, account switching, notification updates, polling/reconnect behavior, and stale-data handling through the controller contract.
 - Verify a saved profile without `providerId` remains the same Codex profile with the same selection and credential location; an unknown provider does not load Codex credentials.
@@ -85,4 +85,4 @@ These checks apply when implementing the planned architecture, not to this requi
 - Verify that delayed results after cancellation, disconnection, account removal, or identity changes do not update another attempt/profile or reopen a browser.
 - Exercise Codex demo UI on the native host and verify that details, account cards, and the compact indicator agree. Report native checks on other operating systems only when actually performed.
 
-Related requirements: [Codex accounts](accounts/codex.md), [interface and settings](interface.md#planned-controller-driven-display), and [privacy](privacy.md#planned-controller-boundaries).
+Related requirements: [Codex accounts](accounts/codex.md), [DeepSeek](providers/deepseek.md), [Z.ai](providers/zai.md), [interface and settings](interface.md#controller-driven-display), and [privacy](privacy.md#controller-boundaries).

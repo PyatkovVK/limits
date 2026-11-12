@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { Subscriptions } = require('../../common/subscriptions.cjs');
-const { DemoMonitor } = require('../../common/demo-monitor.cjs');
+const { Subscriptions } = require('../../common/ai-connects/codex/subscriptions.cjs');
+const { DemoMonitor } = require('../../common/demo/demo-monitor.cjs');
 
 test('Windows tracks the current Codex home alongside connected subscriptions and preserves selection', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-win-subscriptions-'));

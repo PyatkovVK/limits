@@ -1,8 +1,8 @@
 'use strict';
 const { EventEmitter } = require('node:events');
-const { AiController } = require('./ai-connects/ai-controller.cjs');
-const { contractError, snapshot, diagnostic } = require('./ai-connects/contracts.cjs');
-const { legacyBuckets } = require('./renderer/metrics.js');
+const { AiController } = require('../ai-connects/ai-controller.cjs');
+const { contractError, snapshot, diagnostic } = require('../ai-connects/contracts.cjs');
+const { legacyBuckets } = require('../renderer/metrics.js');
 class Monitor extends EventEmitter {
   constructor(controller) {
     super();

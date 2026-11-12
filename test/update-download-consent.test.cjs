@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), vm = require('node:vm');
-const { CHECK_INTERVAL } = require('../src/common/updates.cjs');
+const { CHECK_INTERVAL } = require('../src/common/updates/updates.cjs');
 const { LinuxUpdates } = require('../src/linux_feature/updates.cjs');
 const { WindowsUpdates } = require('../src/windows_feature/updates.cjs');
 const { AppleUpdates } = require('../src/apple_feature/updates.cjs');

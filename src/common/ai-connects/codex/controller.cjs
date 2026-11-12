@@ -4,7 +4,7 @@ const { snapshot } = require('../contracts.cjs');
 const { CodexClient } = require('./client.cjs');
 const { findCodex } = require('./path.cjs');
 const { normalizeLimits, groupsFromBuckets, displaySchema } = require('./limits.cjs');
-const { CODEX_POLL_INTERVAL_MINUTES } = require('../../polling-defaults.cjs');
+const { CODEX_POLL_INTERVAL_MINUTES } = require('../../core/polling-defaults.cjs');
 
 class CodexController extends AiController {
   constructor(client, { readOnly = false, refreshCredentials = !readOnly, reloadOnPoll = readOnly, preserveStartupSample = false, profileId = 'default' } = {}) {

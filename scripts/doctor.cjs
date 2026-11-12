@@ -1,7 +1,7 @@
 'use strict';
-const { findCodex } = require('../src/common/codex-path.cjs');
-const { CodexClient } = require('../src/common/codex-client.cjs');
-const { normalizeLimits } = require('../src/common/limits.cjs');
+const { findCodex } = require('../src/common/ai-connects/codex/path.cjs');
+const { CodexClient } = require('../src/common/ai-connects/codex/client.cjs');
+const { normalizeLimits } = require('../src/common/ai-connects/codex/limits.cjs');
 
 (async () => {
   let client;

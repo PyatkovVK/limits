@@ -9,6 +9,7 @@ Reference catalog for repository skill templates, in English and Russian. This f
 | --- | --- | --- | --- |
 | `platform-routing` | Platform routing | Выбор платформы для изменений | [SKILL.md](platform-routing/SKILL.md) |
 | `settings-architecture` | Shared settings architecture | Архитектура общих настроек | [SKILL.md](settings-architecture/SKILL.md) |
+| `requirements-documentation` | Read-only requirements | Требования только для чтения | [SKILL.md](requirements-documentation/SKILL.md) |
 | `changelog` | Changelog updates | Обновление списка изменений | [SKILL.md](changelog/SKILL.md) |
 | `versionless-documentation` | Release numbers only in the changelog | Номера релизов только в списке изменений | [SKILL.md](versionless-documentation/SKILL.md) |
 | `focused-pull-requests` | One task per pull request | Отдельный MR на каждую задачу | [SKILL.md](focused-pull-requests/SKILL.md) |
@@ -27,6 +28,8 @@ skills/
 │   └── SKILL.md                  # Instructions / Инструкция навыка
 ├── settings-architecture/
 │   └── SKILL.md                  # Shared settings groups / Общие группы настроек
+├── requirements-documentation/
+│   └── SKILL.md                  # Read-only requirements / Требования только для чтения
 ├── changelog/
 │   └── SKILL.md                  # Record release-worthy changes / Запись изменений
 ├── versionless-documentation/

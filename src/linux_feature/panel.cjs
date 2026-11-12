@@ -1,5 +1,5 @@
 'use strict';
-const { createPanelPosition } = require('../common/panel-position.cjs');
+const { createPanelPosition } = require('../common/panel/panel-position.cjs');
 
 const PANEL_WIDTH = 528;
 const PANEL_ZOOM = 1.2;

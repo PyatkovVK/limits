@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { Accounts } = require('../src/common/accounts.cjs');
+const { Accounts } = require('../src/common/core/accounts.cjs');
 const { clientOptions } = require('../src/common/ai-connects/codex/options.cjs');
 
 function fixture(t) {

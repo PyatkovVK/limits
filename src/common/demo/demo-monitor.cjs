@@ -1,6 +1,6 @@
 'use strict';
 const { EventEmitter } = require('node:events');
-const { groupsFromBuckets, displaySchema } = require('./ai-connects/codex/limits.cjs');
+const { groupsFromBuckets, displaySchema } = require('../ai-connects/codex/limits.cjs');
 class DemoMonitor extends EventEmitter {
   constructor(profile) {
     super();

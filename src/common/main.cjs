@@ -2,24 +2,24 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog, safeStorage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
-const { CODEX_POLL_INTERVAL_MINUTES } = require('./polling-defaults.cjs');
-const { Accounts } = require('./accounts.cjs');
-const { AppearanceStore } = require('./appearance.cjs');
-const { Updates } = require('./updates.cjs');
-const { ResetNotifications } = require('./reset-notifications.cjs');
+const { CODEX_POLL_INTERVAL_MINUTES } = require('./core/polling-defaults.cjs');
+const { Accounts } = require('./core/accounts.cjs');
+const { AppearanceStore } = require('./core/appearance.cjs');
+const { Updates } = require('./updates/updates.cjs');
+const { ResetNotifications } = require('./ai-connects/codex/reset-notifications.cjs');
 const { eventText: resetEventText, words: resetWords } = require('./settings/resets/strings.js');
 let updates;
 let resetNotifications;
 const resetToasts = new Set();
 let appearance;
 let stopSessionWatch;
-const { selectedBucket, isStale } = require('./limits.cjs');
+const { selectedBucket, isStale } = require('./core/limits.cjs');
 const { widgetBounds } = require('../windows_feature/taskbar.cjs');
 const { TaskbarWidget, taskbarHelperPath } = require('../windows_feature/panel/widget.cjs');
 const { normalize: normalizeWidgetStyle } = require('../windows_feature/panel/widget-style.js');
-const { TrayPresentation } = require('./tray.cjs');
+const { TrayPresentation } = require('./tray/tray.cjs');
 const { t: translate } = require('./renderer/i18n.js');
-const { startupState, changePreference } = require('./preferences.cjs');
+const { startupState, changePreference } = require('./core/preferences.cjs');
 
 const demo = process.argv.includes('--demo');
 const smoke = process.argv.includes('--smoke-test');
@@ -410,9 +410,9 @@ async function setup() {
   }
   try {
       const root = app.getPath('userData');
-      const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : require('./subscriptions.cjs').Subscriptions;
+      const AccountService = process.platform === 'darwin' ? require('../apple_feature/accounts.cjs').AppleAccounts : require('./ai-connects/codex/subscriptions.cjs').Subscriptions;
       if (demo) {
-        const { DemoMonitor } = require('./demo-monitor.cjs');
+        const { DemoMonitor } = require('./demo/demo-monitor.cjs');
         monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
       } else {
         monitor = new AccountService({ root, controllerContext: () => ({ safeStorage, resourcesPath: app.isPackaged ? process.resourcesPath : null,

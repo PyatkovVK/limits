@@ -11,7 +11,6 @@
 .subscription-controls label { font-size: 14px; }
 #subscription-providers {
   position-area: block-end span-inline-start;
-  position-try-fallbacks: flip-block;
   inset: auto;
   margin: 4px 0;
   padding: 5px;

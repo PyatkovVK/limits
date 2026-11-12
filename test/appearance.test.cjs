@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
-const { AppearanceStore, encodeBackground, MAX_BYTES } = require('../src/common/appearance.cjs');
+const { AppearanceStore, encodeBackground, MAX_BYTES } = require('../src/common/core/appearance.cjs');
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6VEkAAAAASUVORK5CYII=', 'base64');
 const decoder = { createFromBuffer: () => ({ isEmpty: () => false, getSize: () => ({ width: 1, height: 1 }), toPNG: () => png }) };
 function store(t) {

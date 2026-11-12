@@ -35,8 +35,8 @@ function observe(modulePath, name, key) {
 }
 observe('../notch.cjs', 'AppleNotch', 'notch');
 observe('../accounts.cjs', 'AppleAccounts', 'accounts');
-observe('../../common/tray.cjs', 'TrayPresentation', 'tray');
-observe('../../common/reset-notifications.cjs', 'ResetNotifications', 'resets');
+observe('../../common/tray/tray.cjs', 'TrayPresentation', 'tray');
+observe('../../common/ai-connects/codex/reset-notifications.cjs', 'ResetNotifications', 'resets');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
 require('../../common/main.cjs');
 

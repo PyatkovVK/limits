@@ -5,11 +5,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { EventEmitter } = require('node:events');
-const { Subscriptions: AppleAccounts } = require('../../common/subscriptions.cjs');
-const { Monitor: SharedMonitor } = require('../../common/monitor.cjs');
+const { Subscriptions: AppleAccounts } = require('../../common/ai-connects/codex/subscriptions.cjs');
+const { Monitor: SharedMonitor } = require('../../common/core/monitor.cjs');
 const { CodexController } = require('../../common/ai-connects/codex/controller.cjs');
 const Monitor = function (client, options) { return new SharedMonitor(new CodexController(client, options)); };
-const { DemoMonitor } = require('../../common/demo-monitor.cjs');
+const { DemoMonitor } = require('../../common/demo/demo-monitor.cjs');
 
 function setup(t) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'limits-linux-accounts-test-')));

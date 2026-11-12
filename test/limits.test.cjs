@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeLimits, selectedBucket, windowView, isStale } = require('../src/common/limits.cjs');
+const { normalizeLimits, windowView } = require('../src/common/ai-connects/codex/limits.cjs');
+const { selectedBucket, isStale } = require('../src/common/core/limits.cjs');
 const win = (usedPercent, windowDurationMins) => ({ usedPercent, windowDurationMins, resetsAt: 1800000000 });
 
 test('prefers multi-bucket response over legacy and selects Codex', () => {

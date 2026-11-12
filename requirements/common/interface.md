@@ -40,9 +40,9 @@ These requirements describe the shared details window and its account/settings c
 | COM-UI-032 | Share the details layout and sizing logic across Windows, macOS, and Linux. | The renderer lives in `src/common/view-panel/`. Standalone details have a nominal width of 400 logical pixels, with transparent space outside the rounded corners. Standard shows both quotas on one surface with a divider. Two columns uses separate cards. The expanded macOS notch and Around the notch modes use the Standard quota layout. |
 | COM-UI-033 | Keep account connection actions out of the compact signed-in layout. | The selected account can be managed in Settings. A signed-out account eligible for sign-in can start it from details. An externally managed read-only account shows its quotas without a “Connect account in Limits” button. |
 
-## Planned controller-driven display
+## Controller-driven display
 
-The following requirements describe the planned [AI controller infrastructure](ai-connects.md). COM-UI-002 remains the Codex presentation; other controllers use their own metrics and schemas within the same shared interface.
+The following requirements describe the [AI controller infrastructure](ai-connects.md). COM-UI-002 remains the Codex presentation; DeepSeek, Z.ai, and other controllers use their own metrics and schemas within the same shared interface.
 
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |

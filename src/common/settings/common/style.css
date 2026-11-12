@@ -75,6 +75,7 @@ body[data-platform="darwin"][data-theme="light"]:not(.apple-notch) .settings-gro
   width: 100%;
   height: auto;
   min-height: 32px;
+  appearance: none;
   padding: 5px 26px 5px 8px;
   border: 1px solid transparent;
   border-radius: 8px;

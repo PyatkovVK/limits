@@ -2,8 +2,8 @@
 const fs = require('node:fs'), path = require('node:path');
 const { execFile, spawn } = require('node:child_process');
 const { promisify } = require('node:util');
-const { PackageUpdates } = require('../common/package-updates.cjs');
-const { compareVersions } = require('../common/updates.cjs');
+const { PackageUpdates } = require('../common/updates/package-updates.cjs');
+const { compareVersions } = require('../common/updates/updates.cjs');
 const { browserEnvironment } = require('./browser.cjs');
 const run = promisify(execFile);
 async function verifyAppImage(file, arch) {

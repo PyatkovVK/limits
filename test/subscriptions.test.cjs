@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { Subscriptions } = require('../src/common/subscriptions.cjs');
-const { DemoMonitor } = require('../src/common/demo-monitor.cjs');
+const { Subscriptions } = require('../src/common/ai-connects/codex/subscriptions.cjs');
+const { DemoMonitor } = require('../src/common/demo/demo-monitor.cjs');
 
 for (const sourcesName of ['subscriptions.json', 'mac-subscriptions.json']) {
   test(`${sourcesName}: obsolete folder references are ignored without touching external sign-ins`, async t => {

@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const { ZaiClient, QUOTA_URL } = require('../src/common/ai-connects/zai/client.cjs');
 const { ZaiController } = require('../src/common/ai-connects/zai/controller.cjs');
 const { normalizeQuota } = require('../src/common/ai-connects/zai/quota.cjs');
-const { Monitor } = require('../src/common/monitor.cjs');
-const { isStale } = require('../src/common/limits.cjs');
+const { Monitor } = require('../src/common/core/monitor.cjs');
+const { isStale } = require('../src/common/core/limits.cjs');
 
 const key = 'zai-fixture.secret';
 const reset = 1793830124999;

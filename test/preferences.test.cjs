@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { startupState, changePreference } = require('../src/common/preferences.cjs');
+const { startupState, changePreference } = require('../src/common/core/preferences.cjs');
 function context(platform = 'win32', home) {
   return { platform, env: {}, app: { isPackaged: true, getPath: () => home, getLoginItemSettings: () => ({ openAtLogin: false }), setLoginItemSettings(value) { this.saved = value; } },
     settings: { width: 280, visible: true }, taskbarSupported: platform === 'win32', saves: 0,

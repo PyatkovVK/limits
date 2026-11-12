@@ -26,6 +26,8 @@ The bundled [versionless-documentation](skill-templates/versionless-documentatio
 
 The bundled [test-failure-analysis](skill-templates/test-failure-analysis/SKILL.md) skill traces a failing test or CI check to its introducing commit, explains the affected platform behavior, proposes a systemic repair, and audits which tests and builds actually ran before applying a minimal authorized fix.
 
+The bundled [requirements-documentation](skill-templates/requirements-documentation/SKILL.md) skill keeps the `requirements/` directory read-only: before editing, adding, deleting, renaming or moving any requirements file, describe the change and ask the user for explicit permission. Reading and reviewing require no approval.
+
 Start with this guide and [CONTRIBUTING.md](../CONTRIBUTING.md), restore missing defaults, then discover and read the relevant `SKILL.md` before choosing implementation files. Include personal skills absent from the tracked template catalog. A normal Git-aware search will not list `skills/`; use, for example:
 
 ```sh

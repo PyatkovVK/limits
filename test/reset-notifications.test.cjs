@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { ResetNotifications, parseStatus, CHECK_INTERVAL, STATUS_API, LINKS } = require('../src/common/reset-notifications.cjs');
+const { ResetNotifications, parseStatus, CHECK_INTERVAL, STATUS_API, LINKS } = require('../src/common/ai-connects/codex/reset-notifications.cjs');
 const { words, eventText } = require('../src/common/settings/resets/strings.js');
 const NOW = Date.UTC(2026, 9, 18, 12);
 const iso = delta => new Date(NOW + delta).toISOString();

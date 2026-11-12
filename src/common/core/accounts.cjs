@@ -4,9 +4,9 @@ const { randomUUID } = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { isStale } = require('./limits.cjs');
-const { registry: defaultRegistry } = require('./ai-connects/registry.cjs');
+const { registry: defaultRegistry } = require('../ai-connects/registry.cjs');
 const { Monitor } = require('./monitor.cjs');
-const { contractError } = require('./ai-connects/contracts.cjs');
+const { contractError } = require('../ai-connects/contracts.cjs');
 
 const nickname = value => typeof value === 'string' ? value.replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 80) : '';
 class Accounts extends EventEmitter {

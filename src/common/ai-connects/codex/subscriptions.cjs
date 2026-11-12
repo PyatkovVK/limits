@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { Accounts } = require('../../accounts.cjs');
+const { Accounts } = require('../../core/accounts.cjs');
 const { externalOptions } = require('./options.cjs');
 
 class Subscriptions extends Accounts {

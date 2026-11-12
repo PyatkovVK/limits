@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { Updates, CHECK_INTERVAL, normalizeVersion, compareVersions, newestRelease, validatedReleaseUrl, fetchReleases } = require('../src/common/updates.cjs');
+const { Updates, CHECK_INTERVAL, normalizeVersion, compareVersions, newestRelease, validatedReleaseUrl, fetchReleases } = require('../src/common/updates/updates.cjs');
 const release = tag => ({ tag_name: tag, draft: false, prerelease: false, html_url: `https://github.com/PyatkovVK/limits/releases/tag/${tag}` });
 const response = (items, status = 200) => ({ ok: status === 200, status, json: async () => items });
 function fixture(t, options = {}) {

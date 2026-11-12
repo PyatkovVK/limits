@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { Monitor: SharedMonitor } = require('../src/common/monitor.cjs');
+const { Monitor: SharedMonitor } = require('../src/common/core/monitor.cjs');
 const { CodexController } = require('../src/common/ai-connects/codex/controller.cjs');
 const Monitor = function (client, options) { return new SharedMonitor(new CodexController(client, options)); };
 
