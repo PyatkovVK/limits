@@ -201,5 +201,6 @@ These are ideas for future work, not current features:
 
 - Claude Code integration, subject to availability of a suitable usage data source.
 - Configurable low-usage and approaching-reset notifications.
+- Try to rewrite project to Rust.
 
 Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
