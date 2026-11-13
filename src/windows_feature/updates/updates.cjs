@@ -1,13 +1,10 @@
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFile, spawn } = require('node:child_process');
-const { promisify } = require('node:util');
-const { Updates, validatedReleaseUrl } = require('../common/updates/updates.cjs');
-const { assetUrl, checksumFor, download } = require('../common/updates/update-download.cjs');
-const powershell = () => path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
-const script = path.join(__dirname, 'install-update.ps1');
-const run = promisify(execFile);
+const { spawn } = require('node:child_process');
+const { Updates, validatedReleaseUrl } = require('../../common/updates/updates.cjs');
+const { assetUrl, checksumFor, download } = require('../../common/updates/update-download.cjs');
+const { copyInstallerScript, verifyWindowsPackage, launchInstaller } = require('./installer.cjs');
 
 class WindowsUpdates extends Updates {
   constructor({ app, env = process.env, arch = process.arch, spawnProcess = spawn, verifyPackage, ...options }) {
@@ -17,8 +14,7 @@ class WindowsUpdates extends Updates {
     this.portable = Boolean(env.PORTABLE_EXECUTABLE_FILE);
     this.cache = path.join(options.root, 'windows-updates');
     this.resultFile = path.join(options.root, 'windows-update-result.json');
-    this.verifyPackage = verifyPackage || ((file, version) => run(powershell(), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(path.dirname(file), 'install-update.ps1'),
-      '-VerifyOnly', '-Package', file, '-Current', this.target, '-Version', version], { windowsHide: true, timeout: 120000 }));
+    this.verifyPackage = verifyPackage || ((file, version) => verifyWindowsPackage(file, version, this.target));
     this.installation = { enabled: Boolean(options.demo || (this.target && arch === 'x64')), status: 'idle', progress: null, error: null, version: null };
     try {
       if (JSON.parse(fs.readFileSync(this.resultFile, 'utf8').replace(/^\uFEFF/, '')).status === 'failed') this.installation = { ...this.installation, status: 'error', error: 'installFailed' };
@@ -71,9 +67,7 @@ class WindowsUpdates extends Updates {
           onProgress: value => { if (value !== progress && !controller.signal.aborted) { progress = value; this.installState({ progress: value }); } } });
         if (downloaded.hash !== expected || downloaded.size !== packages[0].size) throw new Error('invalidPackage');
         this.installState({ status: 'verifying', progress: 100 });
-        // Native PowerShell cannot read scripts inside app.asar. Extract the
-        // trusted helper into this private download directory before using it.
-        fs.copyFileSync(script, path.join(job, 'install-update.ps1'));
+        copyInstallerScript(job);
         try { await this.verifyPackage(file, release.version); } catch { throw new Error('invalidPackage'); }
         controller.signal.throwIfAborted();
         this.job = job; this.packageFile = file; this.packageHash = expected;
@@ -95,13 +89,13 @@ class WindowsUpdates extends Updates {
     if (this.demo) { this.dismiss(this.state.release.version); return { simulated: true }; }
     try {
       this.installState({ status: 'installing' });
-      const config = path.join(this.job, 'install.json');
-      fs.writeFileSync(config, JSON.stringify({ pid: process.pid, target: this.target, package: this.packageFile, sha256: this.packageHash,
-        version: this.state.release.version, portable: this.portable, result: this.resultFile }));
-      const child = this.spawnProcess(powershell(), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(this.job, 'install-update.ps1'), '-Config', config],
-        { detached: true, stdio: 'ignore', windowsHide: true });
-      await new Promise((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
-      child.unref(); this.handedOff = true; this.app.quit();
+      await launchInstaller({
+        job: this.job, target: this.target, packageFile: this.packageFile, packageHash: this.packageHash,
+        version: this.state.release.version, portable: this.portable, resultFile: this.resultFile,
+        pid: process.pid, spawnProcess: (...args) => this.spawnProcess(...args),
+      });
+      this.handedOff = true;
+      this.app.quit();
       return { installing: true };
     } catch { this.installState({ status: 'error', error: 'installFailed' }); return { error: 'installFailed' }; }
   }

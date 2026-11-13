@@ -1,63 +1,41 @@
 'use strict';
 const { EventEmitter } = require('node:events');
 const path = require('node:path');
-const { TaskbarProbe, WidgetPlacement } = require('../taskbar.cjs');
+const { TaskbarProbe } = require('../taskbar/probe.cjs');
+const { WidgetPlacement } = require('../taskbar/widget-placement.cjs');
+const { taskbarHelperPath } = require('../taskbar/helper.cjs');
+const { WidgetInput } = require('./input.cjs');
 
-function taskbarHelperPath(resourcesPath) {
-  return resourcesPath ? path.join(resourcesPath, 'taskbar-helper.exe') : path.join(__dirname, '..', '..', '..', 'build', 'taskbar-helper.exe');
-}
 class TaskbarWidget extends EventEmitter {
   constructor({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove, resourcesPath }) {
     super();
     Object.assign(this, { BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings, getMenu, onMove });
     this.helperPath = taskbarHelperPath(resourcesPath);
+    this.input = new WidgetInput();
     this.stopped = false;
   }
   drag(phase, point) {
-    if (!this.window || this.window.isDestroyed() || !this.window.isVisible()) return false;
-    if (!['start', 'move', 'end', 'cancel'].includes(phase) || !Number.isFinite(point?.x)) return false;
-    if (phase === 'start') {
-      this.dragOffset = point.x - this.window.getBounds().x;
-      this.dragStart = { ...point };
-      this.dragMoved = false;
-      return true;
-    }
-    if (!Number.isFinite(this.dragOffset)) return false;
-    // Keep the original grab offset even while placement clamps the window to
-    // a free gap. Native dragging restarts from the clamped bounds and can get
-    // stuck at the centered task buttons before reaching the left-hand gap.
-    if (phase !== 'cancel') {
-      if (Math.hypot(point.x - this.dragStart.x, (point.y || 0) - (this.dragStart.y || 0)) >= 4) this.dragMoved = true;
-      if (this.dragMoved) this.onMove({ ...this.window.getBounds(), x: point.x - this.dragOffset });
-    }
-    const moved = this.dragMoved;
-    if (phase !== 'move') this.dragOffset = null;
-    return moved;
+    return this.input.drag(this.window, phase, point, bounds => this.onMove(bounds));
   }
   nativeInput(input) {
     const target = this.window;
     if (!target || target.isDestroyed() || !target.isVisible()) return;
     const point = this.screen.screenToDipPoint({ x: input.x, y: input.y });
-    // Use the press/move/release snapshots directly. By the time a renderer
-    // round trip reads the cursor, a quick gesture may already have finished.
-    if (input.type === 'mouseDown') {
-      this.nativeButton = input.button;
-      if (input.button === 'left') this.drag('start', point);
-    } else if (input.type === 'mouseMove') {
-      if (this.nativeButton === 'left') this.drag('move', point);
-    } else if (input.type === 'mouseUp' && this.nativeButton === input.button) {
-      this.nativeButton = null;
-      if (input.button === 'left') {
-        if (!this.drag('end', point)) target.webContents.send('limits:windows-widget-click');
-      } else if (input.button === 'right') this.Menu.buildFromTemplate(this.getMenu()).popup({ window: target });
-    }
+    this.input.handleNative(input, point, {
+      drag: (phase, position) => this.drag(phase, position),
+      click: () => target.webContents.send('limits:windows-widget-click'),
+      openMenu: () => this.openMenu(target),
+    });
+  }
+  openMenu(window) {
+    this.Menu.buildFromTemplate(this.getMenu()).popup({ window });
   }
   async start() {
     if (this.stopped) return;
     this.window = new this.BrowserWindow({ width: this.getSettings().width, height: 34, minHeight: 28, resizable: false, frame: false, thickFrame: false, show: false, skipTaskbar: true, focusable: false, alwaysOnTop: true, backgroundColor: '#171717', hasShadow: false, webPreferences: this.webPreferences });
     const created = this.window;
-    this.dragOffset = null;
-    created.on('hide', () => { this.dragOffset = null; this.nativeButton = null; });
+    this.input.reset();
+    created.on('hide', () => this.input.reset());
     this.restrictWindow(created);
     this.placement = new WidgetPlacement(created, { setParented: (parented, bounds) =>
       this.probe?.setParented(parented, this.screen.dipToScreenRect(created, bounds)) });
@@ -73,8 +51,8 @@ class TaskbarWidget extends EventEmitter {
     // Placement and shell transitions are not user drags. Persist only the
     // explicit pointer gesture handled by drag(), including its grab offset.
     created.on('will-move', event => event.preventDefault());
-    created.webContents.on('context-menu', () => this.Menu.buildFromTemplate(this.getMenu()).popup({ window: created }));
-    await created.loadFile(path.join(__dirname, 'widget.html'));
+    created.webContents.on('context-menu', () => this.openMenu(created));
+    await created.loadFile(path.join(__dirname, 'renderer/widget.html'));
     if (created.isDestroyed() || this.stopped) return;
     const handle = created.getNativeWindowHandle();
     const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
@@ -92,4 +70,4 @@ class TaskbarWidget extends EventEmitter {
     if (this.window && !this.window.isDestroyed()) this.window.destroy();
   }
 }
-module.exports = { TaskbarWidget, taskbarHelperPath };
+module.exports = { TaskbarWidget };

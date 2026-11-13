@@ -8,7 +8,7 @@ const platformApi = {
   linuxStartup: require('../src/linux_feature/startup.cjs'),
   appleStartup: require('../src/apple_feature/startup.cjs'),
   changeTrayStyle: require('../src/linux_feature/preferences.cjs').changeTrayStyle,
-  widgetStyles: require('../src/windows_feature/panel/widget-style.js').styles,
+  widgetStyles: require('../src/windows_feature/settings/widget/styles.js').styles,
   presentation: require('../src/apple_feature/presentation.cjs'),
 };
 function context(platform = 'win32', home) {

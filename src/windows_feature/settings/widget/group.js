@@ -3,9 +3,10 @@
 window.limitsWindowsWidgetSettings = {
   create(card, change) {
     const { styles, normalize } = window.limitsWindowsWidgetStyle;
-    const texts = {
-      ru: { label: 'Оформление виджета', classic: 'Классический', rows: 'Строки', cells: 'Ячейки' },
-      en: { label: 'Widget style', classic: 'Classic', rows: 'Rows', cells: 'Cells' },
+    const styleLabels = {
+      classic: 'widgetStyleClassic',
+      rows: 'widgetStyleRows',
+      cells: 'widgetStyleCells',
     };
     const row = document.createElement('div');
     row.className = 'settings-item';
@@ -25,9 +26,9 @@ window.limitsWindowsWidgetSettings = {
     return next => {
       row.hidden = next.platform !== 'win32';
       if (row.hidden) return;
-      const text = texts[next.language] || texts.en;
-      label.textContent = text.label;
-      for (const option of select.options) option.textContent = text[option.value];
+      const t = key => window.limitsWindowsI18n.t(next.language === 'ru' ? 'ru' : 'en', key);
+      label.textContent = t('widgetStyleLabel');
+      for (const option of select.options) option.textContent = t(styleLabels[option.value]);
       select.value = normalize(next.preferences?.widgetStyle);
     };
   },

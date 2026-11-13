@@ -1,14 +1,14 @@
 'use strict';
 const path = require('node:path');
 
-function installWindowsBridge({ window, screen, ipcMain, getWidgetHost, panel }) {
+function installWindowsBridge({ window, screen, ipcMain, getWidgetHost, resizePanel }) {
   const session = window.webContents.session;
   const preload = session.registerPreloadScript({ type: 'frame', filePath: path.join(__dirname, 'preload.cjs') });
   const trusted = (event, target) => target && !target.isDestroyed() &&
     event.sender === target.webContents && event.senderFrame === target.webContents.mainFrame;
   ipcMain.handle('limits:windows-panel-size', (event, height) => {
     if (!trusted(event, window)) return false;
-    return panel.resize(height);
+    return resizePanel(height);
   });
   ipcMain.handle('limits:widget-drag', (event, phase) => {
     const host = getWidgetHost?.();

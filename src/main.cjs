@@ -14,9 +14,10 @@ const resetToasts = new Set();
 let appearance;
 let stopSessionWatch;
 const { selectedBucket, isStale } = require('./common/core/limits.cjs');
-const { widgetBounds } = require('./windows_feature/taskbar.cjs');
-const { TaskbarWidget, taskbarHelperPath } = require('./windows_feature/panel/widget.cjs');
-const { normalize: normalizeWidgetStyle } = require('./windows_feature/panel/widget-style.js');
+const { widgetBounds } = require('./windows_feature/taskbar/widget-bounds.cjs');
+const { taskbarHelperPath } = require('./windows_feature/taskbar/helper.cjs');
+const { TaskbarWidget } = require('./windows_feature/widget/host.cjs');
+const { normalize: normalizeWidgetStyle, styles: windowsWidgetStyles } = require('./windows_feature/settings/widget/styles.js');
 const { TrayPresentation } = require('./common/tray/tray.cjs');
 const { t: translate } = require('./common/renderer/i18n.js');
 const { startupState, changePreference } = require('./common/core/preferences.cjs');
@@ -50,7 +51,7 @@ const platformApi = {
   linuxStartup: process.platform === 'linux' ? require('./linux_feature/startup.cjs') : undefined,
   appleStartup: process.platform === 'darwin' ? require('./apple_feature/startup.cjs') : undefined,
   changeTrayStyle: process.platform === 'linux' ? require('./linux_feature/preferences.cjs').changeTrayStyle : undefined,
-  widgetStyles: process.platform === 'win32' ? require('./windows_feature/panel/widget-style.js').styles : undefined,
+  widgetStyles: process.platform === 'win32' ? windowsWidgetStyles : undefined,
   presentation: applePresentation,
 };
 // Renderer assets injected into the shared view-panel (paths are relative to src/common/view-panel/index.html).
@@ -60,8 +61,8 @@ const platformAssets = {
     scripts: ['../../apple_feature/i18n.js', '../../apple_feature/renderer/island.js', '../../apple_feature/renderer/surface.js', '../../apple_feature/renderer/notch.js'],
   },
   win32: {
-    styles: [],
-    scripts: ['../../windows_feature/panel/reset-clock.js', '../../windows_feature/panel/widget-style.js', '../../windows_feature/panel/widget-settings.js', '../../windows_feature/i18n.js'],
+    styles: ['../../windows_feature/view-panel/provider-picker.css'],
+    scripts: ['../../windows_feature/renderer/i18n.js', '../../windows_feature/renderer/reset-clock.js', '../../windows_feature/settings/widget/styles.js', '../../windows_feature/settings/widget/group.js', '../../windows_feature/view-panel/provider-picker.js'],
   },
   linux: {
     styles: ['../../linux_feature/renderer/style.css'],
@@ -263,7 +264,7 @@ async function setup() {
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
-  const UpdateService = process.platform === 'darwin' ? require('./apple_feature/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('./windows_feature/updates.cjs').WindowsUpdates : process.platform === 'linux' ? require('./linux_feature/updates.cjs').LinuxUpdates : Updates;
+  const UpdateService = process.platform === 'darwin' ? require('./apple_feature/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('./windows_feature/updates/updates.cjs').WindowsUpdates : process.platform === 'linux' ? require('./linux_feature/updates.cjs').LinuxUpdates : Updates;
   updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
   resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'),
     notify: showResetNotification, openExternal: url => shell.openExternal(url) });
@@ -275,7 +276,7 @@ async function setup() {
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
-  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, quotaIcon: process.platform === 'darwin' ? require('./apple_feature/tray-icon.cjs').icon : process.platform === 'linux' ? require('./linux_feature/tray-icon.cjs').icon : require('./windows_feature/tray-icon.cjs').icon, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => {
+  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, quotaIcon: process.platform === 'darwin' ? require('./apple_feature/tray-icon.cjs').icon : process.platform === 'linux' ? require('./linux_feature/tray-icon.cjs').icon : require('./windows_feature/tray/tray-icon.cjs').icon, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => {
     if (!linuxPanel) return showPanel(tray);
     if (widgetSettings.displayMode !== 'widget') return linuxPanel.toggle(tray);
     widgetSettings.visible = widgetSettings.visible === false;
@@ -445,7 +446,7 @@ async function setup() {
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
       monitor.on('state', next => { state = { ...next, demo }; update(); });
-      if (process.platform === 'win32' && !demo && !smoke) require('./windows_feature/onboarding.cjs').offerSignIn(monitor, showPanel);
+      if (process.platform === 'win32' && !demo && !smoke) require('./windows_feature/ai-connects/codex/sign-in-prompt.cjs').offerSignIn(monitor, showPanel);
       state = { ...monitor.snapshot(), demo };
       void monitor.refresh();
   } catch { state = { ...state, status: 'error', error: 'codexMissing' }; }

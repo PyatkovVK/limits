@@ -17,7 +17,7 @@
     "smoke": "npm run prepare:app && electron . --demo --smoke-test",
     "smoke:live": "npm run prepare:app && electron . --smoke-test",
     "smoke:notch-layout": "npm run prepare:assets && electron src/apple_feature/scripts/smoke-notch.cjs --layout-fixture",
-    "smoke:onboarding": "npm run prepare:app && electron scripts/smoke-onboarding.cjs",
+    "smoke:onboarding": "npm run prepare:app && node scripts/smoke-onboarding.cjs",
     "smoke:accounts": "npm run prepare:app && electron scripts/smoke-accounts.cjs",
     "smoke:ai-connects": "npm run prepare:app && electron scripts/smoke-ai-connects.cjs",
     "smoke:deepseek": "npm run prepare:app && electron scripts/smoke-deepseek.cjs",

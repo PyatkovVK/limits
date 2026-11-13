@@ -1,6 +1,7 @@
 'use strict';
-const fs = require('node:fs');
-const path = require('node:path');
+const { createPositionStore } = require('./position-store.cjs');
+const { installWindowsBridge } = require('../ipc/main.cjs');
+const { dismissTrayOverflow } = require('../taskbar/helper.cjs');
 
 function panelPosition({ anchor, area, size }) {
   if (!anchor?.width) anchor = null;
@@ -15,22 +16,14 @@ function panelPosition({ anchor, area, size }) {
 
 function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWidgetHost, root, resourcesPath }) {
   let contentHeight = window.getSize()[1], lastAnchor = null;
-  const file = root && path.join(root, 'windows-panel-position.json');
-  let savedPosition = null, expectedPosition = null;
-  try {
-    const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (Number.isSafeInteger(saved.x) && Number.isSafeInteger(saved.y)) savedPosition = { x: saved.x, y: saved.y };
-  } catch { /* First launch or an invalid preference uses the tray anchor. */ }
+  const positionStore = createPositionStore(root);
+  let savedPosition = positionStore.load(), expectedPosition = null;
   const onMoved = () => {
     if (window.isDestroyed() || !window.isVisible()) return;
     const [x, y] = window.getPosition();
     if (expectedPosition?.x === x && expectedPosition?.y === y) return;
     savedPosition = expectedPosition = { x, y };
-    if (file) try {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(`${file}.tmp`, JSON.stringify(savedPosition));
-      fs.renameSync(`${file}.tmp`, file);
-    } catch { /* Keep the preference in memory if the disk is unavailable. */ }
+    positionStore.save(savedPosition);
   };
   window.on('moved', onMoved);
   let modalOperations = 0;
@@ -78,10 +71,7 @@ function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWi
   }
   function show(clickedAnchor) {
     if (!place(clickedAnchor?.getBounds?.() || getAnchorBounds?.() || null)) return false;
-    if (clickedAnchor?.getBounds) {
-      const helper = require('./widget.cjs').taskbarHelperPath(resourcesPath);
-      require('node:child_process').spawnSync(helper, ['--dismiss-tray-overflow'], { windowsHide: true, timeout: 1000, stdio: 'ignore' });
-    }
+    if (clickedAnchor?.getBounds) dismissTrayOverflow(resourcesPath);
     window.show(); window.focus();
     return true;
   }
@@ -96,7 +86,7 @@ function createPanelController({ window, screen, getAnchorBounds, ipcMain, getWi
     return place(lastAnchor || getAnchorBounds?.() || null);
   }
   const controller = { show, follow, resize, withModal };
-  if (ipcMain) require('../ipc.cjs').installWindowsBridge({ window, screen, ipcMain, getWidgetHost, panel: controller });
+  if (ipcMain) installWindowsBridge({ window, screen, ipcMain, getWidgetHost, resizePanel: resize });
   return controller;
 }
 

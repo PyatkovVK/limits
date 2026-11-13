@@ -9,7 +9,7 @@ const pkg = require('../package.json');
 const i18n = require('../src/common/renderer/i18n.js');
 const { buildPlan } = require('../scripts/build-plan.cjs');
 const { configureAppleBuild } = require('../src/apple_feature/scripts/build-config.cjs');
-const { offerSignIn } = require('../src/windows_feature/onboarding.cjs');
+const { offerSignIn } = require('../src/windows_feature/ai-connects/codex/sign-in-prompt.cjs');
 const { signingEnvironment } = require('../scripts/signing.cjs');
 
 test('Mac and Linux build entrypoint bundles the target runtime and preserves platform resources', () => {

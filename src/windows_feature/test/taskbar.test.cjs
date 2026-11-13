@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { widgetBounds, TaskbarProbe, WidgetPlacement } = require('../taskbar.cjs');
+const { widgetBounds } = require('../taskbar/widget-bounds.cjs');
+const { TaskbarProbe } = require('../taskbar/probe.cjs');
+const { WidgetPlacement } = require('../taskbar/widget-placement.cjs');
 const path = require('node:path');
 const { once } = require('node:events');
 const base = { available: true, visible: true, fullscreen: false, bar: { x: 0, y: 1032, width: 1920, height: 48 }, tray: { x: 1650, y: 1032, width: 270, height: 48 } };
