@@ -9,6 +9,7 @@ if (process.platform !== 'win32') {
 }
 
 const standalone = process.argv.includes('--standalone');
+const portableOnly = process.argv.includes('--portable');
 require('./build-taskbar-helper.cjs');
 require('./assets.cjs');
 const root = path.resolve(__dirname, '../../..');
@@ -31,6 +32,7 @@ if (standalone) {
   config.nsis.artifactName = 'Limits-Standalone-Setup-${version}.${ext}';
   config.portable.artifactName = 'Limits-Standalone-${version}-portable.${ext}';
 }
+if (portableOnly) config.win.target = ['portable'];
 const configPath = path.join(output, 'build-config.json');
 fs.writeFileSync(configPath, JSON.stringify(config));
 console.log('Includes the Codex app-server runtime; no separate Codex installation is required.');
