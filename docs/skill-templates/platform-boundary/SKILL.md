@@ -21,10 +21,10 @@ When a shared module needs a platform behavior, the composition root injects it 
 Before committing a change that touches `src/common/` or a platform directory, run:
 
 ```sh
-rg -n "_feature" src/common
+rg -n "_feature" src/common --glob '!*.md'
 ```
 
-Any hit is a violation. `src/common/` must never reference a platform feature directory in any form.
+Any hit in code is a violation. `src/common/` must never `require()`/`import` a platform feature directory or load its assets. Documentation (`*.md`) may name the platform directories when describing the rule; code must not.
 
 ## Where platform behavior belongs
 

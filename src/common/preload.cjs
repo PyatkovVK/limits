@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('limits', {
   get: () => ipcRenderer.invoke('limits:get'),
+  platformAssets: () => ipcRenderer.invoke('limits:platform-assets'),
   appearance: () => ipcRenderer.invoke('limits:appearance-get'),
   setAppearance: value => ipcRenderer.invoke('limits:appearance-set', value),
   chooseBackground: () => ipcRenderer.invoke('limits:appearance-choose'),

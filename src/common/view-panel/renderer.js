@@ -110,8 +110,34 @@ async function addAccount(providerId) {
   } catch { actionError = 'accountActionFailed'; }
   render(await window.limits.get());
 }
-const renderSubscriptions = window.limitsSubscriptions({ accountAction, beginLogin, addAccount, isRemoving: id => removingProfiles.has(id) });
-$('bucket').addEventListener('change', () => window.limits.select($('bucket').value));
-window.limits.subscribe(render);
-window.renderReady = window.limits.get().then(render);
-setInterval(renderCountdown, 1000);
+async function loadPlatformAssets() {
+  let assets;
+  try { assets = await window.limits.platformAssets(); }
+  catch { assets = { styles: [], scripts: [] }; }
+  const links = (assets.styles || []).map(href => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    return link;
+  });
+  const scripts = (assets.scripts || []).map(src => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    return script;
+  });
+  document.head.append(...links, ...scripts);
+  await Promise.all(scripts.map(script => new Promise(resolve => {
+    script.addEventListener('load', resolve, { once: true });
+    script.addEventListener('error', resolve, { once: true });
+  })));
+}
+
+let renderSubscriptions;
+function start() {
+  renderSubscriptions = window.limitsSubscriptions({ accountAction, beginLogin, addAccount, isRemoving: id => removingProfiles.has(id) });
+  $('bucket').addEventListener('change', () => window.limits.select($('bucket').value));
+  window.limits.subscribe(render);
+  setInterval(renderCountdown, 1000);
+}
+window.renderReady = loadPlatformAssets().then(start).then(() => window.limits.get()).then(render);

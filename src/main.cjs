@@ -53,6 +53,21 @@ const platformApi = {
   widgetStyles: process.platform === 'win32' ? require('./windows_feature/panel/widget-style.js').styles : undefined,
   presentation: applePresentation,
 };
+// Renderer assets injected into the shared view-panel (paths are relative to src/common/view-panel/index.html).
+const platformAssets = {
+  darwin: {
+    styles: ['../../apple_feature/renderer/style.css'],
+    scripts: ['../../apple_feature/i18n.js', '../../apple_feature/renderer/island.js', '../../apple_feature/renderer/surface.js', '../../apple_feature/renderer/notch.js'],
+  },
+  win32: {
+    styles: [],
+    scripts: ['../../windows_feature/panel/reset-clock.js', '../../windows_feature/panel/widget-style.js', '../../windows_feature/panel/widget-settings.js', '../../windows_feature/i18n.js'],
+  },
+  linux: {
+    styles: ['../../linux_feature/renderer/style.css'],
+    scripts: ['../../linux_feature/renderer/settings.js'],
+  },
+};
 
 function showPanel(anchor) {
   if (!window || window.isDestroyed()) return;
@@ -398,6 +413,7 @@ async function setup() {
     if (!monitor?.setMode) return { error: 'accountActionFailed' };
     try { monitor.setMode(mode); return {}; } catch { return { error: 'accountActionFailed' }; }
   });
+  handle('limits:platform-assets', () => platformAssets[process.platform] || { styles: [], scripts: [] });
   await window.loadFile(path.join(__dirname, 'common', 'view-panel', 'index.html'));
   await window.webContents.executeJavaScript('window.limitsViewPanelReady');
   if (process.platform === 'darwin') {
