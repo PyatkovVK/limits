@@ -20,7 +20,7 @@
   const input = make('input', dialog); input.id = 'key-connection-input'; input.type = 'password'; input.maxLength = 8192;
   input.autocomplete = 'off'; input.spellcheck = false; input.setAttribute('autocapitalize', 'none'); input.setAttribute('aria-describedby', hint.id);
   const stored = make('p', dialog, 'key-connection-hint');
-  const error = make('p', dialog, 'notice warning'); error.setAttribute('role', 'status'); error.hidden = true;
+  const error = make('div', dialog, 'notice warning'); error.setAttribute('role', 'status'); error.hidden = true;
   const actions = make('div', dialog, 'key-connection-actions');
   const cancel = make('button', actions, 'refresh-button'); cancel.id = 'key-connection-cancel'; cancel.type = 'button';
   const connect = make('button', actions, 'login-button'); connect.id = 'key-connection-submit'; connect.type = 'button';
@@ -42,7 +42,7 @@
     input.disabled = checking; browser.disabled = checking;
     connect.textContent = checking ? t.checking : t.connect; connect.disabled = checking || !input.value.trim();
     dialog.setAttribute('aria-busy', String(checking));
-    error.hidden = !actionError; error.textContent = actionError ? window.limitsI18n.t(next.language, actionError, next.platform) : '';
+    window.limitsI18n.notice(error, actionError, next.language);
     if (!dialog.open) { dialog.showModal(); input.focus(); }
   }
   async function submit() {

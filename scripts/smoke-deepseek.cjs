@@ -96,6 +96,37 @@ app.whenReady().then(async () => {
       await run(`window.limits.language('${language}')`);
       await waitFor(() => run(`document.getElementById('key-connection-title').textContent.startsWith('${language === 'en' ? 'Connect' : 'Подключить'}')`), 'dialog localization');
     }
+    if (process.platform === 'darwin') {
+      const isEncryptionAvailable = safeStorage.isEncryptionAvailable;
+      const openPath = shell.openPath;
+      const openedPaths = [];
+      const notice = 'document.querySelector("#key-connection-dialog .apple-keychain-notice")';
+      safeStorage.isEncryptionAvailable = () => false;
+      shell.openPath = async file => {
+        openedPaths.push(file);
+        return openedPaths.length === 1 ? 'launch failed' : '';
+      };
+      try {
+        await submit(key);
+        await waitFor(() => run(`Boolean(${notice})`), 'keychain unavailable notice');
+        assert.equal((await get()).profiles.length, 1);
+        assert.equal(await run(`${notice}.querySelector('button').textContent`), 'Открыть «Связку ключей»');
+        assert.match(await run(`${notice}.textContent`), /API-ключ пока не сохранён/);
+        await run(`${notice}.querySelector('button').click()`);
+        await waitFor(() => run(`!${notice}.lastElementChild.hidden`), 'keychain launch failure');
+        await run('window.limits.language("en")');
+        await waitFor(() => run(`${notice}.querySelector('button').textContent === 'Open Keychain Access'`), 'keychain notice localization');
+        await run(`${notice}.querySelector('button').click()`);
+        await waitFor(() => run(`${notice}.lastElementChild.hidden`), 'keychain launch retry');
+        assert.equal(openedPaths.length, 2);
+        assert.ok(openedPaths.every(file => path.basename(file) === 'Keychain Access.app' && fs.existsSync(file)));
+        assert.equal(await run(`document.getElementById('key-connection-input').value === ${JSON.stringify(key)}`), true);
+        await run('window.limits.language("ru")');
+      } finally {
+        safeStorage.isEncryptionAvailable = isEncryptionAvailable;
+        shell.openPath = openPath;
+      }
+    }
     const before = apiCalls; await submit(key);
     await waitFor(async () => (await get()).profiles.length === 2, 'connect');
     assert.equal(apiCalls - before, 1, 'key validation must not trigger a duplicate balance read');
@@ -112,6 +143,13 @@ app.whenReady().then(async () => {
     await run(`window.limits.accountAction('select', '${id}')`);
     await run('window.limitsSettings.dialog.close()');
     await waitFor(() => run('document.querySelector("#provider-metrics .metric-value")?.textContent.includes("USD")'), 'balance');
+    if (process.platform === 'darwin') {
+      await run('window.limits.get().then(next => render({ ...next, error: "credentialStorageUnavailable" }))');
+      assert.equal(await run('document.querySelector("#error button").textContent'), 'Открыть «Связку ключей»');
+      assert.match(await run('document.getElementById("error").textContent'), /в зашифрованном виде/);
+      await run('window.limits.get().then(render)');
+      assert.equal(await run('document.getElementById("error").hidden'), true);
+    }
     assert.equal(await run('document.querySelectorAll("#provider-metrics .metric-card").length'), 3);
     assert.equal(await run('[...document.querySelectorAll("#provider-metrics progress, #provider-metrics time")].every(node => node.hidden)'), true);
     await screenshot('balance-ru.png');

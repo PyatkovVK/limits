@@ -113,6 +113,12 @@
     t(language, key) {
       return (connectionStrings[language] || connectionStrings.ru)[key] || (strings[language] || strings.ru)[key] || key;
     },
+    notice(container, key, language, translate = key => api.t(language, key)) {
+      if (root.limitsPlatformNotice?.render(container, key, language)) return;
+      const message = key ? translate(key) : '';
+      container.hidden = !message;
+      if (container.childElementCount || container.textContent !== message) container.textContent = message;
+    },
     apply(language, doc, translate = api.t) {
       doc.documentElement.lang = language;
       doc.querySelectorAll('[data-i18n]').forEach(el => { const text = translate(language, el.dataset.i18n); if (el.textContent !== text) el.textContent = text; });
