@@ -1,12 +1,14 @@
 'use strict';
 const { findCodex } = require('../src/common/ai-connects/codex/path.cjs');
+const { findLinuxCodex } = require('../src/linux_feature/codex-path.cjs');
+const { findMacCodex } = require('../src/apple_feature/codex-path.cjs');
 const { CodexClient } = require('../src/common/ai-connects/codex/client.cjs');
 const { normalizeLimits } = require('../src/common/ai-connects/codex/limits.cjs');
 
 (async () => {
   let client;
   try {
-    const binary = findCodex();
+    const binary = findCodex({ platformFinders: { linux: findLinuxCodex, darwin: findMacCodex } });
     console.log('Codex executable:', binary);
     client = new CodexClient(binary);
     await client.start();

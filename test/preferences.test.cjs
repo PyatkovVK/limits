@@ -4,10 +4,17 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { startupState, changePreference } = require('../src/common/core/preferences.cjs');
+const platformApi = {
+  linuxStartup: require('../src/linux_feature/startup.cjs'),
+  appleStartup: require('../src/apple_feature/startup.cjs'),
+  changeTrayStyle: require('../src/linux_feature/preferences.cjs').changeTrayStyle,
+  widgetStyles: require('../src/windows_feature/panel/widget-style.js').styles,
+  presentation: require('../src/apple_feature/presentation.cjs'),
+};
 function context(platform = 'win32', home) {
   return { platform, env: {}, app: { isPackaged: true, getPath: () => home, getLoginItemSettings: () => ({ openAtLogin: false }), setLoginItemSettings(value) { this.saved = value; } },
     settings: { width: 280, visible: true }, taskbarSupported: platform === 'win32', saves: 0,
-    save() { this.saves++; }, update() {}, place() {}, resetPosition() {} };
+    save() { this.saves++; }, update() {}, place() {}, resetPosition() {}, platformApi };
 }
 test('startup availability is limited to installed Windows/macOS builds and never changes it in demo or portable builds', t => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-startup-'));

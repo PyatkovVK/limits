@@ -16,7 +16,7 @@ app.disableHardwareAcceleration();
 shell.openExternal = async () => assert.fail('Smoke must not open an external browser');
 global.fetch = async () => assert.fail('Smoke must not contact GitHub');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../src/common/main.cjs');
+require('../src/main.cjs');
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function waitFor(condition, label) {
   const deadline = Date.now() + 10000;

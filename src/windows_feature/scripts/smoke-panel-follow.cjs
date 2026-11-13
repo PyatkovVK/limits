@@ -24,7 +24,7 @@ widgetModule.TaskbarWidget = class extends NativeWidget {
   }
 };
 process.argv.push('--demo', '--hidden');
-require('../../common/main.cjs');
+require('../../main.cjs');
 
 const pause = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms));
 app.whenReady().then(async () => {

@@ -31,7 +31,7 @@ shell.openExternal = async url => {
   opened = true;
 };
 process.argv.push('--hidden', '--smoke-tray-only');
-require('../src/common/main.cjs');
+require('../src/main.cjs');
 
 const pause = () => new Promise(resolve => setTimeout(resolve, 100));
 app.whenReady().then(async () => {

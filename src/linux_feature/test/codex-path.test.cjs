@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { findCodex } = require('../../common/ai-connects/codex/path.cjs');
+const { findLinuxCodex } = require('../codex-path.cjs');
 const normalized = value => value.replaceAll('\\', '/');
 function find(files, { arch = 'x64', env = {}, nonExecutable = [] } = {}) {
   const fileSystem = {
@@ -16,7 +17,7 @@ function find(files, { arch = 'x64', env = {}, nonExecutable = [] } = {}) {
       return [...new Set(Object.keys(files).filter(file => file.startsWith(prefix)).map(file => file.slice(prefix.length).split('/')[0]))];
     },
   };
-  return normalized(findCodex({ platform: 'linux', arch, env: { HOME: '/home/test', PATH: '/usr/bin:/bin', ...env }, fileSystem, resolvePackage() { throw new Error('Not bundled'); } }));
+  return normalized(findCodex({ platform: 'linux', arch, env: { HOME: '/home/test', PATH: '/usr/bin:/bin', ...env }, fileSystem, platformFinders: { linux: findLinuxCodex }, resolvePackage() { throw new Error('Not bundled'); } }));
 }
 test('desktop Linux discovers VS Code and Flatpak extension binaries without a shell PATH', () => {
   for (const root of ['.vscode/extensions', '.var/app/com.visualstudio.code/data/vscode/extensions']) {

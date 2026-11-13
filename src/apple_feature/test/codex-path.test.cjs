@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { findCodex } = require('../../common/ai-connects/codex/path.cjs');
+const { findMacCodex } = require('../codex-path.cjs');
 // The fake filesystem uses Unix paths; Node's path.join follows the test host OS.
 const fixturePath = file => file.replaceAll('\\', '/');
 
@@ -11,7 +12,7 @@ function find(files, options = {}) {
     accessSync() {},
     readdirSync() { return ['v22.4.0', 'v22.22.0']; }
   };
-  return fixturePath(findCodex({ platform: 'darwin', arch: 'arm64', env: { HOME: '/Users/test', PATH: '/usr/bin:/bin' }, resolvePackage() { throw new Error('Not bundled'); }, fileSystem, ...options }));
+  return fixturePath(findCodex({ platform: 'darwin', arch: 'arm64', env: { HOME: '/Users/test', PATH: '/usr/bin:/bin' }, resolvePackage() { throw new Error('Not bundled'); }, fileSystem, platformFinders: { darwin: findMacCodex }, ...options }));
 }
 test('Finder launch discovers Codex bundled inside installed ChatGPT', () => {
   const binary = '/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex';

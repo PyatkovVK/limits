@@ -234,7 +234,7 @@ class CodexController extends AiController {
 }
 
 function createController(options = {}) {
-  const client = options.client || new CodexClient(options.binary || findCodex({ resourcesPath: options.resourcesPath }), options);
+  const client = options.client || new CodexClient(options.binary || findCodex({ resourcesPath: options.resourcesPath, platformFinders: options.codexPlatformFinders }), options);
   return new CodexController(client, options);
 }
 module.exports = { CodexController, createController };

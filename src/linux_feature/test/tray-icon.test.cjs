@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { bitmap, png } = require('../tray-icon.cjs');
+const { bitmap, png, icon } = require('../tray-icon.cjs');
 const { createHash } = require('node:crypto');
 const { EventEmitter } = require('node:events');
 const { TrayPresentation } = require('../../common/tray/tray.cjs');
@@ -30,7 +30,7 @@ test('switching Linux styles updates both existing tray icons without recreating
     setImage(image) { this.image = image; this.updates++; }
     setToolTip() {} setContextMenu() {}
   }
-  const view = new TrayPresentation({ Tray, Menu: { buildFromTemplate: () => [] }, nativeImage: { createFromBuffer(buffer) { return { buffer, addRepresentation() {} }; } }, platform: 'linux', onClick() {} });
+  const view = new TrayPresentation({ Tray, Menu: { buildFromTemplate: () => [] }, nativeImage: { createFromBuffer(buffer) { return { buffer, addRepresentation() {} }; } }, quotaIcon: icon, platform: 'linux', onClick() {} });
   const state = { mode: 'tray', bucket: { short: { remaining: 53 }, weekly: { remaining: 53 } }, language: 'ru', menu: [] };
   view.update(state);
   const trays = view.entries.map(entry => entry.tray), classic = trays.map(tray => tray.image.buffer);

@@ -59,7 +59,7 @@ widgetModule.TaskbarWidget = class extends NativeWidget {
   }
 };
 process.argv.push('--demo', '--hidden');
-require('../../common/main.cjs');
+require('../../main.cjs');
 
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function until(check) {

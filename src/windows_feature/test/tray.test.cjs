@@ -40,9 +40,10 @@ class FakeTray extends EventEmitter {
   destroy() { this.destroyed = true; }
 }
 const nativeImage = { createFromBuffer(buffer) { return { buffer, addRepresentation() {} }; } };
+const quotaIcon = () => nativeImage.createFromBuffer(Buffer.alloc(0));
 for (const platform of ['win32', 'darwin', 'linux']) test(`ordinary polls preserve tray objects and images; switching modes destroys only the previous set (${platform})`, () => {
   const clicks = [];
-  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, platform, onClick: (_, kind) => clicks.push(kind) });
+  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, quotaIcon, platform, onClick: (_, kind) => clicks.push(kind) });
   const state = { mode: 'tray', bucket: { short: { remaining: 27 }, weekly: { remaining: 64 } }, language: 'ru', stale: false, menu: [{ label: 'Exit' }] };
   view.update(state);
   const original = view.entries.map(entry => entry.tray);
@@ -63,7 +64,7 @@ for (const platform of ['win32', 'darwin', 'linux']) test(`ordinary polls preser
 });
 test('Mac tray clicks open details while right-click opens the menu without intercepting activation', () => {
   let clicks = 0;
-  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, platform: 'darwin', onClick: () => clicks++ });
+  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, quotaIcon, platform: 'darwin', onClick: () => clicks++ });
   view.update({ mode: 'tray', menu: [{ label: 'Quit' }] });
   const tray = view.entries[0].tray;
   assert.equal(tray.menu, undefined);
@@ -72,7 +73,7 @@ test('Mac tray clicks open details while right-click opens the menu without inte
   assert.deepEqual(tray.popup, [{ label: 'Quit' }]);
 });
 test('Linux tray skips Windows GUIDs and unsupported bounds API', () => {
-  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, platform: 'linux', onClick() {} });
+  const view = new TrayPresentation({ Tray: FakeTray, Menu: { buildFromTemplate: menu => menu }, nativeImage, appIcon: {}, quotaIcon, platform: 'linux', onClick() {} });
   view.update({ mode: 'tray', menu: [] });
   assert.equal(view.entries[0].tray.id, undefined);
   view.entries[0].tray.getBounds = () => { throw new Error('Unsupported API'); };

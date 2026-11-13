@@ -17,7 +17,7 @@ global.fetch = async () => assert.fail('Smoke must not access the network');
 shell.openExternal = async () => assert.fail('Smoke must not open a browser');
 Notification.prototype.show = () => assert.fail('Smoke must not show a notification');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../src/common/main.cjs');
+require('../src/main.cjs');
 const pause = (ms = 50) => new Promise(resolve => setTimeout(resolve, ms));
 async function waitFor(condition, label) {
   const deadline = Date.now() + 10000;

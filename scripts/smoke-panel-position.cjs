@@ -8,7 +8,7 @@ const originalSet = app.setPath.bind(app);
 app.setPath = (name, value) => originalSet(name, name === 'userData' ? root : value);
 app.getVersion = () => require('../package.json').version;
 app.disableHardwareAcceleration(); process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../src/common/main.cjs');
+require('../src/main.cjs');
 app.whenReady().then(async () => {
   try {
     let panel;

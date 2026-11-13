@@ -7,7 +7,7 @@ const root = fs.mkdtempSync(path.join(artifacts, 'linux-widget-smoke-'));
 const setPath = app.setPath.bind(app); app.setPath = (name, value) => setPath(name, name === 'userData' ? root : value);
 app.getVersion = () => require('../../../package.json').version; app.disableHardwareAcceleration();
 global.fetch = async () => assert.fail('No network in demo');
-process.argv.push('--demo', '--hidden'); require('../../common/main.cjs');
+process.argv.push('--demo', '--hidden'); require('../../main.cjs');
 app.whenReady().then(async () => {
   try {
     let panel, widget;

@@ -38,7 +38,7 @@ observe('../accounts.cjs', 'AppleAccounts', 'accounts');
 observe('../../common/tray/tray.cjs', 'TrayPresentation', 'tray');
 observe('../../common/ai-connects/codex/reset-notifications.cjs', 'ResetNotifications', 'resets');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../../common/main.cjs');
+require('../../main.cjs');
 
 app.whenReady().then(async () => {
   try {

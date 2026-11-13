@@ -49,7 +49,7 @@ registry.providers.get('codex').create = options => {
   return new CodexController(client, options);
 };
 process.argv.push('--hidden', '--smoke-tray-only');
-require('../src/common/main.cjs');
+require('../src/main.cjs');
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function waitFor(condition, label) {
   const deadline = Date.now() + 10000;

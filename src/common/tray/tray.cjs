@@ -1,7 +1,5 @@
 'use strict';
-const { percentage, icon } = require('../../windows_feature/tray-icon.cjs');
-const { icon: macIcon } = require('../../apple_feature/tray-icon.cjs');
-const { icon: linuxIcon } = require('../../linux_feature/tray-icon.cjs');
+const { percentage } = require('./tray-image.cjs');
 const { t } = require('../renderer/i18n.js');
 const { format } = require('../renderer/countdown.js');
 const { view } = require('../renderer/metrics.js');
@@ -25,9 +23,8 @@ function tooltip(kind, { bucket, account, displayName, language = 'ru', stale, d
   return lines.join('\n');
 }
 class TrayPresentation {
-  constructor({ Tray, Menu, nativeImage, appIcon, onClick, platform = process.platform }) {
-    Object.assign(this, { Tray, Menu, nativeImage, appIcon, onClick, platform });
-    this.quotaIcon = platform === 'darwin' ? macIcon : platform === 'linux' ? linuxIcon : icon;
+  constructor({ Tray, Menu, nativeImage, appIcon, onClick, platform = process.platform, quotaIcon }) {
+    Object.assign(this, { Tray, Menu, nativeImage, appIcon, onClick, platform, quotaIcon });
     this.mode = null;
     this.entries = [];
   }

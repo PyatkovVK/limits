@@ -11,7 +11,7 @@ app.disableHardwareAcceleration();
 global.fetch = async () => assert.fail('No network in demo smoke');
 shell.openExternal = async () => assert.fail('No browser in demo smoke');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../../common/main.cjs');
+require('../../main.cjs');
 const pause = () => new Promise(resolve => setTimeout(resolve, 100));
 app.whenReady().then(async () => {
   try {
