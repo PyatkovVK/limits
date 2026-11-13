@@ -10,7 +10,7 @@ function renderCountdown() {
 function render(next) {
   language = next.language || 'ru';
   document.body.dataset.platform = 'linux';
-  const translate = (lang, key) => window.limitsI18n.t(lang, key, 'linux');
+  const translate = (lang, key) => window.limitsLinuxI18n.t(lang, key) || window.limitsI18n.t(lang, key);
   const t = key => translate(language, key);
   window.limitsI18n.apply(language, document, translate);
   const generic = window.limitsMetricElements?.compact($('details'), next);

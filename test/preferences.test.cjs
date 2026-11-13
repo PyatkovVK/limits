@@ -5,9 +5,9 @@ const os = require('node:os');
 const path = require('node:path');
 const { startupState, changePreference } = require('../src/common/core/preferences.cjs');
 const platformApi = {
-  linuxStartup: require('../src/linux_feature/startup.cjs'),
+  linuxStartup: require('../src/linux_feature/core/startup.cjs'),
   appleStartup: require('../src/apple_feature/startup.cjs'),
-  changeTrayStyle: require('../src/linux_feature/preferences.cjs').changeTrayStyle,
+  changeTrayStyle: require('../src/linux_feature/core/preferences.cjs').changeTrayStyle,
   widgetStyles: require('../src/windows_feature/settings/widget/styles.js').styles,
   presentation: require('../src/apple_feature/presentation.cjs'),
 };

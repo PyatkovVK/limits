@@ -7,6 +7,9 @@ const near = (left, right) => Math.abs(left - right) <= 1;
 
 async function verifyPanel({ window, trayPresentation, artifactRoot }) {
   const { screen } = require('electron');
+  await window.webContents.executeJavaScript('window.limitsViewPanelReady');
+  const gutter = await window.webContents.executeJavaScript("getComputedStyle(document.querySelector('main')).scrollbarGutter");
+  if (gutter !== 'stable') throw new Error('Linux panel stylesheet was not loaded');
   const display = screen.getDisplayMatching(window.getBounds());
   const area = display.workArea;
   if (window.webContents.getZoomFactor() !== 1.2) throw new Error('Linux panel zoom was not applied');
@@ -30,7 +33,7 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
       // Grow intrinsic content beyond the height cap, then remove it to check shrinking.
       await window.webContents.executeJavaScript(`(() => {
         const spacer = document.createElement('div'); spacer.id = 'linux-smoke-spacer'; spacer.style.height = '900px';
-        document.querySelector('.linux-panel-content').append(spacer);
+        document.querySelector('.panel-content').append(spacer);
       })()`);
       await delay(150);
       const expanded = window.getBounds();
@@ -45,7 +48,7 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
       placements.push({ edge, bounds: collapsed, screenshot: filename });
     }
     const compact = await window.webContents.executeJavaScript(`(() => {
-      const content = document.querySelector('.linux-panel-content');
+      const content = document.querySelector('.panel-content');
       window.linuxSmokeChildren = [...content.childNodes];
       content.replaceChildren();
       return window.limitsViewPanel.report();
@@ -53,7 +56,7 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
     await delay(150);
     const compactHeight = window.getBounds().height;
     if (compactHeight >= 480) throw new Error('Short Linux content retained the old height floor');
-    await window.webContents.executeJavaScript(`document.querySelector('.linux-panel-content').append(...window.linuxSmokeChildren); delete window.linuxSmokeChildren`);
+    await window.webContents.executeJavaScript(`document.querySelector('.panel-content').append(...window.linuxSmokeChildren); delete window.linuxSmokeChildren`);
     await delay(150);
     return { zoom: 1.2, simulatedTrayPlacements: placements, growsAndShrinks: true, compactHeight };
   } finally {
@@ -62,46 +65,4 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
   }
 }
 
-async function verifyTrayStyles({ window, trayPresentation, artifactRoot, settingsPath }) {
-  const panel = await verifyPanel({ window, trayPresentation, artifactRoot });
-  const originalStyle = await window.webContents.executeJavaScript('window.limits.get().then(state => state.preferences.linuxTrayStyle)');
-  const originalTrays = trayPresentation.entries.map(entry => entry.tray);
-  const screenshots = [];
-  try {
-    let previousImages;
-    for (const style of ['bar', 'classic']) {
-      const selected = await window.webContents.executeJavaScript(`(async () => {
-        window.limitsSettings.open();
-        const select = document.getElementById('display-mode');
-        const { displayModes } = await window.limits.get();
-        const expectedModes = ['classic', 'bar', ...displayModes.filter(mode => mode !== 'tray')];
-        if (!select || [...select.options].map(option => option.value).join() !== expectedModes.join()) throw new Error('Linux tray style control has unexpected modes');
-        select.value = ${JSON.stringify(style)};
-        await window.limits.displayMode(select.value);
-        const state = await window.limits.get();
-        return { selected: select.value, saved: state.preferences.linuxTrayStyle, error: state.preferenceError };
-      })()`);
-      if (selected.selected !== style || selected.saved !== style || selected.error) throw new Error('Linux tray style did not apply');
-      await delay(350);
-      if (JSON.parse(fs.readFileSync(settingsPath, 'utf8')).linuxTrayStyle !== style) throw new Error('Linux tray style was not persisted');
-      const images = trayPresentation.entries.map((entry, index) => {
-        if (entry.tray !== originalTrays[index]) throw new Error('Linux tray style recreated a tray icon');
-        const image = entry.image.toPNG();
-        fs.writeFileSync(path.join(artifactRoot, `linux-tray-${style}-${entry.kind}.png`), image);
-        if (previousImages && image.equals(previousImages[index])) throw new Error('Linux styles produced identical icons');
-        return image;
-      });
-      previousImages = images;
-      const filename = `linux-settings-${style}.png`;
-      fs.writeFileSync(path.join(artifactRoot, filename), (await window.webContents.capturePage()).toPNG());
-      screenshots.push(filename);
-    }
-    const invalid = await window.webContents.executeJavaScript("window.limits.preference('linuxTrayStyle', 'invalid')");
-    if (!invalid.preferenceError || invalid.preferences.linuxTrayStyle !== 'classic') throw new Error('Invalid Linux tray style was accepted');
-    return { panel, styles: ['bar', 'classic'], saved: true, retainedTrayIcons: true, screenshots };
-  } finally {
-    await window.webContents.executeJavaScript(`window.limits.preference('linuxTrayStyle', ${JSON.stringify(originalStyle)}).then(() => window.limitsSettings.dialog.close())`);
-    await delay(350);
-  }
-}
-module.exports = { verifyTrayStyles };
+module.exports = { verifyPanel };

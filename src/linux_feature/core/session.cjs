@@ -1,7 +1,7 @@
 'use strict';
 const { spawn: spawnProcess } = require('node:child_process');
 const { createInterface } = require('node:readline');
-const { browserEnvironment } = require('./browser.cjs');
+const { systemEnvironment } = require('./environment.cjs');
 
 function screenSaverName(desktop = '') {
   if (/cinnamon/i.test(desktop)) return 'org.cinnamon.ScreenSaver';
@@ -22,7 +22,7 @@ function watchSession({ powerMonitor, refresh, spawn = spawnProcess, env = proce
   let child, lines;
   try {
     const name = screenSaverName(env.XDG_CURRENT_DESKTOP || env.DESKTOP_SESSION);
-    child = spawn('gdbus', ['monitor', '--session', '--dest', name], { stdio: ['ignore', 'pipe', 'pipe'], env: browserEnvironment(env) });
+    child = spawn('gdbus', ['monitor', '--session', '--dest', name], { stdio: ['ignore', 'pipe', 'pipe'], env: systemEnvironment(env) });
     child.stderr.resume();
     lines = createInterface({ input: child.stdout });
     lines.on('line', line => {
