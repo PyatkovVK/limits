@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld('limits', {
     ipcRenderer.on('limits:open-settings', listener);
     return () => ipcRenderer.removeListener('limits:open-settings', listener);
   },
-  panelSize: height => ipcRenderer.invoke('limits:panel-size', height),
+  panelSize: (height, surface) => ipcRenderer.invoke('limits:panel-size', height, surface),
   hide: () => ipcRenderer.invoke('limits:hide'),
   open: () => ipcRenderer.invoke('limits:open'),
   toggleDetails: () => ipcRenderer.invoke('limits:toggle-details'),

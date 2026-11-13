@@ -71,8 +71,10 @@ class AppleNotch {
   }
 
   fitContent() {
-    if (!this.layout || !this.contentHeight) return;
-    this.layout.fullHeight = Math.min(this.layout.maxFullHeight, Math.max(this.layout.peekHeight, this.contentHeight + this.layout.contentTop));
+    const { layout } = this;
+    if (!layout) return;
+    if (layout.peekFallback && this.peekContentHeight) layout.peekHeight = Math.min(layout.maxFullHeight, layout.contentTop + this.peekContentHeight);
+    if (this.contentHeight) layout.fullHeight = Math.min(layout.maxFullHeight, Math.max(layout.peekHeight, this.contentHeight + layout.contentTop));
   }
 
   async refreshMenuBar({ initial = false } = {}) {
@@ -130,12 +132,14 @@ class AppleNotch {
     } finally { this.menuBarPending = false; }
   }
 
-  resize(height) {
+  resize(height, surface) {
     if (!Number.isFinite(height) || height <= 0) return false;
-    this.contentHeight = Math.ceil(height);
-    const previous = this.layout?.fullHeight;
+    const previousPeek = this.layout?.peekHeight;
+    const previousFull = this.layout?.fullHeight;
+    if (surface === 'peek') this.peekContentHeight = Math.ceil(height);
+    else this.contentHeight = Math.ceil(height);
     this.fitContent();
-    if (this.layout?.fullHeight !== previous) this.update();
+    if (this.layout?.peekHeight !== previousPeek || this.layout?.fullHeight !== previousFull) this.update();
     return true;
   }
 

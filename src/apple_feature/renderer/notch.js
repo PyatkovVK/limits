@@ -2,7 +2,7 @@
 (function () {
   const isNotch = new URLSearchParams(location.search).get('apple') === 'notch';
   const body = document.body;
-  let islandIndicators, updateSurface;
+  let islandIndicators, updateSurface, previewMetrics;
 
   if (isNotch) {
     body.classList.add('apple-notch');
@@ -20,13 +20,14 @@
     const heading = document.createElement('div'); heading.className = 'apple-preview-heading';
     const title = document.createElement('span'); title.textContent = 'Limits';
     const hint = document.createElement('span'); hint.id = 'apple-hint';
-    heading.append(title, hint); preview.append(heading);
+    previewMetrics = document.createElement('div'); previewMetrics.className = 'apple-preview-metrics';
+    heading.append(title, hint); preview.append(heading, previewMetrics);
     for (const [kind, label] of [['short', '5h'], ['weekly', '7d']]) {
       const row = document.createElement('div'); row.className = `apple-preview-row ${kind}`;
       const name = document.createElement('span'); name.textContent = label; name.className = 'metric-label';
       const bar = document.createElement('progress'); bar.max = 100; bar.id = `apple-${kind}-bar`;
       const value = document.createElement('span'); value.className = 'metric-value'; value.id = `apple-${kind}-value`;
-      row.append(name, bar, value); preview.append(row);
+      row.append(name, bar, value); previewMetrics.append(row);
     }
     islandIndicators = window.limitsAppleIsland.create();
     const notification = document.createElement('section'); notification.className = 'apple-notification'; notification.hidden = true;
@@ -43,6 +44,13 @@
     outline.append(document.createElementNS(svg, 'path'));
     trigger.append(preview, resetHint); shell.append(cap, trigger, content, islandIndicators.header, notification, outline); body.append(shell);
     updateSurface = window.limitsAppleSurface.observeSurface(shell, body);
+    const previewSize = new ResizeObserver(() => {
+      if (body.dataset.notchPhase === 'peek' && body.hasAttribute('data-peek-fallback')) {
+        void window.limits.panelSize(preview.offsetHeight, 'peek');
+      }
+    });
+    previewSize.observe(preview, { box: 'border-box' });
+    window.addEventListener('pagehide', () => previewSize.disconnect(), { once: true });
     const loginNotice = document.createElement('div');
     loginNotice.id = 'apple-login-notice'; loginNotice.className = 'notice'; loginNotice.setAttribute('role', 'status'); loginNotice.hidden = true;
     content.querySelector('main').prepend(loginNotice);
@@ -98,7 +106,7 @@
       trigger.setAttribute('aria-label', t('notchOpen'));
       islandIndicators.render(next, layout);
       document.getElementById('apple-hint').textContent = t('notchHint');
-      window.limitsMetricElements?.compact(document.querySelector('.apple-preview'), next);
+      window.limitsMetricElements?.compact(previewMetrics, next);
       const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets[0];
       for (const kind of ['short', 'weekly']) {
         const value = bucket?.[kind]?.remaining ?? null;
@@ -135,7 +143,7 @@
       hint.hidden = fallback || !Number.isFinite(reset) || reset <= 0;
       if (!hint.hidden) hint.firstElementChild.textContent = window.limitsI18n.t(next.language, 'resetIn');
       if (fallback || !hint.hidden) window.limitsCountdown.render(time, reset, next.language);
-      if (fallback) window.limitsMetricElements?.countdowns(document.querySelector('.apple-preview'));
+      if (fallback) window.limitsMetricElements?.countdowns(previewMetrics);
     }
   };
 })();

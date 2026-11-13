@@ -99,7 +99,7 @@ body.apple-notch:is([data-notch-phase="peek"], [data-notch-phase="expanded"]) .a
 body[data-notch-phase="peek"] .apple-preview,
 body.apple-notch:not(.apple-island)[data-notch-phase="closed"] .apple-preview { display: grid; }
 body[data-notch-phase="closed"] .apple-preview { top: auto; bottom: 5px; left: calc(50% - 50px); right: calc(50% - 50px); column-gap: 5px; }
-.apple-preview .metric-compact { display: contents; }
+.apple-preview-metrics, .apple-preview .metric-compact { display: contents; }
 .apple-preview :is(.apple-preview-row, .metric-compact-row) {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 5px;
   width: min(100%, 106px); align-content: start;
@@ -134,7 +134,7 @@ body[data-notch-phase="peek"][data-notch-hover-style="informative"] .apple-previ
 }
 body[data-peek-values] .apple-preview-reset { margin-top: 17px; }
 body[data-notch-phase="peek"][data-peek-fallback] .apple-preview {
-  display: block; top: calc(var(--content-top) + 12px); left: 22px; right: 22px; font-size: 11px;
+  display: block; top: var(--content-top); left: 22px; right: 22px; padding: 12px 0 16px; font-size: 11px;
 }
 body[data-peek-fallback].apple-narrow-preview .apple-preview { left: 12px; right: 12px; }
 body[data-peek-fallback] .apple-preview-heading {

@@ -527,6 +527,7 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
             headerHidden: header.hidden, meters,
             previewOverflow: preview.scrollWidth > preview.clientWidth + 1,
             fallback: heading.getClientRects().length > 0 && short.height > 0 && short.bottom <= weekly.top &&
+              Math.abs(shell.bottom - weekly.bottom - 16) < 1 &&
               shortBar.width > 0 && shortBar.left === weeklyBar.left && shortBar.width === weeklyBar.width,
             values: ['short','weekly'].map(kind => document.getElementById('apple-' + kind + '-value').textContent) };
         })()`);
@@ -556,7 +557,7 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
         }
         if (phase === 'peek') {
           if (Math.abs(compact.left - report.left) > 0.5 || Math.abs(compact.right - report.right) > 0.5 || report.previewOverflow || report.values.join(',') !== '72%,46%') throw new Error('Hover preview widened, overflowed or lost values: ' + JSON.stringify({ scenario: scenario.name, compact, hover: report }));
-          if (report.fallback !== (scenario.expected === 'hidden') || (report.fallback && Math.abs(report.bottom - layout.contentTop - 116) > 0.5)) {
+          if (report.fallback !== (scenario.expected === 'hidden') || Math.abs(report.bottom - layout.peekHeight) > 0.5) {
             throw new Error('Hover lost the full fallback when the side indicators do not fit: ' + JSON.stringify({ scenario: scenario.name, report }));
           }
           checks.push({ scenario: scenario.name, indicatorMode: layout.indicatorMode, compactWidth: compact.width, hoverWidth: report.width, alignedEdges: true });
@@ -568,7 +569,46 @@ async function verifyMenuBarProtection({ appleNotch, target, artifactRoot }) {
         }
       }
     }
-    return { phases, cases: checks, transparent: true, clickThrough: true, alignedHover: true };
+    appleNotch.layoutScreenInfo = null;
+    appleNotch.readNativeScreens = async () => [cases.find(scenario => scenario.name === 'crowded-left').metadata];
+    await appleNotch.refreshMenuBar();
+    appleNotch.setPhase('peek');
+    const fallbackHeights = [];
+    const metric = { id: 'balance', type: 'money', currency: 'USD', value: 10 };
+    const descriptor = { id: metric.id, label: { ru: 'Баланс', en: 'Balance' } };
+    for (const metricCount of [0, 1, 2, 0]) {
+      const metrics = Array.from({ length: metricCount }, (_, index) => ({ ...metric, id: `balance-${index}` }));
+      appleNotch.getState = () => ({ ...getState(), selectedId: 'balance', buckets: [],
+        groups: [{ id: 'balance', name: 'Balance', metrics }],
+        displaySchema: { layout: 'metrics', primaryMetricId: 'balance-0', groups: [{ id: 'balance', metrics: metrics.map(metric => ({ ...descriptor, id: metric.id })) }] } });
+      appleNotch.update();
+      await new Promise(resolve => setTimeout(resolve, 550));
+      const layout = appleNotch.snapshot();
+      const report = await target.webContents.executeJavaScript(`(() => {
+        const preview = document.querySelector('.apple-preview');
+        const content = preview.querySelector('.metric-compact');
+        return { heading: preview.querySelector('.apple-preview-heading').getClientRects().length > 0,
+          rows: content.querySelectorAll('.metric-compact-row:not([hidden])').length,
+          contentBottom: content.getBoundingClientRect().bottom,
+          shellBottom: document.querySelector('.apple-shell').getBoundingClientRect().bottom };
+      })()`);
+      if (Math.abs(layout.peekHeight - report.shellBottom) > 0.5 || Math.abs(report.shellBottom - report.contentBottom - 16) > 1 ||
+          !report.heading || report.rows !== metricCount) {
+        throw new Error('Fallback hover background did not fit the visible data: ' + JSON.stringify({ metricCount, peekHeight: layout.peekHeight, report }));
+      }
+      const image = await target.webContents.capturePage();
+      const size = image.getSize();
+      const scale = size.width / layout.bounds.width;
+      const outside = (Math.ceil((layout.peekHeight + 8) * scale) * size.width + Math.floor(size.width / 2)) * 4;
+      if (image.toBitmap()[outside + 3] !== 0) throw new Error('The area below the hover preview is opaque');
+      const point = { x: layout.bounds.x + layout.bounds.width / 2, y: layout.bounds.y + layout.peekHeight + 8 };
+      if (contains(hitBounds(layout, 'peek'), point, 6)) throw new Error('The area below the hover preview intercepts clicks');
+      fallbackHeights.push(layout.peekHeight);
+    }
+    if (fallbackHeights[2] <= Math.max(fallbackHeights[0], fallbackHeights[1]) || fallbackHeights[3] !== fallbackHeights[0]) {
+      throw new Error('Fallback hover did not resize with metrics: ' + JSON.stringify(fallbackHeights));
+    }
+    return { phases, cases: checks, transparent: true, clickThrough: true, alignedHover: true, fallbackHeights };
   } finally {
     appleNotch.getState = getState;
     appleNotch.readNativeScreens = read;

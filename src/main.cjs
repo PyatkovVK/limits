@@ -330,9 +330,9 @@ async function setup() {
       taskbarSupported: taskbarSupported || linuxWidgetSupported, demo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget, platformApi });
     return { ...publicState(), preferenceError: changed ? null : 'unavailable' };
   });
-  ipcMain.handle('limits:panel-size', (event, height) => {
+  ipcMain.handle('limits:panel-size', (event, height, surface) => {
     if (!trusted(event)) throw new Error('Unauthorized');
-    if (event.sender === appleNotch?.window?.webContents) return appleNotch.resize(height);
+    if (event.sender === appleNotch?.window?.webContents) return appleNotch.resize(height, surface);
     if (event.sender !== window.webContents) return false;
     return (windowsPanel || macPanel || linuxPanel)?.resize(height) || false;
   });
