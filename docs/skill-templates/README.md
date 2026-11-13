@@ -8,6 +8,7 @@ Reference catalog for repository skill templates, in English and Russian. This f
 | Skill ID | English name | Название на русском | Instructions / Инструкция |
 | --- | --- | --- | --- |
 | `platform-routing` | Platform routing | Выбор платформы для изменений | [SKILL.md](platform-routing/SKILL.md) |
+| `platform-boundary` | Common/platform dependency boundary | Граница зависимостей common/platform | [SKILL.md](platform-boundary/SKILL.md) |
 | `settings-architecture` | Shared settings architecture | Архитектура общих настроек | [SKILL.md](settings-architecture/SKILL.md) |
 | `requirements-documentation` | Read-only requirements | Требования только для чтения | [SKILL.md](requirements-documentation/SKILL.md) |
 | `changelog` | Changelog updates | Обновление списка изменений | [SKILL.md](changelog/SKILL.md) |
@@ -20,12 +21,18 @@ Reference catalog for repository skill templates, in English and Russian. This f
 
 **Выбор платформы для изменений:** направляет платформенные правки в реализацию Linux, macOS или Windows. Явно указанная пользователем платформа важнее текущей ОС; общая логика остаётся в `src/common/`.
 
+**Common/platform dependency boundary:** keeps `src/common/` platform-agnostic — it never imports `*_feature/`; platform behavior is injected through the composition root `src/main.cjs`.
+
+**Граница зависимостей common/platform:** сохраняет `src/common/` платформонезависимым — он никогда не импортирует `*_feature/`; платформенное поведение внедряется через корень композиции `src/main.cjs`.
+
 ## Folder structure / Структура папки
 
 ```text
 skills/
 ├── platform-routing/
 │   └── SKILL.md                  # Instructions / Инструкция навыка
+├── platform-boundary/
+│   └── SKILL.md                  # Common/platform dependency boundary / Граница зависимостей common/platform
 ├── settings-architecture/
 │   └── SKILL.md                  # Shared settings groups / Общие группы настроек
 ├── requirements-documentation/

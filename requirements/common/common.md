@@ -2,6 +2,7 @@
 
 Shared requirements across all platforms.
 
+- [Architecture](architecture.md) — code organization and the platform dependency boundary
 - [AI connectors](ai-connects.md) — shared AI controllers
 - [DeepSeek](providers/deepseek.md) — API-key balance provider
 - [Z.ai (GLM Coding Plan)](providers/zai.md) — API-key quota provider
