@@ -102,19 +102,24 @@ test('entrypoint gates reusable workflows and failed builds block verification a
   assert.deepEqual(publication.permissions, { contents: 'write' });
 });
 
-test('test-only pipeline runs npm test on all three OSes without packages or uploads', () => {
-  assert.deepEqual(checks.jobs.test.strategy.matrix.os, ['windows-latest', 'macos-15', 'ubuntu-24.04']);
-  assert.ok(checks.jobs.test.steps.some(step => step.run === 'npm test'));
-  assert.ok(checks.jobs.test.steps.every(step => !/upload-artifact|build:|scripts\/ci/.test(step.uses || step.run || '')));
+test('test-only pipeline runs common and native suites on all three OSes without packages or uploads', () => {
+  const { strategy, steps } = checks.jobs.test;
+  assert.deepEqual(strategy.matrix.include, [
+    { os: 'windows-latest', target: 'win' }, { os: 'macos-15', target: 'mac' }, { os: 'ubuntu-24.04', target: 'linux' },
+  ]);
+  assert.deepEqual(steps.filter(step => step.run).map(step => [step.run, step.if]), [
+    ['npm run test:common', undefined], ['npm run test:${{ matrix.target }}', undefined],
+  ]);
+  assert.ok(steps.every(step => !step.uses?.includes('upload-artifact')));
 });
 
 test('every package target runs tests before its explicit native build command', () => {
   const pkg = require('../package.json');
   const { buildPlan } = require('../scripts/build-plan.cjs');
   const matrix = builds.jobs.build.strategy.matrix.include;
-  assert.deepEqual(matrix.map(target => [target.os, target.script]), [
-    ['windows-latest', 'build:win:x64'], ['macos-15', 'build:mac:arm64'],
-    ['macos-15-intel', 'build:mac:x64'], ['ubuntu-24.04', 'build:linux:x64'],
+  assert.deepEqual(matrix.map(({ os, target, script }) => [os, target, script]), [
+    ['windows-latest', 'win', 'build:win:x64'], ['macos-15', 'mac', 'build:mac:arm64'],
+    ['macos-15-intel', 'mac', 'build:mac:x64'], ['ubuntu-24.04', 'linux', 'build:linux:x64'],
   ]);
   for (const { target, arch, script } of matrix) {
     assert.ok(pkg.scripts[script], script);
@@ -126,7 +131,10 @@ test('every package target runs tests before its explicit native build command',
       [`--${target}`, `--${arch}`, '--publish=never']);
   }
   const steps = builds.jobs.build.steps;
-  assert.ok(steps.findIndex(step => step.run === 'npm test') < steps.findIndex(step => step.name === 'Build packages'));
+  const buildIndex = steps.findIndex(step => step.name === 'Build packages');
+  assert.deepEqual(steps.slice(0, buildIndex).filter(step => step.run?.startsWith('npm run ')).map(step => [step.run, step.if]), [
+    ['npm run test:common', undefined], ['npm run test:${{ matrix.target }}', undefined],
+  ]);
   assert.equal(steps.find(step => step.name === 'Build packages').run, 'npm run "$BUILD_SCRIPT"');
   assert.equal(steps.find(step => step.name === 'Set version from the branch').if, "env.RELEASE_VERSION != ''");
 });

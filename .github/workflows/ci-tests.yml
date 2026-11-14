@@ -13,14 +13,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-15, ubuntu-24.04]
+        include:
+          - os: windows-latest
+            target: win
+          - os: macos-15
+            target: mac
+          - os: ubuntu-24.04
+            target: linux
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Check notch side panel layouts
-        if: runner.os == 'macOS'
-        run: npm run smoke:notch-layout
-      - name: Run tests
-        run: npm test
+      - name: Run common tests
+        run: npm run test:common
+      - name: Run platform tests
+        run: npm run test:${{ matrix.target }}

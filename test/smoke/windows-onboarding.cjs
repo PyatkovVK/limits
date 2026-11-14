@@ -11,7 +11,7 @@ if (process.platform !== 'win32') throw new Error('Run the Windows onboarding ch
 const profileArg = process.argv.find(arg => arg.startsWith('--onboarding-profile='));
 const root = profileArg?.slice('--onboarding-profile='.length);
 if (!root || !path.isAbsolute(root)) {
-  console.error('Run the onboarding check with npm run smoke:onboarding.');
+  console.error('Run the onboarding check with node scripts/smoke-onboarding.cjs after preparing the app.');
   app.exit(1);
   return;
 }

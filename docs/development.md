@@ -17,7 +17,7 @@ npm install
 npm run demo
 ```
 
-If the default branch does not yet contain the app, switch to `create-mvp` before installing dependencies. Use `npm start` instead of demo mode to connect real accounts.
+If the default branch does not yet contain the app, switch to `create-mvp` before installing dependencies. Use `npm start` to debug the app with real accounts, `npm run demo` to explore it with demo data, and `npm run setup:skills` to set up the local AI skills.
 
 In PowerShell, use `npm.cmd` if execution policy blocks `npm.ps1`. Reinstall dependencies on each OS; do not copy `node_modules` across platforms.
 
@@ -25,21 +25,16 @@ In PowerShell, use `npm.cmd` if execution policy blocks `npm.ps1`. Reinstall dep
 
 | Command | Purpose |
 | --- | --- |
-| `npm test` | Shared tests and all platform unit tests using mocked system dependencies |
-| `npm run demo` | UI with clearly marked demo data |
-| `npm run doctor` | Real Codex connection diagnostics without printing tokens or email |
-| `npm run smoke` | Demo Electron UI smoke check and screenshots in `artifacts/` |
-| `npx electron test/smoke/apple-notch.cjs` | macOS notch checks with isolated demo data covering crowded or unknown menu space, aligned hover edges, transparent click-through areas and notifications |
-| `npm run smoke:notch-layout` | macOS CI check for the approved wide, compact and two-line side panel layouts. Uses a simulated notch and verifies fonts, order, dots, insets, alignment and the transparent area around the panel. |
-| `npm run smoke:onboarding` | Windows first-run sign-in with empty storage, without opening a browser |
-| `npm run smoke:accounts` | Account trash actions, errors and the 67% animation in isolated demo storage, including the Windows widget |
-| `npm run smoke:updates` | Shared update UI in RU/EN, modal dismissal, errors and trusted IPC, using simulated releases and isolated demo storage |
-| `npm run smoke:panel-follow` | Windows widget dragging with open and dismissed details panels, using isolated demo storage |
-| `npm run smoke:widget-startup` | Windows widget native attachment and focus on a fresh launch, tray/fullscreen/auto-hide transitions, crowded-taskbar detachment and return, Quick Settings classification, helper outages, unchanged polling and clicks on widget/details controls |
-| `npm run smoke:live` | UI check using a signed-in account |
-| `npm run smoke:live -- --smoke-gpu --smoke-stability` | GPU and stability observation using a signed-in account |
+| `npm run test:common` | Shared behavior, build configuration, and CI tests in `test/` |
+| `npm run test:win` | Windows tests in `src/windows_feature/test/` |
+| `npm run test:mac` | macOS tests in `src/apple_feature/test/` |
+| `npm run test:linux` | Linux tests in `src/linux_feature/test/` |
 
-Unit tests can run on any supported OS because platform dependencies are mocked. Real UI checks run on the target OS. Live checks require ChatGPT sign-in; keep generated files and account details out of commits.
+Run the suite for the code you changed. For a Windows-only change, run `npm run test:win`. GitHub Actions runs the shared suite and the matching platform suite on each runner. Tests that exercise native helpers require the matching OS.
+
+Run `npm run test:win:smoke`, `npm run test:mac:smoke`, or `npm run test:linux:smoke` locally in an interactive desktop session on the target OS. Each suite prepares the app once, runs the scenarios sequentially, and writes screenshots and reports under `artifacts/`. Keep the mouse free during the Windows widget checks. Linux needs a desktop with tray support and an unlocked system keyring for the provider checks. The macOS suite includes simulated notch layouts on any Mac. See the [platform verification checklist](../TODO.md) for native checks still to run.
+
+Keep generated files and account details out of commits.
 
 ## Source layout
 
@@ -132,7 +127,7 @@ The [Test, build and release workflow](../.github/workflows/release.yml) runs on
 Pull requests use the **source** branch for this table and test the proposed merge result. A feature branch targeting a demo branch therefore builds all targets; a PR from a numeric demo branch runs only tests. PR runs never publish or move tags and receive no signing secrets in their process environment. Manual branch runs use the same rules as pushes. Tag pushes do not trigger CI, and tag refs or deleted branches cannot build or publish.
 
 - Ordinary branches use the version in `package.json`. Numeric branches derive the package version from their name, appending a zero patch component if omitted. The override occurs inside CI without a version commit or npm-created tag. Test-only branches do not override the version.
-- All four build jobs run tests before packaging. A separate job with read-only repository access verifies that all eight packages exist and are nonempty files, calculates `SHA256SUMS.txt`, and saves it as `packages-checksums`. Packages and checksums stay in Actions artifacts for seven days for ordinary and numeric branches. `main`, `demo` and numeric-demo branches never build or upload packages.
+- All four build jobs run the shared suite and the suite for their target OS before packaging. A separate job with read-only repository access verifies that all eight packages exist and are nonempty files, calculates `SHA256SUMS.txt`, and saves it as `packages-checksums`. Packages and checksums stay in Actions artifacts for seven days for ordinary and numeric branches. `main`, `demo` and numeric-demo branches never build or upload packages.
 - Only numeric branch pushes or manual runs can enter the publication job, after all tests, builds and verification pass. It uses the standard `GITHUB_TOKEN` with `contents: write`, points `v<branch>` at the built commit, uploads the eight packages and checksums to a draft, then makes the release public.
 - A later run for the same numeric branch updates that release's tag and assets. Other versions are preserved, and runs for the same workflow/ref are serialized.
 

@@ -28,8 +28,8 @@ AI contributors should start with [local AI skills](docs/ai-skills.md) and follo
 
 ## Validate your change
 
-- **Behavior changes:** run `npm test`. Add or adjust tests for meaningful behavior, especially usage calculations, account isolation, and platform regressions.
-- **UI changes:** run `npm run smoke` on the affected OS, inspect the result, and attach a demo screenshot. For Windows onboarding, use `npm run smoke:onboarding` where relevant.
+- **Behavior changes:** run the [test suite](docs/development.md#checks) for the code you changed. Use `npm run test:common` for shared changes and the matching platform command for platform changes. Add or adjust tests for meaningful behavior, especially usage calculations, account isolation, and platform regressions.
+- **UI changes:** run `npm run demo` on the affected OS, inspect the result, and attach a demo screenshot.
 - **Packaging changes:** build on the target OS with an explicit platform/architecture command, such as `npm run build:win:x64`, `npm run build:mac:arm64`, `npm run build:mac:x64`, or `npm run build:linux:x64`, and check the generated package. See the [build commands and CI routing](docs/development.md#build-packages).
 - **Documentation changes:** check links, image paths, commands, and consistency between `README.md` and `README.ru.md`. App builds are not necessary for text-only edits.
 

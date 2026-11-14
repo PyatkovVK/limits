@@ -74,4 +74,4 @@ Electron supplies the wake event. A read-only `gdbus monitor` watches the screen
 
 ## Validation
 
-`npm test` includes this directory's tests. `npm run smoke` checks scaling, simulated top/bottom tray activations, content growth and shrinking, both style controls, immediate tray updates, persistence and invalid-input rejection, and writes previews to `artifacts/`. The same checks run against packaged applications with `--demo --smoke-test`.
+Run `npm run test:linux` for this directory's tests. Use `npm run demo` on Linux to inspect the tray and details panel.

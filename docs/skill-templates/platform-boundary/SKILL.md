@@ -13,6 +13,6 @@ description: Enforce platform isolation in Limits application code, renderer ass
 
 ## Verify
 
-Run `node --test test/platform-boundary.test.cjs test/platform-scope.test.cjs` and `npm test`. When changing runtime paths, check that all computed paths resolve with only the selected feature present. Run the relevant native smoke or build command on the available target and report which targets were exercised.
+Run `npm run test:common` for shared changes and the matching platform suite for platform changes. The shared suite includes platform-boundary and platform-scope checks. When changing runtime paths, check that all computed paths resolve with only the selected feature present. Report which targets were exercised.
 
 Use `platform-routing` to choose a feature. Follow the subsystem layout and contracts in `requirements/common/architecture.md`.

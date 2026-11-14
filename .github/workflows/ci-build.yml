@@ -55,11 +55,10 @@ jobs:
       - name: Set version from the branch
         if: env.RELEASE_VERSION != ''
         run: npm version "$RELEASE_VERSION" --no-git-tag-version --ignore-scripts --allow-same-version
-      - name: Check notch side panel layouts
-        if: matrix.target == 'mac'
-        run: npm run smoke:notch-layout
-      - name: Run tests
-        run: npm test
+      - name: Run common tests
+        run: npm run test:common
+      - name: Run platform tests
+        run: npm run test:${{ matrix.target }}
       - name: Build packages
         env:
           CODEX_LIMITS_RELEASE: '1'

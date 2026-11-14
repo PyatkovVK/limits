@@ -191,6 +191,8 @@ Translations, documentation improvements, and platform testing are welcome. Star
 
 For additional AI integrations, see the [shared controller guide](docs/ai-controllers.md).
 
+For local testing, choose the [suite for the code you changed](docs/development.md#checks).
+
 See [CHANGELOG.md](CHANGELOG.md) for release features. Limits uses the [MIT license](LICENSE); bundled dependencies have their own [third-party notices](THIRD-PARTY-NOTICES.md).
 
 ## Roadmap

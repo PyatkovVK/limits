@@ -29,7 +29,6 @@ Demo and smoke modes simulate results without networking, browser launches, OS n
 
 ## Validation
 
-- `npm test`: default-off behavior, interval/resume scheduling, cancellation and races, schema validation, filtering completed/expired events, anonymous requests, persistence, deduplication, safe links and localized forecast wording.
-- `npm run smoke:resets`: real Electron Settings UI in RU/EN, default-off switch, source disclosure and credits, announced/forecast/error states, keyboard dismissal, narrow-window scrolling, custom-background contrast and rejection of untrusted IPC. All external effects are simulated; screenshots and `report.json` are saved under `artifacts/resets-smoke-*`.
+- `npm run test:common` covers default-off behavior, interval/resume scheduling, cancellation and races, schema validation, filtering completed/expired events, anonymous requests, persistence, deduplication, safe links and localized forecast wording.
 
 The shared implementation lives in `src/common`; native Windows/macOS/Linux notification delivery still needs acceptance testing in each target desktop environment.

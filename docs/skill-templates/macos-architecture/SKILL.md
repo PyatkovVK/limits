@@ -29,5 +29,5 @@ Full-app smoke commands live in the repository's `test/smoke/` directory.
 
 ## Check a change
 
-- Run `npm test`. Confirm imports in `src/common/` still satisfy [platform-boundary](../platform-boundary/SKILL.md).
-- On macOS, run `npm run smoke:notch-layout` for renderer and notch geometry changes and `npm run smoke` for the full app and native screen helper. Keep the installer shell script and app smoke scenarios in the packaged files and preserve helper resource resolution if moving build or update files.
+- Run `npm run test:mac` for macOS changes and `npm run test:common` for shared changes. Confirm imports in `src/common/` still satisfy [platform-boundary](../platform-boundary/SKILL.md).
+- Use `npm run demo` on macOS to inspect renderer and notch changes. Keep the installer shell script and app smoke scenarios in the packaged files and preserve helper resource resolution if moving build or update files.

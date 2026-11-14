@@ -22,4 +22,4 @@ Profiles without a `providerId` remain Codex profiles, with their IDs, selected 
 
 ## Validation
 
-Run `npm test` for account/controller regressions and the test monetary provider. Run `npm run smoke` and `npm run smoke:accounts` on the native host for the existing Codex UI. `npm run smoke:ai-connects` exercises the real shared details, account summaries, locale switching, zero/missing/stale states, restoration of the Codex layout, and the Windows compact widget using isolated test data. It writes screenshots and a report under `artifacts/ai-connects-smoke-*` and performs no sign-in, network requests, or inference.
+Run `npm run test:common` for account and controller regressions, including the test monetary provider. Use `npm run demo` to inspect the Codex UI on the affected OS.
