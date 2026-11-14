@@ -41,5 +41,8 @@
     },
   };
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.limitsWindowsResetClock = api;
+  else {
+    root.limitsWindowsResetClock = api;
+    (root.limitsPlatform ??= {}).resetClock = api;
+  }
 })(globalThis);

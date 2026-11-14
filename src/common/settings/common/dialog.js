@@ -46,7 +46,7 @@
   for (const value of ['hidden', 'countdown', 'clock']) { const option = make('option', resetDisplay); option.value = value; }
   const { label: positionText, control: reset } = widgetRow('settings-reset', 'button');
   reset.type = 'button';
-  const renderWindowsWidgetSettings = window.limitsWindowsWidgetSettings?.create(widgetCard, change);
+  let renderWidgetSettings;
   const extensions = make('div', content); extensions.id = 'settings-extensions';
   for (const section of document.querySelectorAll('[data-setting-section]')) extensions.append(section);
   content.append(document.querySelector('.accounts-section'));
@@ -84,7 +84,8 @@
     reset.setAttribute('aria-label', `${t.reset} — ${t.position.toLowerCase()}`);
     const prefs = next.preferences;
     widgetSection.hidden = !prefs?.widgetSupported || next.displayMode !== 'widget';
-    renderWindowsWidgetSettings?.(next);
+    renderWidgetSettings ??= window.limitsPlatform?.createWidgetSettings?.(widgetCard, change);
+    renderWidgetSettings?.(next);
     width.value = String(prefs?.width || 280); visible.checked = prefs?.visible !== false;
     width.disabled = visible.disabled = reset.disabled = next.displayMode !== 'widget';
   }

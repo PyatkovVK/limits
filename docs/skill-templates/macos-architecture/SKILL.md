@@ -15,7 +15,9 @@ description: Maintain the Limits macOS module layout and dependency boundaries w
 | `src/apple_feature/renderer/` | macOS translation overrides |
 | `src/apple_feature/view-panel/` | Browser scripts and styles loaded by the shared view panel |
 | `src/apple_feature/updates/` | Release state, package verification and installer handoff |
-| `src/apple_feature/native/`, `scripts/`, `test/smoke/`, `test/` | Native screen helper source, executable build and smoke commands, smoke scenarios, and unit tests |
+| `src/apple_feature/native/`, `scripts/`, `test/smoke/`, `test/` | Native screen helper source, build helpers, smoke scenarios, and unit tests |
+
+Full-app smoke commands live in the repository's `test/smoke/` directory.
 
 ## Keep responsibilities narrow
 

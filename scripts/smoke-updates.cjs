@@ -112,6 +112,9 @@ app.whenReady().then(async () => {
     }
     outsider.destroy();
     // Check scrolling on a smaller window and contrast over a light background.
+    await run('window.limits.open()');
+    await waitFor(() => run('!document.hidden'), 'details visible for layout checks');
+    panel.webContents.setBackgroundThrottling(false);
     await run('window.limits.setAppearance({mode:"color",color:"#ffffff"})');
     await run('window.limitsSettings.open(); document.querySelector(".updates-section").scrollIntoView({block:"center"})');
     await pause();

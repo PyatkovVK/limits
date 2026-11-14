@@ -1,17 +1,18 @@
 'use strict';
 const { app, BrowserWindow, shell } = require('electron');
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
-const artifacts = path.resolve(__dirname, '../../../../artifacts');
+assert.equal(process.platform, 'linux', 'Run this check on Linux');
+const artifacts = path.resolve(__dirname, '../../artifacts');
 fs.mkdirSync(artifacts, { recursive: true });
 const root = fs.mkdtempSync(path.join(artifacts, 'subscriptions-smoke-'));
 const setPath = app.setPath.bind(app);
 app.setPath = (name, value) => setPath(name, name === 'userData' ? root : value);
-app.getVersion = () => require('../../../../package.json').version;
+app.getVersion = () => require('../../package.json').version;
 app.disableHardwareAcceleration();
 global.fetch = async () => assert.fail('No network in demo smoke');
 shell.openExternal = async () => assert.fail('No browser in demo smoke');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../../../main.cjs');
+require('../../src/main.cjs');
 const pause = () => new Promise(resolve => setTimeout(resolve, 100));
 app.whenReady().then(async () => {
   try {

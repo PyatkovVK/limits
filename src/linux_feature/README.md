@@ -16,7 +16,7 @@ linux_feature/
 ├── updates/                     # Service, package adapter, validator, installer
 ├── view-panel/style.css         # Linux details-panel styles
 └── test/                        # Linux unit and integration tests
-    └── smoke/                   # Panel/tray checks and standalone Electron runners
+    └── smoke/                   # Panel and tray checks used by app smoke mode
 ```
 
 ### Shared implementations
@@ -37,7 +37,7 @@ The details controller composes the shared `createPanelPosition` factory with a 
 
 The update adapter selects and verifies native packages. `updates/installer.cjs` owns shell-script extraction and process handoff; `LinuxUpdates` inherits the shared package-update contract. Browser launch, session recovery and package tools all use `core/environment.cjs`, independently of each other. Electron objects, process launchers and storage are supplied through parameters.
 
-All smoke checks and runners live in `test/smoke/`. Application smoke checks are included in packaged builds for `--demo --smoke-test`; unit test files (`**/*.test.cjs`) are excluded.
+Application smoke checks in this feature's `test/smoke/` are included in Linux packages for `--demo --smoke-test`. Full-app launchers live in the repository's `test/smoke/`.
 
 Application wiring, diagnostic scripts and tests import subsystem modules directly. The feature root contains documentation only. The composition root supplies `view-panel/style.css` and `settings/general/group.js` through the existing platform-assets interface.
 

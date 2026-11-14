@@ -4,10 +4,10 @@ const { app, BrowserWindow, screen } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { panelPosition } = require('../panel/panel.cjs');
+const { panelPosition } = require('../../src/windows_feature/panel/panel.cjs');
 if (process.platform !== 'win32') throw new Error('Run the panel follow check on Windows.');
 
-const artifactRoot = path.resolve(__dirname, '../../../artifacts');
+const artifactRoot = path.resolve(__dirname, '../../artifacts');
 fs.mkdirSync(artifactRoot, { recursive: true });
 const profile = fs.mkdtempSync(path.join(artifactRoot, 'panel-follow-smoke-'));
 const setPath = app.setPath.bind(app);
@@ -15,7 +15,7 @@ app.setPath = (name, value) => setPath(name, name === 'userData' ? profile : val
 app.disableHardwareAcceleration();
 
 // Foreground apps must not affect this test's own widget visibility.
-const widgetModule = require('../widget/host.cjs');
+const widgetModule = require('../../src/windows_feature/widget/host.cjs');
 const NativeWidget = widgetModule.TaskbarWidget;
 widgetModule.TaskbarWidget = class extends NativeWidget {
   emit(event, ...args) {
@@ -24,7 +24,7 @@ widgetModule.TaskbarWidget = class extends NativeWidget {
   }
 };
 process.argv.push('--demo', '--hidden');
-require('../../main.cjs');
+require('../../src/main.cjs');
 
 const pause = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms));
 app.whenReady().then(async () => {
@@ -125,7 +125,7 @@ app.whenReady().then(async () => {
     await pause();
     assert.deepEqual(panel.getPosition(), manual, 'Shrinking content restores the preferred position');
     const restoredWindow = new BrowserWindow({ width: 440, height: compactHeight, show: false });
-    const restored = require('../panel/panel.cjs').createPanelController({ window: restoredWindow, screen, root: profile });
+    const restored = require('../../src/windows_feature/panel/panel.cjs').createPanelController({ window: restoredWindow, screen, root: profile });
     restored.show(); await pause();
     assert.deepEqual(restoredWindow.getPosition(), manual, 'A new controller must restore the persisted position');
     restoredWindow.destroy(); panel.show();

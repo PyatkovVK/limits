@@ -4,17 +4,6 @@ Everything here works on Windows, macOS, and Linux without importing any platfor
 
 ## Dependency boundary
 
-```
-            ┌─────────────┐
-            │ src/main.cjs│   composition root (the only module that
-            └──────┬──────┘   requires BOTH common/ and *_feature/)
-      injects platform capabilities
-                   │
-                   ▼
-            src/common/       platform-agnostic: NEVER imports *_feature
-                   ▲
-                   │ requires common (allowed)
-  ┌────────────────┼────────────────┐
-  ▼                ▼                ▼
-windows_feature  apple_feature  linux_feature
-```
+`src/main.cjs` loads `src/common/` and the active platform implementation. Each feature depends on its own files and `src/common/`. Each packaged application includes the same source directories selected at runtime.
+
+Shared modules receive platform capabilities through function parameters. The shared renderer uses optional capability functions on `window.limitsPlatform`, registered by the selected platform's renderer scripts. See the [platform-boundary skill](../../docs/skill-templates/platform-boundary/SKILL.md) for the checks.

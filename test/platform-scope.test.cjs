@@ -15,6 +15,7 @@ const { signingEnvironment } = require('../scripts/signing.cjs');
 test('Mac and Linux build entrypoint bundles the target runtime and preserves platform resources', () => {
   for (const [target, platform, arch] of [['mac', 'darwin', 'arm64'], ['mac', 'darwin', 'x64'], ['linux', 'linux', 'x64'], ['linux', 'linux', 'arm64']]) {
     let captured;
+    let preparedAssets = false;
     const config = structuredClone(pkg.build);
     const output = path.resolve('artifacts', 'limits-build-scope-test');
     const modules = {
@@ -25,13 +26,16 @@ test('Mac and Linux build entrypoint bundles the target runtime and preserves pl
       './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch }) },
       './signing.cjs': { configureSigning: () => false, signingEnvironment },
       './bundle-codex.cjs': { bundleCodex(_config, options) { assert.equal(options.platform, platform); assert.equal(options.arch, arch); } },
-      '../src/windows_feature/scripts/assets.cjs': {},
+      './assets.cjs': {},
       '../package.json': pkg,
-      '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
-      '../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) }
+      ...(target === 'mac' ? {
+        '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
+        '../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
+      } : {}),
     };
     const requireMock = name => {
       assert.ok(Object.hasOwn(modules, name), `Unexpected build dependency: ${name}`);
+      if (name === './assets.cjs') preparedAssets = true;
       return modules[name];
     };
     requireMock.resolve = name => path.resolve('node_modules', name);
@@ -44,6 +48,7 @@ test('Mac and Linux build entrypoint bundles the target runtime and preserves pl
     config.directories.output = output;
     config.electronDist = path.join(path.dirname(requireMock.resolve('electron/package.json')), 'dist');
     assert.deepEqual(captured, config);
+    assert.ok(preparedAssets);
     assert.ok(![...captured.extraResources, ...(captured[target].extraResources || [])].some(file => file.to.startsWith('codex/')));
   }
 });
@@ -58,7 +63,7 @@ test('packaging reaches electron-builder with an absent Electron dist and only r
     ['win', 'win32', 'x64', 'x64'], ['win', 'win32', 'arm64', 'x64']
   ]) {
     for (const installed of [false, true]) {
-      const script = target === 'win' ? '../src/windows_feature/scripts/build-windows.cjs' : '../scripts/build.cjs';
+      const script = target === 'win' ? '../scripts/build-windows.cjs' : '../scripts/build.cjs';
       const filename = path.resolve(__dirname, script);
       const output = path.resolve('artifacts', 'limits-build-electron-test');
       const electronDist = path.resolve('node_modules', 'electron', 'dist');
@@ -74,12 +79,13 @@ test('packaging reaches electron-builder with an absent Electron dist and only r
         'node:child_process': { spawnSync: (_exe, args) => { builderArgs = args; return { status: 0 }; } },
         './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch: hostArch }) },
         './signing.cjs': { configureSigning: () => false, signingEnvironment },
-        '../../../scripts/signing.cjs': { configureSigning: () => false, signingEnvironment },
-        '../package.json': pkg, '../../../package.json': pkg,
-        '../src/windows_feature/scripts/assets.cjs': {}, './assets.cjs': {}, './build-taskbar-helper.cjs': {},
-        '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
-        '../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
-        '../../../scripts/bundle-codex.cjs': { bundleCodex() {} },
+        '../package.json': pkg,
+        './assets.cjs': {},
+        ...(target === 'win' ? { '../src/windows_feature/scripts/build-taskbar-helper.cjs': {} } : {}),
+        ...(target === 'mac' ? {
+          '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
+          '../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
+        } : {}),
         './bundle-codex.cjs': { bundleCodex(_config, options) { assert.equal(options.platform, platform); assert.equal(options.arch, targetArch); } }
       };
       const requireMock = name => {

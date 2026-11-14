@@ -58,7 +58,7 @@ app.whenReady().then(async () => {
       assert.equal(await run('document.getElementById("provider-metrics").hidden'), false);
       assert.match(await run('document.querySelector("#provider-metrics .metric-value").textContent'), /USD/);
       assert.equal(await run('[...document.querySelectorAll("#provider-metrics progress")].every(node => node.hidden)'), true);
-      assert.equal(await run('document.querySelector(".quota-card.short").hidden'), true);
+      assert.equal(await run('document.querySelector(".panel-quotas").hidden'), true);
       assert.equal(await run('document.querySelector("#provider-metrics time").hidden'), true);
       panel.showInactive(); await pause();
       fs.writeFileSync(path.join(root, `money-${language}.png`), (await panel.webContents.capturePage()).toPNG());
@@ -83,7 +83,7 @@ app.whenReady().then(async () => {
     controller.offline = true; await accounts.refresh(); publish();
     await waitFor(() => run('document.body.classList.contains("stale")'), 'stale state');
     await run(`render(${JSON.stringify(base)})`);
-    assert.equal(await run('document.querySelector(".quota-card.short").hidden'), false);
+    assert.equal(await run('document.querySelector(".panel-quotas").hidden'), false);
     assert.equal(await run('document.getElementById("short-value").textContent'), '72');
     const report = { platform: process.platform, monetaryDetails: true, localized: true, accountSummaries: true, selection: true, zeroAndMissing: true, staleState: true, restoredCodexLayout: true, windowsWidget: Boolean(widget), artifacts: root };
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify(report, null, 2));

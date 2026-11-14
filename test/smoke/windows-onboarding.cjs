@@ -4,8 +4,8 @@ const { app, BrowserWindow, shell } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { findCodex } = require('../../common/ai-connects/codex/path.cjs');
-const { AUTH_ENV_VARIABLES } = require('../../common/ai-connects/codex/options.cjs');
+const { findCodex } = require('../../src/common/ai-connects/codex/path.cjs');
+const { AUTH_ENV_VARIABLES } = require('../../src/common/ai-connects/codex/options.cjs');
 if (process.platform !== 'win32') throw new Error('Run the Windows onboarding check on Windows.');
 
 const profileArg = process.argv.find(arg => arg.startsWith('--onboarding-profile='));
@@ -40,7 +40,7 @@ try {
     opened.push(parsed.hostname);
   };
   process.argv.push('--hidden', '--smoke-tray-only');
-  require('../../main.cjs');
+  require('../../src/main.cjs');
 } catch (error) {
   fail(error);
   return;

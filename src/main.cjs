@@ -14,10 +14,6 @@ const resetToasts = new Set();
 let appearance;
 let stopSessionWatch;
 const { selectedBucket, isStale } = require('./common/core/limits.cjs');
-const { widgetBounds } = require('./windows_feature/taskbar/widget-bounds.cjs');
-const { taskbarHelperPath } = require('./windows_feature/taskbar/helper.cjs');
-const { TaskbarWidget } = require('./windows_feature/widget/host.cjs');
-const { normalize: normalizeWidgetStyle, styles: windowsWidgetStyles } = require('./windows_feature/settings/widget/styles.js');
 const { TrayPresentation } = require('./common/tray/tray.cjs');
 const { t: translate } = require('./common/renderer/i18n.js');
 const { startupState, changePreference } = require('./common/core/preferences.cjs');
@@ -25,6 +21,7 @@ const { startupState, changePreference } = require('./common/core/preferences.cj
 const demo = process.argv.includes('--demo');
 const smoke = process.argv.includes('--smoke-test');
 const taskbarSupported = process.platform === 'win32' && !process.argv.includes('--smoke-tray-only');
+const windowsWidgetStyle = process.platform === 'win32' ? require('./windows_feature/settings/widget/styles.js') : null;
 const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '..'), 'artifacts');
 if (smoke && !process.argv.includes('--smoke-gpu')) app.disableHardwareAcceleration();
 if (smoke) app.setPath('userData', path.join(artifactRoot, 'smoke-profile'));
@@ -49,9 +46,13 @@ const platformApi = {
   linuxStartup: process.platform === 'linux' ? require('./linux_feature/core/startup.cjs') : undefined,
   appleStartup: process.platform === 'darwin' ? require('./apple_feature/core/startup.cjs') : undefined,
   changeTrayStyle: process.platform === 'linux' ? require('./linux_feature/core/preferences.cjs').changeTrayStyle : undefined,
-  widgetStyles: process.platform === 'win32' ? windowsWidgetStyles : undefined,
+  widgetStyles: windowsWidgetStyle?.styles,
   presentation: applePresentation,
 };
+
+const trayIcon = process.platform === 'win32' ? require('./windows_feature/tray/tray-icon.cjs').icon
+  : process.platform === 'darwin' ? require('./apple_feature/tray/tray-icon.cjs').icon
+  : process.platform === 'linux' ? require('./linux_feature/tray/tray-icon.cjs').icon : null;
 // Renderer assets injected into the shared view-panel (paths are relative to src/common/view-panel/index.html).
 const platformAssets = {
   darwin: {
@@ -89,7 +90,7 @@ function publicState() { return { ...state, platform: process.platform, dark: na
   updates: updates?.snapshot(),
   resetNotifications: resetNotifications?.snapshot(),
   preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle, widgetResetDisplay: widgetSettings.widgetResetDisplay,
-    ...(taskbarSupported ? { widgetStyle: normalizeWidgetStyle(widgetSettings.widgetStyle) } : {}),
+    ...(taskbarSupported ? { widgetStyle: windowsWidgetStyle.normalize(widgetSettings.widgetStyle) } : {}),
     ...(applePresentation && { islandHoverStyle: widgetSettings.islandHoverStyle || 'minimal' }),
     startup: startupState({ app, platform: process.platform, demo, smoke, platformApi }) } }; }
 function persistWidgetSettings() {
@@ -197,7 +198,6 @@ function showResetNotification(event) {
 }
 
 const webPreferences = { preload: path.join(__dirname, 'common', 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true };
-const helperPath = taskbarHelperPath(app.isPackaged ? process.resourcesPath : null);
 function restrictWindow(target) {
   target.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   target.webContents.on('will-navigate', event => event.preventDefault());
@@ -213,6 +213,7 @@ async function captureSmokePanel() {
   return (await window.webContents.capturePage()).toPNG();
 }
 async function createWidget() {
+  const { TaskbarWidget } = require('./windows_feature/widget/host.cjs');
   widgetHost = new TaskbarWidget({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings: () => widgetSettings, resourcesPath: app.isPackaged ? process.resourcesPath : null, onMove: bounds => {
     if (!taskbarMetrics?.bar) return;
     widgetSettings.xRatio = (bounds.x - taskbarMetrics.bar.x) / taskbarMetrics.bar.width;
@@ -256,7 +257,7 @@ async function setup() {
     if (process.platform === 'linux') widgetSettings.linuxTrayStyle = require('./linux_feature/core/preferences.cjs').trayStyle(saved.linuxTrayStyle);
     if (applePresentation?.islandHoverStyles.includes(saved.islandHoverStyle)) widgetSettings.islandHoverStyle = saved.islandHoverStyle;
     widgetSettings.widgetResetDisplay = ['hidden', 'countdown', 'clock'].includes(saved.widgetResetDisplay) ? saved.widgetResetDisplay : 'clock';
-    if (taskbarSupported) widgetSettings.widgetStyle = normalizeWidgetStyle(saved.widgetStyle);
+    if (taskbarSupported) widgetSettings.widgetStyle = windowsWidgetStyle.normalize(saved.widgetStyle);
   } catch { /* Defaults on first launch. */ }
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
   if (process.platform === 'darwin') app.dock.hide();
@@ -273,9 +274,9 @@ async function setup() {
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
-  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, quotaIcon: process.platform === 'darwin' ? require('./apple_feature/tray/tray-icon.cjs').icon : process.platform === 'linux' ? require('./linux_feature/tray/tray-icon.cjs').icon : require('./windows_feature/tray/tray-icon.cjs').icon, appIcon: nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 }), onClick: tray => {
-    return linuxPanel ? linuxPanel.toggle(tray) : showPanel(tray);
-  } });
+  const appIcon = nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 });
+  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, quotaIcon: trayIcon || (() => appIcon), appIcon,
+    onClick: tray => linuxPanel ? linuxPanel.toggle(tray) : showPanel(tray) });
   if (process.platform === 'darwin') macPanel = require('./apple_feature/panel/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData'), reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds: () => trayPresentation.entries.map(entry => {
     try { return entry.tray.getBounds(); } catch { return null; }
   }) });
@@ -493,6 +494,9 @@ async function setup() {
   }
   if (smoke) {
     try {
+      const { widgetBounds } = require('./windows_feature/taskbar/widget-bounds.cjs');
+      const { taskbarHelperPath } = require('./windows_feature/taskbar/helper.cjs');
+      const helperPath = taskbarHelperPath(app.isPackaged ? process.resourcesPath : null);
       const originalMode = widgetSettings.displayMode;
       const originalVisibility = widgetSettings.visible;
       setDisplayMode('widget');

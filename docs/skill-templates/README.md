@@ -22,9 +22,9 @@ Reference catalog for repository skill templates, in English and Russian. This f
 
 **Выбор платформы для изменений:** направляет платформенные правки в реализацию Linux, macOS или Windows. Явно указанная пользователем платформа важнее текущей ОС; общая логика остаётся в `src/common/`.
 
-**Common/platform dependency boundary:** mirrors `src/common/` subsystem paths in platform feature directories. Platform implementations reuse common modules and the composition root `src/main.cjs` supplies platform behavior to shared code.
+**Common/platform dependency boundary:** checks that each platform uses its own feature directory and `src/common/` during startup, rendering, and packaging. The composition root `src/main.cjs` supplies the active platform's capabilities to shared code.
 
-**Граница зависимостей common/platform:** платформенные расширения повторяют пути подсистем из `src/common/` и переиспользуют общие модули. Корень композиции `src/main.cjs` передаёт платформенное поведение общему коду.
+**Граница зависимостей common/platform:** проверяет, что при запуске, отрисовке и сборке каждая платформа использует свою папку и `src/common/`. Корень композиции `src/main.cjs` передаёт общему коду возможности текущей платформы.
 
 ## Folder structure / Структура папки
 

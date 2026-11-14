@@ -4,8 +4,9 @@ const { app, BrowserWindow, shell } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const pkg = require('../../../package.json');
-const artifacts = path.resolve(__dirname, '../../../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
+assert.equal(process.platform, 'darwin', 'Run this check on macOS');
+const pkg = require('../../package.json');
+const artifacts = path.resolve(__dirname, '../../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
 const root = fs.mkdtempSync(path.join(artifacts, 'mac-subscriptions-smoke-'));
 const setPath = app.setPath.bind(app);
 app.setPath = (name, value) => setPath(name, name === 'userData' ? path.join(root, 'profile') : value);
@@ -14,7 +15,7 @@ app.disableHardwareAcceleration();
 shell.openExternal = async () => assert.fail('No browser in smoke checks');
 global.fetch = async () => assert.fail('No network in smoke checks');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../../main.cjs');
+require('../../src/main.cjs');
 const delay = () => new Promise(resolve => setTimeout(resolve, 100));
 app.whenReady().then(async () => {
   try {

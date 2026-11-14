@@ -52,11 +52,11 @@
   function countdowns(container, state) {
     container = container.querySelector('.metric-compact') || container;
     state = state || statesByContainer.get(container) || {};
+    const timer = root.limitsPlatform?.resetClock || root.limitsCountdown;
     for (const row of rowsByContainer.get(container)?.values() || []) {
       if (row.metric.resetsAt === null) continue;
-      const timer = state.platform === 'win32' && root.limitsWindowsResetClock ? root.limitsWindowsResetClock : root.limitsCountdown;
-      if (state.platform === 'win32' && container.classList.contains('metric-compact')) {
-        timer?.renderWidget(row.reset, row.metric.resetsAt / 1000, state.language || 'ru', state.preferences?.widgetResetDisplay || 'clock', row.metric.slot === 'weekly');
+      if (timer?.renderWidget && container.classList.contains('metric-compact')) {
+        timer.renderWidget(row.reset, row.metric.resetsAt / 1000, state.language || 'ru', state.preferences?.widgetResetDisplay || 'clock', row.metric.slot === 'weekly');
       } else timer?.render(row.reset, row.metric.resetsAt / 1000, state.language || 'ru');
     }
   }

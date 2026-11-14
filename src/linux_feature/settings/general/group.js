@@ -11,5 +11,5 @@
       options: ['classic', 'bar'].map(value => ({ value, label: t[value] })),
     };
   }
-  window.limitsLinuxDisplay = { selection };
+  (window.limitsPlatform ??= {}).displaySelection = selection;
 })();

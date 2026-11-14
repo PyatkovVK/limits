@@ -24,11 +24,15 @@ test('Linux tray styles save and redraw immediately, rejecting other platforms a
 
 test('Linux display settings offer only the two tray styles for current and legacy profiles', () => {
   const window = {};
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../settings/general/group.js'), 'utf8'), { window });
+  const context = vm.createContext({ window });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../../common/settings/general/group.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../settings/general/group.js'), 'utf8'), context);
   for (const language of ['ru', 'en']) {
     for (const displayMode of ['tray', 'widget']) {
       for (const style of [undefined, 'classic', 'bar']) {
-        const selection = window.limitsLinuxDisplay.selection({ language, displayMode, preferences: { linuxTrayStyle: style } });
+        const next = { language, displayMode, preferences: { linuxTrayStyle: style } };
+        const group = window.limitsGeneralSettings.describe(next, key => key, {});
+        const selection = group.settings.find(setting => setting.id === 'display-mode');
         assert.equal(selection.value, style || 'classic');
         assert.deepEqual(Array.from(selection.options, option => option.value), ['classic', 'bar']);
         assert.deepEqual(Array.from(selection.options, option => option.label), language === 'ru' ? ['Значки в трее', 'Полоски в трее'] : ['Tray icons', 'Tray bars']);

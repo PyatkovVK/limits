@@ -5,10 +5,10 @@ const { execFile } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { taskbarHelperPath } = require('../taskbar/helper.cjs');
+const { taskbarHelperPath } = require('../../src/windows_feature/taskbar/helper.cjs');
 if (process.platform !== 'win32') throw new Error('Run the widget startup check on Windows.');
 
-const artifactRoot = path.resolve(__dirname, '../../../artifacts');
+const artifactRoot = path.resolve(__dirname, '../../artifacts');
 fs.mkdirSync(artifactRoot, { recursive: true });
 const profile = fs.mkdtempSync(path.join(artifactRoot, 'widget-startup-smoke-'));
 const setPath = app.setPath.bind(app);
@@ -38,7 +38,7 @@ async function checkOrder(before, window) {
 }
 
 let host, initial, raises = 0, lastMetrics, metricsOverride;
-const widgetModule = require('../widget/host.cjs');
+const widgetModule = require('../../src/windows_feature/widget/host.cjs');
 const NativeWidget = widgetModule.TaskbarWidget;
 widgetModule.TaskbarWidget = class extends NativeWidget {
   emit(event, ...args) {
@@ -59,7 +59,7 @@ widgetModule.TaskbarWidget = class extends NativeWidget {
   }
 };
 process.argv.push('--demo', '--hidden');
-require('../../main.cjs');
+require('../../src/main.cjs');
 
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function until(check) {
@@ -185,7 +185,7 @@ app.whenReady().then(async () => {
       assert.equal(panel.isVisible(), false);
       assert.equal((await inspect(window)).visible, true, 'Closing details must keep the bar visible');
     }
-    const { DeepSeekController } = require('../../common/ai-connects/deepseek/controller.cjs');
+    const { DeepSeekController } = require('../../src/common/ai-connects/deepseek/controller.cjs');
     const controller = new DeepSeekController({ credentials: { read: () => 'smoke-fixture' }, client: { balance: async () => ({ is_available: true,
       balance_infos: [{ currency: 'USD', total_balance: '0', granted_balance: '0', topped_up_balance: '0' }] }) } });
     await controller.refresh();

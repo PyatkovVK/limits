@@ -1,49 +1,18 @@
 ---
 name: platform-boundary
-description: Organize Limits platform implementations under src/*_feature/ using the subsystem paths in src/common and preserve one-way dependencies. Use when adding, moving, or refactoring platform modules, renderer translations, or shared extension points.
+description: Enforce platform isolation in Limits application code, renderer assets, build commands, and packages. Use when changing or reviewing src/common, a platform feature, or the code that loads and packages them.
 ---
 
-# Keep the common/platform dependency boundary
+# Keep platforms isolated
 
-## The rule
+- Allow local dependencies within `src/common/` and from each `src/*_feature/` to its own directory or `src/common/`. Check imports, re-exports, preloads, HTML and CSS assets, and paths constructed at runtime.
+- In `src/main.cjs`, select the active implementation by `process.platform`. Use `windows_feature` on `win32`, `apple_feature` on `darwin`, and `linux_feature` on `linux`. Put the load itself behind the platform selection.
+- Pass capabilities into shared Node code as parameters. For the shared renderer, let the selected scripts register capability functions on `window.limitsPlatform`. Use shared fallbacks where appropriate. Keep shared code independent of named platform globals and asset paths.
+- Keep shared build tooling in `scripts/`, and keep platform helpers and tests for individual platform modules under their feature. Full-app smoke entry points go in `test/smoke/` with access to the composition root. Build and preparation entry points select only the target's helpers.
+- Package `src/main.cjs`, `src/common/`, and the matching feature. Check that the package includes the selected feature's runtime assets, preload and installer resources as applicable.
 
-`src/common/` holds only platform-agnostic code. `src/windows_feature/`, `src/apple_feature/`, and `src/linux_feature/` hold platform-specific code.
+## Verify
 
-The dependency is one-way:
+Run `node --test test/platform-boundary.test.cjs test/platform-scope.test.cjs` and `npm test`. When changing runtime paths, check that all computed paths resolve with only the selected feature present. Run the relevant native smoke or build command on the available target and report which targets were exercised.
 
-- `*_feature/` modules **may** `require()` from `src/common/`.
-- `src/common/` must **never** `require()` or `import` from `src/*_feature/`.
-
-When a shared module needs a platform behavior, the composition root injects it as a parameter. See `requirements/common/architecture.md` (COM-ARC-001 through COM-ARC-007) for the acceptance criteria.
-
-## Verify the boundary
-
-Before committing a change that touches `src/common/` or a platform directory, run:
-
-```sh
-rg -n "_feature" src/common --glob '!*.md'
-```
-
-Any hit in code is a violation. `src/common/` must never `require()`/`import` a platform feature directory or load its assets. Documentation (`*.md`) may name the platform directories when describing the rule; code must not.
-
-## Where platform behavior belongs
-
-- Platform-specific code lives in the matching `*_feature/` directory; use `platform-routing` to pick it.
-- Shared behavior lives in `src/common/`. Do not move an existing shared feature into a platform directory just because it is the current host.
-- Match the relative subsystem path in `src/common/` for each platform extension. For Windows, put translation overrides in `renderer/i18n.js`, tray rendering in `tray/`, update support in `updates/`, settings extensions in `settings/`, and Codex sign-in behavior in `ai-connects/codex/`. Give Windows-only subsystems such as `taskbar/` and `widget/` their own directories. Create the directories the platform actually uses.
-- Look for a shared implementation before adding a platform module. Use inheritance when the platform service fulfills the shared class contract, such as `WindowsUpdates` extending `Updates`. Compose shared functions or inject a platform adapter when they provide a closer fit. Keep the common translation lookup as the fallback for platform strings.
-- When moving a module, update its imports and renderer asset paths at their existing call sites, including `src/main.cjs` and affected tests or smoke scripts. Keep `src/common/` unchanged for platform-only reorganizations.
-
-## Injecting a platform capability into common
-
-Do not add a `*_feature` import to `src/common/`. Instead:
-
-1. Give the shared module an optional injection point (constructor or function parameter) with a graceful fallback when absent.
-2. Build the capability in `src/main.cjs` (the composition root) from the right `*_feature/` module.
-3. Pass it in at the call site. Existing examples: tray `quotaIcon`, preferences `platformApi`, codex path `platformFinders`.
-
-Keep injected capabilities narrow (a single function or small object) and check the other callers, including tests, which must supply the capability explicitly.
-
-## Update tests with the capability
-
-Shared-module tests that previously relied on the module importing a platform file must now construct and pass the capability (from the real `*_feature` module, or a stub where the platform behavior is not asserted). Run `npm test` and confirm the baseline stays green.
+Use `platform-routing` to choose a feature. Follow the subsystem layout and contracts in `requirements/common/architecture.md`.

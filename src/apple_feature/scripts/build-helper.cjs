@@ -5,9 +5,8 @@ const { spawnSync } = require('node:child_process');
 
 function buildHelper() {
   if (process.platform !== 'darwin') return;
-  const root = path.resolve(__dirname, '../../..');
   const source = path.join(__dirname, '../native/screen-info.m');
-  const target = path.join(root, 'build/apple-screen-info');
+  const target = path.resolve(__dirname, '../../../build/apple-screen-info');
   if (fs.existsSync(target) && fs.statSync(target).mtimeMs > fs.statSync(source).mtimeMs) return;
   fs.mkdirSync(path.dirname(target), { recursive: true });
   // Universal helper: both Mac targets can use the same AppKit screen probe.

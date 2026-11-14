@@ -37,8 +37,8 @@
     const notificationBody = document.createElement('p'); notificationBody.id = 'apple-notification-body';
     const notificationAction = document.createElement('button'); notificationAction.className = 'apple-notification-action'; notificationAction.type = 'button';
     notification.append(notificationTitle, dismiss, notificationBody, notificationAction);
-    dismiss.onclick = () => window.limits.dismissNotification(window.limitsApple.state?.appleNotch?.notification?.id);
-    notificationAction.onclick = () => window.limits.openNotification(window.limitsApple.state?.appleNotch?.notification?.id);
+    dismiss.onclick = () => window.limits.dismissNotification(apple.state?.appleNotch?.notification?.id);
+    notificationAction.onclick = () => window.limits.openNotification(apple.state?.appleNotch?.notification?.id);
     const svg = 'http://www.w3.org/2000/svg';
     const outline = document.createElementNS(svg, 'svg'); outline.classList.add('apple-surface-outline'); outline.setAttribute('aria-hidden', 'true');
     outline.append(document.createElementNS(svg, 'path'));
@@ -58,13 +58,13 @@
     document.addEventListener('keydown', event => {
       if (event.key !== 'Escape' || document.querySelector('dialog[open]')) return;
       event.preventDefault();
-      const layout = window.limitsApple.state?.appleNotch;
+      const layout = apple.state?.appleNotch;
       if (layout?.phase === 'notification') window.limits.dismissNotification(layout.notification?.id);
       else window.limits.hide();
     });
-    setInterval(() => { if (window.limitsApple?.state) window.limitsApple.renderCountdown(); }, 1000);
+    setInterval(() => { if (apple.state) apple.renderCountdown(); }, 1000);
   }
-  window.limitsApple = {
+  const apple = {
     activeHost(next) {
       return ['notch', 'island'].includes(next?.displayMode) ? isNotch && next.appleNotch?.phase === 'expanded' : !isNotch;
     },
@@ -146,4 +146,9 @@
       if (fallback) window.limitsMetricElements?.countdowns(previewMetrics);
     }
   };
+  Object.assign(window.limitsPlatform ??= {}, {
+    activeHost: apple.activeHost,
+    translate: apple.translate,
+    render: next => apple.render(next),
+  });
 })();

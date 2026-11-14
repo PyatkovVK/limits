@@ -64,7 +64,7 @@
   let current, messageKey = null, opening = false, dismissing = false;
   const text = () => ({ ...(words[current?.language] || words.en), ...window.limitsInstallation?.words(current) });
   function activeHost() {
-    return current?.platform === 'darwin' ? window.limitsApple.activeHost(current) : true;
+    return window.limitsPlatform?.activeHost?.(current) ?? true;
   }
   function maybeOffer() {
     const offer = current?.updates?.offer;

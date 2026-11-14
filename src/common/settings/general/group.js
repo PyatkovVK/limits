@@ -11,12 +11,10 @@
     const language = next.language || 'ru';
     const labels = texts[language] || texts.ru;
     const modes = next.displayModes || ['widget', 'tray'];
-    const display = next.platform === 'linux'
-      ? window.limitsLinuxDisplay.selection(next)
-      : {
-          value: next.displayMode || modes[0],
-          options: modes.map(value => ({ value, label: translate(`${value}Mode`) })),
-        };
+    const display = window.limitsPlatform?.displaySelection?.(next) ?? {
+      value: next.displayMode || modes[0],
+      options: modes.map(value => ({ value, label: translate(`${value}Mode`) })),
+    };
     const startup = next.preferences?.startup;
     const hoverStyle = next.preferences?.islandHoverStyle || 'minimal';
     return {

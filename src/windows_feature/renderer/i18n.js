@@ -28,5 +28,8 @@
   };
   const api = { t(language, key) { return (strings[language] || strings.ru)[key] || null; } };
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.limitsWindowsI18n = api;
+  else {
+    root.limitsWindowsI18n = api;
+    (root.limitsPlatform ??= {}).translate = api.t;
+  }
 })(globalThis);

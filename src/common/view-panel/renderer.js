@@ -17,7 +17,7 @@ async function accountAction(action, id, value) {
 function renderCountdown() {
   if (!state) return;
   window.limitsMetricElements?.countdowns($('provider-metrics'), state);
-  const timer = state.platform === 'win32' ? window.limitsWindowsResetClock : window.limitsCountdown;
+  const timer = window.limitsPlatform?.resetClock || window.limitsCountdown;
   const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets[0];
   timer.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
   const weeklyReset = $('weekly-reset');
@@ -32,7 +32,7 @@ function render(next) {
   document.body.classList.toggle('reduced-transparency', Boolean(next.reducedTransparency));
   document.body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
   const language = next.language || 'ru';
-  const translate = (lang, key) => (next.platform === 'darwin' ? window.limitsApple?.translate(lang, key, next) : null) || (next.platform === 'win32' ? window.limitsWindowsI18n?.t(lang, key) : null) || window.limitsI18n.t(lang, key);
+  const translate = (lang, key) => window.limitsPlatform?.translate?.(lang, key, next) || window.limitsI18n.t(lang, key);
   const t = key => translate(language, key);
   const generic = Boolean(next.displaySchema && next.displaySchema.layout !== 'quota-windows');
   window.limitsI18n.apply(language, document, translate);
@@ -86,7 +86,7 @@ function render(next) {
   $('refresh').title = [t('refresh'), connection, $('updated').title].join(' · ');
   renderSubscriptions(next, t, actionError);
   renderCountdown();
-  window.limitsApple?.render(next);
+  window.limitsPlatform?.render?.(next);
 }
 
 $('hide').addEventListener('click', () => window.limits.hide());
