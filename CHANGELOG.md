@@ -4,6 +4,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ## 1.8.0
 
+- **Linux desktop widget removed.** Keep percentage icons and period/bar icons in the tray; previously saved widget selections automatically switch to tray mode while preserving the chosen tray style.
 - **GLM Coding Plan (Z.ai).** Connect a personal API key on Windows, macOS and Linux to track the remaining 5-hour and weekly allowances and see reset times when available.
 - **Redesigned Settings.** General, Subscriptions, Updates and Codex Resets have dedicated cards, and Background shows a live preview.
 - **Reset times in the Windows widget.** Show the date and time, switch to a countdown, or hide reset times. Limits saves your choice.

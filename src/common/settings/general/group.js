@@ -12,7 +12,7 @@
     const labels = texts[language] || texts.ru;
     const modes = next.displayModes || ['widget', 'tray'];
     const display = next.platform === 'linux'
-      ? window.limitsLinuxDisplay.selection(next, modes, translate)
+      ? window.limitsLinuxDisplay.selection(next)
       : {
           value: next.displayMode || modes[0],
           options: modes.map(value => ({ value, label: translate(`${value}Mode`) })),

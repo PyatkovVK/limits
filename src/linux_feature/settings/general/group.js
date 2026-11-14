@@ -4,12 +4,11 @@
     ru: { classic: 'Значки в трее', bar: 'Полоски в трее' },
     en: { classic: 'Tray icons', bar: 'Tray bars' },
   };
-  function selection(next, modes, translate) {
+  function selection(next) {
     const t = texts[next.language] || texts.en;
     return {
-      value: next.displayMode === 'widget' ? 'widget' : next.preferences?.linuxTrayStyle || 'classic',
-      options: modes.flatMap(mode => mode === 'tray' ? ['classic', 'bar'] : [mode])
-        .map(value => ({ value, label: t[value] || translate(`${value}Mode`) })),
+      value: next.preferences?.linuxTrayStyle || 'classic',
+      options: ['classic', 'bar'].map(value => ({ value, label: t[value] })),
     };
   }
   window.limitsLinuxDisplay = { selection };

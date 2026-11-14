@@ -37,7 +37,7 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 - **DeepSeek balance:** connect an API key from Settings → Subscriptions, then monitor total, granted and topped-up funds in USD or CNY with independent refreshes.
 - **Automatic refresh:** polling about one minute after each completed request, refresh after waking from sleep, and a manual refresh button.
 - **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
-- **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons or a compact desktop widget.
+- **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons.
 - **Application updates:** offers new versions, downloads on request, verifies packages, and installs with restart in supported installed builds on Windows, macOS, and Linux.
 - **Launch at login:** enable autostart in Settings for supported installed builds on each platform.
 - **English and Russian UI:** language and display preferences persist across launches.
@@ -113,9 +113,9 @@ The notch mode uses the compatible MacBook screen, including when an external di
 
 The turquoise **5h** and purple **7d** indicators show remaining usage with numbers and short bars. Tooltips expose account details and reset information where supported by the desktop environment. The details panel adapts to its contents and scrolls for long account lists.
 
-Enable **Settings → General → Launch at login** to start an installed DEB or AppImage automatically, using your saved tray/widget mode without opening details.
+Enable **Settings → General → Launch at login** to start an installed DEB or AppImage automatically, using your saved tray style without opening details.
 
-In **Settings → General → Display**, Linux offers three choices in order: classic percentage tray icons, quota-period labels with remaining-usage bars, and the desktop widget. Classic remains the default, and your selection is saved. Clicking either quota icon or the widget’s bars again closes details. In widget mode, the Limits tray icon hides or restores the widget.
+In **Settings → General → Display**, Linux offers two choices: classic percentage tray icons and quota-period labels with remaining-usage bars. Classic remains the default, and your selection is saved. Clicking either quota icon again closes details. Previously saved desktop-widget selections switch to tray mode automatically.
 
 ### Windows — taskbar or tray
 
@@ -148,8 +148,6 @@ Choose a layout in **Settings → Panel settings → Widget style**. **Classic**
 - Open **Settings → General** to change the language, display mode or launch at login. The tray menu also opens Settings.
 - Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
 - Drag the details title bar to keep a custom position across openings and restarts. The panel stays inside the available screen after monitor changes.
-
-On Linux, select **Widget** in Settings for a compact floating window with two quota bars. Drag its account label to move it and click the bars to toggle details. Width, visibility, and position persist; placement is controlled by the compositor on Wayland. Tray mode remains available.
 
 ## Application updates
 

@@ -11,13 +11,10 @@ linux_feature/
 ├── ai-connects/codex/path.cjs     # Linux discovery injected into common Codex lookup
 ├── core/                        # Browser, environment, startup, session, preferences
 ├── panel/                       # Details controller, geometry, tray anchors
-├── renderer/i18n.js             # Linux translation overrides
 ├── settings/general/            # Display selection and allowed tray styles
 ├── tray/tray-icon.cjs            # Linux pixels and Electron image representations
 ├── updates/                     # Service, package adapter, validator, installer
 ├── view-panel/style.css         # Linux details-panel styles
-├── widget/                      # Window host, bounds, position storage
-│   └── renderer/                # Widget HTML, CSS and JavaScript
 └── test/                        # Linux unit and integration tests
     └── smoke/                   # Panel/tray checks and standalone Electron runners
 ```
@@ -28,17 +25,13 @@ linux_feature/
 | --- | --- | --- |
 | `ai-connects/codex/path.cjs` | `common/ai-connects/codex/path.cjs` | Discover Linux user directories and VS Code binaries through the existing `platformFinders` injection. |
 | `panel/panel.cjs` | `common/panel/panel-position.cjs` | Compose shared manual-position persistence with Linux tray anchors, display placement and zoom. |
-| `widget/widget-bounds.cjs` | `common/core/preferences.cjs` | Use the shared allowed widths; calculate Linux desktop-widget bounds. |
 | `tray/tray-icon.cjs` | `common/tray/tray-image.cjs` | Reuse percentage normalization and PNG encoding; draw Linux badge styles. |
 | `updates/updates.cjs` | `common/updates/package-updates.cjs` | Extend `PackageUpdates` with the Linux adapter; inherit download, checksum, cancellation and installation-state handling. |
-| `widget/renderer/` | `common/renderer/` | Load shared i18n, countdowns, appearance and metric rendering; supply Linux layout and localized overrides. |
 | `settings/general/group.js` | `common/settings/general/group.js` | Supply the existing synchronous display-selection adapter; reuse the shared settings controls and actions. |
 
 The feature must not import Windows or Apple implementations. Common modules must not import this feature. Application wiring remains in `src/main.cjs`.
 
 ### Responsibility and dependency contracts
-
-`LinuxWidget` coordinates the window and display events. Pure geometry stays in `widget/widget-bounds.cjs`. Its injected `positionStore` implements `load()`, `save(point)` and `clear()`; the default `WidgetPositionStore` owns filesystem access. It preserves `linux-widget-position.json`, validates coordinates and tolerates unavailable storage. It is separate from the shared panel-position service because that service owns panel move events and a different persisted filename and has no reset operation.
 
 The details controller composes the shared `createPanelPosition` factory with a `trayAnchor` implementing `read(tray)`, `bounds(tray)` and `clear()`. `TrayAnchor` owns tray-host fallbacks and the activation cache. Resizing consumes the saved anchor without reading the cursor again; display changes invalidate the cache.
 
@@ -54,15 +47,14 @@ Choose **Settings → General → Display**, in this order:
 
 1. **Percentages and bar** uses the classic colored percentage badges. This is the default for profiles without an explicit selection.
 2. **Bar · 5h / 7d** displays the fixed quota duration above a proportional remaining-usage bar. Russian labels are `5ч` / `7д`. Unknown values use a dashed bar.
-3. **Desktop widget** shows the compact draggable widget with two quota bars and reset countdowns. Its width, visibility and position are saved.
 
-The `displayMode` and `linuxTrayStyle` preferences are saved in `widget-settings.json`. Switching styles updates both icons in place. Account details, percentages and reset information remain available in tooltips. Clicking either quota icon toggles details; clicking the desktop widget’s quota area does the same. In desktop-widget mode, the Limits tray icon hides or restores the widget, closing details when hiding it. Explicit Details and Settings menu actions continue to open their targets. Polling keeps tray menus and widget visibility stable.
+The `displayMode` and `linuxTrayStyle` preferences are saved in `widget-settings.json`. Previously saved widget modes automatically fall back to tray mode, preserving the chosen tray style. Switching styles updates both icons in place. Account details, percentages and reset information remain available in tooltips. Clicking either quota icon toggles details. Explicit Details and Settings menu actions continue to open their targets. Polling keeps tray menus stable.
 
 ## Launch at login
 
 Enable **Settings → General → Launch at login** in a packaged DEB or AppImage build. Limits creates only its own `limits.desktop` entry in `$XDG_CONFIG_HOME/autostart` (default `~/.config/autostart`), without administrator privileges. Disabling removes that entry. Source, demo and smoke runs cannot enable startup.
 
-Login starts Limits with `--hidden`, preserving the selected tray/widget presentation and position without opening details. AppImage startup points at the original AppImage file; keep it at that location or disable and enable startup after moving it. Read-only configuration or unavailable executables disable the control, and save failures display the settings error.
+Login starts Limits with `--hidden`, preserving the selected tray style and details-panel position without opening details. AppImage startup points at the original AppImage file; keep it at that location or disable and enable startup after moving it. Read-only configuration or unavailable executables disable the control, and save failures display the settings error.
 
 ## Codex discovery
 

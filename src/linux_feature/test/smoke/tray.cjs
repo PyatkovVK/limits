@@ -16,8 +16,7 @@ async function verifyTrayStyles({ window, trayPresentation, artifactRoot, settin
       const selected = await window.webContents.executeJavaScript(`(async () => {
         window.limitsSettings.open();
         const select = document.getElementById('display-mode');
-        const { displayModes } = await window.limits.get();
-        const expectedModes = ['classic', 'bar', ...displayModes.filter(mode => mode !== 'tray')];
+        const expectedModes = ['classic', 'bar'];
         if (!select || [...select.options].map(option => option.value).join() !== expectedModes.join()) throw new Error('Linux tray style control has unexpected modes');
         select.value = ${JSON.stringify(style)};
         await window.limits.displayMode(select.value);
