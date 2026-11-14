@@ -42,6 +42,14 @@ Windows, macOS, and Linux share release checks and update controls. Supported pa
 
 The Windows publisher check requires the update package to match the existing publisher certificate when the running executable has a valid signature. The [in-app update guide](../../docs/in-app-updates.md) documents platform prerequisites and native verification.
 
+## Limits 2.0 welcome
+
+| ID | Requirement | Acceptance criterion |
+| --- | --- | --- |
+| COM-UPD-020 | Show the Limits 2.0 welcome tour once per local profile. | On the first launch of 2.0.0, existing profiles get the update welcome and redesigned-settings slide. New profiles get the first-run welcome and supported-provider slide. Both use the same opening image. Each platform supplies its own second-slide display examples from its feature directory. |
+| COM-UPD-021 | Remember that the tour was shown. | Record the one-time marker locally when opening the ready tour. The marker survives closing, skipping, completing, restarts, and later upgrades. Later releases do not trigger this tour, even if a user upgrades directly past 2.0.0. Skip offers Continue, and completing the tour opens the normal Limits panel. |
+| COM-UPD-022 | Open the welcome next to the active indicator. | Use the visible Windows widget or tray, the macOS notch or menu bar according to the current display mode, or the Linux tray. Keep the window within the indicator screen's work area. If the tray host does not provide coordinates, use the relevant work-area edge. |
+
 ## Failures, isolation and verification
 
 | ID | Requirement | Acceptance criterion |

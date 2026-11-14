@@ -229,6 +229,10 @@ class AppleNotch {
     };
   }
 
+  compactBounds() {
+    return this.enabled && this.layout ? hitBounds(this.layout, 'closed') : null;
+  }
+
   update() {
     if (!this.window || this.window.isDestroyed()) return;
     const state = this.getState();

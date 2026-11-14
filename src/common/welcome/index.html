@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Limits</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="renderer.js" defer></script>
+</head>
+<body id="limits-tour-review">
+<article class="lt-window" aria-labelledby="lt-heading">
+  <header class="lt-titlebar"><img src="images/limits.png" width="20" height="20" alt=""> <span>Limits</span></header>
+  <div class="lt-hero">
+    <div class="lt-image-area">
+      <img id="lt-shot" alt="">
+      <ul class="lt-settings" aria-label="Разделы настроек" hidden>
+        <li><span class="lt-settings-icon lt-settings-mint" aria-hidden="true">⚙</span><span data-text="general"></span><span class="lt-settings-arrow" aria-hidden="true">›</span></li>
+        <li><span class="lt-settings-icon lt-settings-violet" aria-hidden="true">▤</span><span data-text="subscriptions"></span><span class="lt-settings-arrow" aria-hidden="true">›</span></li>
+        <li><span class="lt-settings-icon lt-settings-coral" aria-hidden="true">↻</span><span data-text="updates"></span><span class="lt-settings-arrow" aria-hidden="true">›</span></li>
+        <li><span class="lt-settings-icon lt-settings-mint" aria-hidden="true">◷</span>Codex Resets<span class="lt-settings-arrow" aria-hidden="true">›</span></li>
+      </ul>
+      <ul class="lt-providers" aria-label="Поддерживаемые сервисы" hidden>
+        <li><span class="lt-logo"><img src="images/codex.svg" width="28" height="28" alt=""></span><span>Codex</span></li>
+        <li><span class="lt-logo"><img src="images/claude-code.svg" width="28" height="28" alt=""></span><span>Claude Code</span></li>
+        <li><span class="lt-logo"><img src="images/kimi.svg" width="28" height="28" alt=""></span><span>Kimi Code</span></li>
+        <li><span class="lt-logo"><img src="images/zai.svg" width="28" height="28" alt=""></span><span>GLM Coding Plan</span></li>
+        <li><span class="lt-logo"><img src="images/deepseek.svg" width="28" height="28" alt=""></span><span>DeepSeek</span></li>
+      </ul>
+    </div>
+    <div class="lt-variants" id="lt-variants" role="group" aria-label="Варианты отображения" hidden></div>
+  </div>
+  <div class="lt-copy" aria-live="polite">
+    <h2 id="lt-heading"></h2>
+    <p id="lt-description"></p>
+  </div>
+  <footer class="lt-footer">
+    <div class="lt-progress" role="img" aria-label="Шаг 1 из 3"><span></span><span></span><span></span></div>
+    <div class="lt-actions">
+      <button type="button" data-action="skip" data-text="skip"></button>
+      <button type="button" data-action="back" hidden>←</button>
+      <button type="button" data-action="next"><span id="lt-next-label"></span><span class="lt-next-arrow" aria-hidden="true">→</span></button>
+    </div>
+  </footer>
+</article>
+</body>
+</html>

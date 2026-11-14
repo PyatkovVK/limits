@@ -17,6 +17,8 @@ const { selectedBucket, isStale } = require('./common/core/limits.cjs');
 const { TrayPresentation } = require('./common/tray/tray.cjs');
 const { t: translate } = require('./common/renderer/i18n.js');
 const { startupState, changePreference } = require('./common/core/preferences.cjs');
+const { welcomeMode, markWelcomeShown } = require('./common/welcome/once.cjs');
+const { openWelcome } = require('./common/welcome/window.cjs');
 
 const demo = process.argv.includes('--demo');
 const smoke = process.argv.includes('--smoke-test');
@@ -34,6 +36,7 @@ const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
 let window, windowsPanel, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
+let welcomePending = false, welcomeWindow;
 let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray', linuxTrayStyle: 'classic', widgetResetDisplay: 'clock' };
 const t = key => (process.platform === 'darwin' ? require('./apple_feature/renderer/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key, process.platform);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60, demo };
@@ -53,6 +56,15 @@ const platformApi = {
 const trayIcon = process.platform === 'win32' ? require('./windows_feature/tray/tray-icon.cjs').icon
   : process.platform === 'darwin' ? require('./apple_feature/tray/tray-icon.cjs').icon
   : process.platform === 'linux' ? require('./linux_feature/tray/tray-icon.cjs').icon : null;
+
+function getTrayBounds() {
+  return trayPresentation?.entries.flatMap(({ tray }) => {
+    try {
+      const bounds = tray.getBounds();
+      return bounds?.width > 0 && bounds.height > 0 ? [bounds] : [];
+    } catch { return []; }
+  }) || [];
+}
 // Renderer assets injected into the shared view-panel (paths are relative to src/common/view-panel/index.html).
 const platformAssets = {
   darwin: {
@@ -70,6 +82,10 @@ const platformAssets = {
 };
 
 function showPanel(anchor) {
+  if (welcomePending) {
+    if (welcomeWindow?.isVisible()) welcomeWindow.focus();
+    return;
+  }
   if (!window || window.isDestroyed()) return;
   if (usesNotch()) return appleNotch?.expand();
   if (macPanel) return macPanel.show(anchor);
@@ -249,6 +265,11 @@ async function createWidget() {
 }
 
 async function setup() {
+  const profileRoot = app.getPath('userData');
+  const demoWelcome = demo && ['install', 'update'].find(mode => process.argv.includes('--welcome-' + mode));
+  const introMode = demoWelcome || (!demo && !smoke && !process.argv.includes('--smoke-tray-only')
+    && welcomeMode(profileRoot, app.getVersion()));
+  welcomePending = Boolean(introMode);
   widgetSettings.language = app.getLocale().startsWith('ru') ? 'ru' : 'en';
   try {
     const saved = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget-settings.json'), 'utf8'));
@@ -276,10 +297,8 @@ async function setup() {
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
   const appIcon = nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 });
   trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, quotaIcon: trayIcon || (() => appIcon), appIcon,
-    onClick: tray => linuxPanel ? linuxPanel.toggle(tray) : showPanel(tray) });
-  if (process.platform === 'darwin') macPanel = require('./apple_feature/panel/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData'), reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds: () => trayPresentation.entries.map(entry => {
-    try { return entry.tray.getBounds(); } catch { return null; }
-  }) });
+    onClick: tray => linuxPanel && !welcomePending ? linuxPanel.toggle(tray) : showPanel(tray) });
+  if (process.platform === 'darwin') macPanel = require('./apple_feature/panel/panel.cjs').createPanelController({ window, screen, root: profileRoot, reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds });
   if (process.platform === 'linux') linuxPanel = require('./linux_feature/panel/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData') });
   nativeTheme.on('updated', update);
   handle('limits:get', publicState);
@@ -459,7 +478,35 @@ async function setup() {
     });
   } else powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); void resetNotifications.resume(); });
   const openedAtLogin = process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin;
-  if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden') && !openedAtLogin)) await showPanel();
+  if (introMode) {
+    try {
+      const display = process.platform === 'win32' ? require('./windows_feature/welcome/display.cjs')
+        : process.platform === 'darwin' ? require('./apple_feature/welcome/display.cjs')
+        : process.platform === 'linux' ? require('./linux_feature/welcome/display.cjs') : null;
+      const placement = display && await display.placement({
+        screen, getTrayBounds,
+        widget: widget?.isVisible() ? widget.getBounds() : null, taskbar: taskbarMetrics?.bar,
+        getNotchAnchor: () => usesNotch() ? appleNotch?.compactBounds() : null,
+      });
+      if (placement && !quitting) await openWelcome({
+        BrowserWindow, ipcMain, placement, nativeTheme, restrictWindow, display,
+        mode: introMode, language: widgetSettings.language,
+        claim: () => Boolean(demoWelcome) || markWelcomeShown(profileRoot),
+        onCreate: target => { welcomeWindow = target; },
+        onClose: presented => {
+          welcomeWindow = undefined;
+          welcomePending = false;
+          if (presented && !quitting) void showPanel();
+        },
+      });
+    } catch (error) {
+      console.error('Welcome:', error.message);
+    }
+    if (!welcomeWindow) {
+      welcomePending = false;
+      if (!quitting) await showPanel();
+    }
+  } else if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden') && !openedAtLogin)) await showPanel();
   updates.on('state', update);
   updates.on('offer', offer => {
     if (quitting) return;
