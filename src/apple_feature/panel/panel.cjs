@@ -1,5 +1,5 @@
 'use strict';
-const { createPanelPosition } = require('../common/panel/panel-position.cjs');
+const { createPanelPosition } = require('../../common/panel/panel-position.cjs');
 
 // Native backdrop blur sits behind the transparent, platform-scoped renderer.
 function panelOptions() {

@@ -33,8 +33,8 @@ function observe(modulePath, name, key) {
     }
   };
 }
-observe('../notch.cjs', 'AppleNotch', 'notch');
-observe('../accounts.cjs', 'AppleAccounts', 'accounts');
+observe('../notch/controller.cjs', 'AppleNotch', 'notch');
+observe('../ai-connects/codex/accounts.cjs', 'AppleAccounts', 'accounts');
 observe('../../common/tray/tray.cjs', 'TrayPresentation', 'tray');
 observe('../../common/ai-connects/codex/reset-notifications.cjs', 'ResetNotifications', 'resets');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
@@ -55,13 +55,13 @@ app.whenReady().then(async () => {
     assert.ok(panel && instances.accounts && instances.resets?.listenerCount('notification'), 'Demo controllers did not become ready');
     await instances.notch.prepare();
     const initialMenuSpace = instances.notch.screenInfo;
-    const report = await require('../smoke.cjs').verifyAppleIsland({
+    const report = await require('../test/smoke/notch.cjs').verifyAppleIsland({
       appleNotch: instances.notch, target: instances.notch.window, trayWindow: panel, trayPresentation: instances.tray,
       artifactRoot: root, demo: true, monitor: instances.accounts, layoutFixture,
       showResetNotification(event) {
-        const count = instances.notch.notifications.length;
+        const count = instances.notch.snapshot().notificationCount;
         instances.resets.emit('notification', event);
-        return instances.notch.notifications.length === count + 1;
+        return instances.notch.snapshot().notificationCount === count + 1;
       }
     });
     if (layoutFixture) {
@@ -69,7 +69,7 @@ app.whenReady().then(async () => {
       app.exit(0);
       return;
     }
-    const live = await instances.notch.withModal(() => require('../smoke.cjs').verifyLiveAppleIsland({ appleNotch: instances.notch, target: instances.notch.window, artifactRoot: root }));
+    const live = await instances.notch.withModal(() => require('../test/smoke/menu-bar.cjs').verifyLiveAppleIsland({ appleNotch: instances.notch, target: instances.notch.window, artifactRoot: root }));
     const result = { ...report, live, initialMenuSpace, startupTrayChecked: false, artifacts: root };
     fs.writeFileSync(path.join(root, 'notch-smoke.json'), JSON.stringify(result, null, 2));
     console.log('MAC_NOTCH_SMOKE_OK', JSON.stringify(result));

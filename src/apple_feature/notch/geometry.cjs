@@ -5,6 +5,15 @@ function chooseDisplay(displays, screens, primary) {
   return notched.find(display => display.id === primary.id) || notched[0] || null;
 }
 
+function menuBarWidth(display, info) {
+  const localCenter = info.notchX + info.notchWidth / 2;
+  // Only confirmed boundaries restrict a wing.
+  const left = Number.isFinite(info.menuBarLeft) ? info.menuBarLeft : 0;
+  const right = Number.isFinite(info.menuBarRight) ? info.menuBarRight : display.bounds.width;
+  const clearance = 2 * Math.min(localCenter - left, right - localCenter) - 16;
+  return Math.max(Math.round(info.notchWidth), Math.floor(clearance));
+}
+
 function notchLayout(display, info = {}, mode = 'notch') {
   const physical = info.top > 0 && info.notchWidth > 0;
   if (!display || !physical) return null;
@@ -15,16 +24,11 @@ function notchLayout(display, info = {}, mode = 'notch') {
   const capHeight = Math.max(notchHeight, display.workArea.y - display.bounds.y);
   const fullHeight = Math.min(630, display.workArea.y + display.workArea.height - display.bounds.y - 16);
   const center = physical ? display.bounds.x + info.notchX + info.notchWidth / 2 : display.bounds.x + display.bounds.width / 2;
-  const localCenter = info.notchX + info.notchWidth / 2;
-  // Only confirmed boundaries restrict a wing. Unknown is not the same as occupied.
-  const left = Number.isFinite(info.menuBarLeft) ? info.menuBarLeft : 0;
-  const right = Number.isFinite(info.menuBarRight) ? info.menuBarRight : display.bounds.width;
-  const clearance = 2 * Math.min(localCenter - left, right - localCenter) - 16;
   const x = Math.max(display.bounds.x + 4, Math.min(center - fullWidth / 2 - 12, display.bounds.x + display.bounds.width - fullWidth - 28));
   const layout = {
     physical, displayId: display.id, notchHeight, capHeight, fullWidth, fullHeight, maxFullHeight: fullHeight,
     notchWidth: Math.round(info.notchWidth),
-    menuBarWidth: Math.max(Math.round(info.notchWidth), Math.floor(clearance)),
+    menuBarWidth: menuBarWidth(display, info),
     notificationWidth: fullWidth,
     bounds: { x: Math.round(x), y: display.bounds.y, width: fullWidth + 24, height: fullHeight + 24 }
   };
@@ -72,4 +76,4 @@ function contains(bounds, point, margin = 0) {
   }
   return point.x >= bounds.x - margin && point.x <= bounds.x + bounds.width + margin && point.y >= bounds.y && point.y <= bounds.y + bounds.height + margin;
 }
-module.exports = { chooseDisplay, notchLayout, fitMenuBar, hitBounds, contains };
+module.exports = { chooseDisplay, menuBarWidth, notchLayout, fitMenuBar, hitBounds, contains };

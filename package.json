@@ -52,7 +52,7 @@
     "appId": "dev.codexlimits.desktop",
     "productName": "Limits",
     "directories": { "output": "release" },
-    "files": ["src/**/*", "!src/windows_feature/native/**/*", "!src/windows_feature/scripts/**/*", "!src/windows_feature/test/**/*", "!src/windows_feature/README.md", "!src/apple_feature/native/**/*", "!src/apple_feature/scripts/**/*", "!src/apple_feature/test/**/*", "!src/apple_feature/README.md", "!src/linux_feature/test/**/*.test.cjs", "!src/linux_feature/README.md", "assets/app.ico", "assets/app.png", "package.json", "LICENSE", "!node_modules/**/*"],
+    "files": ["src/**/*", "!src/windows_feature/native/**/*", "!src/windows_feature/scripts/**/*", "!src/windows_feature/test/**/*", "!src/windows_feature/README.md", "!src/apple_feature/native/**/*", "!src/apple_feature/scripts/**/*", "!src/apple_feature/test/**/*.test.cjs", "!src/apple_feature/README.md", "!src/linux_feature/test/**/*.test.cjs", "!src/linux_feature/README.md", "assets/app.ico", "assets/app.png", "package.json", "LICENSE", "!node_modules/**/*"],
     "extraResources": [
       { "from": "THIRD-PARTY-NOTICES.md", "to": "THIRD-PARTY-NOTICES.md" }
     ],

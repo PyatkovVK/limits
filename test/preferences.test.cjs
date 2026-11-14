@@ -6,10 +6,10 @@ const path = require('node:path');
 const { startupState, changePreference } = require('../src/common/core/preferences.cjs');
 const platformApi = {
   linuxStartup: require('../src/linux_feature/core/startup.cjs'),
-  appleStartup: require('../src/apple_feature/startup.cjs'),
+  appleStartup: require('../src/apple_feature/core/startup.cjs'),
   changeTrayStyle: require('../src/linux_feature/core/preferences.cjs').changeTrayStyle,
   widgetStyles: require('../src/windows_feature/settings/widget/styles.js').styles,
-  presentation: require('../src/apple_feature/presentation.cjs'),
+  presentation: require('../src/apple_feature/panel/presentation.cjs'),
 };
 function context(platform = 'win32', home) {
   return { platform, env: {}, app: { isPackaged: true, getPath: () => home, getLoginItemSettings: () => ({ openAtLogin: false }), setLoginItemSettings(value) { this.saved = value; } },

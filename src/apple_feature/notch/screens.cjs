@@ -3,7 +3,7 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 
 function readScreens(resourcesPath, { measureStatusItems = false } = {}) {
-  const helper = resourcesPath ? path.join(resourcesPath, 'apple-screen-info') : path.resolve(__dirname, '../../build/apple-screen-info');
+  const helper = resourcesPath ? path.join(resourcesPath, 'apple-screen-info') : path.resolve(__dirname, '../../../build/apple-screen-info');
   return new Promise(resolve => {
     execFile(helper, measureStatusItems ? ['--measure-status-items'] : [], { timeout: 3000, maxBuffer: 64 * 1024 }, (error, stdout) => {
       try {

@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { menuBitmap, png, icon } = require('../tray-icon.cjs');
+const { menuBitmap, png, icon } = require('../tray/tray-icon.cjs');
 const now = 1700000000000;
 test('5h menu indicator includes a readable hours/minutes timer at every Retina scale', () => {
   const options = { remaining: 72, resetsAt: now / 1000 + 2 * 3600 + 20 * 60, now };

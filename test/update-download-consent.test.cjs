@@ -4,7 +4,7 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
 const { CHECK_INTERVAL } = require('../src/common/updates/updates.cjs');
 const { LinuxUpdates } = require('../src/linux_feature/updates/updates.cjs');
 const { WindowsUpdates } = require('../src/windows_feature/updates/updates.cjs');
-const { AppleUpdates } = require('../src/apple_feature/updates.cjs');
+const { AppleUpdates } = require('../src/apple_feature/updates/updates.cjs');
 
 for (const [platform, UpdateType] of [['linux', LinuxUpdates], ['win32', WindowsUpdates], ['darwin', AppleUpdates]]) {
   test(`${platform} checks, postponement and newer offers never download without an action`, async t => {
