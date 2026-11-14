@@ -2,8 +2,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { chooseDisplay, notchLayout, fitMenuBar, hitBounds, contains } = require('../geometry.cjs');
-const { AppleNotch } = require('../notch.cjs');
+const { chooseDisplay, notchLayout, fitMenuBar, hitBounds, contains } = require('../notch/geometry.cjs');
+const { AppleNotch } = require('../notch/controller.cjs');
 const display = { id: 1, bounds: { x: 0, y: 0, width: 1800, height: 1169 }, workArea: { x: 0, y: 38, width: 1800, height: 1080 } };
 const info = { id: 1, top: 38, notchX: 790, notchWidth: 220 };
 
@@ -253,9 +253,10 @@ test('an incoming message preserves expanded Settings and all notification work 
     assert.equal(notch.phase, 'expanded');
     await notch.withModal(async () => { [...timers][0](); assert.equal(notch.snapshot().notificationCount, 1); });
     notch.collapse(); assert.equal(notch.phase, 'notification');
-    notch.disable(); assert.equal(timers.size, 0); assert.equal(notch.notifications.length, 0);
+    notch.disable(); assert.equal(timers.size, 0); assert.equal(notch.snapshot(), null);
     await notch.enable('island'); clearInterval(notch.timer);
     assert.equal(notch.phase, 'closed'); assert.equal(notch.snapshot().notification, null);
+    assert.equal(notch.snapshot().notificationCount, 0);
   } finally { notch.destroy(); }
 });
 
@@ -373,7 +374,7 @@ test('menu-bar polling coalesces slow probes, ignores late results and stops whe
     await pending;
     assert.equal(notch.layout, layout);
     assert.equal(notch.layout.menuBarWidth, width);
-    assert.equal(notch.menuBarPending, false);
+    assert.equal(notch.menuBar.pending, false);
   } finally { notch.destroy(); }
 });
 

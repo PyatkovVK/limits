@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { findCodex } = require('../../common/ai-connects/codex/path.cjs');
-const { findLinuxCodex } = require('../codex-path.cjs');
+const { findLinuxCodex } = require('../ai-connects/codex/path.cjs');
 const normalized = value => value.replaceAll('\\', '/');
 function find(files, { arch = 'x64', env = {}, nonExecutable = [] } = {}) {
   const fileSystem = {

@@ -1,6 +1,6 @@
 ---
 name: platform-boundary
-description: Enforce the one-way dependency between src/common and src/*_feature/ in the Limits app — common must never require or import a platform feature directory; shared modules get platform behavior injected through the composition root src/main.cjs. Apply before adding or moving code between src/common and a platform directory, and verify the boundary before committing.
+description: Organize Limits platform implementations under src/*_feature/ using the subsystem paths in src/common and preserve one-way dependencies. Use when adding, moving, or refactoring platform modules, renderer translations, or shared extension points.
 ---
 
 # Keep the common/platform dependency boundary
@@ -14,7 +14,7 @@ The dependency is one-way:
 - `*_feature/` modules **may** `require()` from `src/common/`.
 - `src/common/` must **never** `require()` or `import` from `src/*_feature/`.
 
-When a shared module needs a platform behavior, the composition root injects it as a parameter — it never imports the platform file. See `requirements/common/architecture.md` (COM-ARC-001..005) for the acceptance criteria.
+When a shared module needs a platform behavior, the composition root injects it as a parameter. See `requirements/common/architecture.md` (COM-ARC-001 through COM-ARC-007) for the acceptance criteria.
 
 ## Verify the boundary
 
@@ -30,6 +30,9 @@ Any hit in code is a violation. `src/common/` must never `require()`/`import` a 
 
 - Platform-specific code lives in the matching `*_feature/` directory; use `platform-routing` to pick it.
 - Shared behavior lives in `src/common/`. Do not move an existing shared feature into a platform directory just because it is the current host.
+- Match the relative subsystem path in `src/common/` for each platform extension. For Windows, put translation overrides in `renderer/i18n.js`, tray rendering in `tray/`, update support in `updates/`, settings extensions in `settings/`, and Codex sign-in behavior in `ai-connects/codex/`. Give Windows-only subsystems such as `taskbar/` and `widget/` their own directories. Create the directories the platform actually uses.
+- Look for a shared implementation before adding a platform module. Use inheritance when the platform service fulfills the shared class contract, such as `WindowsUpdates` extending `Updates`. Compose shared functions or inject a platform adapter when they provide a closer fit. Keep the common translation lookup as the fallback for platform strings.
+- When moving a module, update its imports and renderer asset paths at their existing call sites, including `src/main.cjs` and affected tests or smoke scripts. Keep `src/common/` unchanged for platform-only reorganizations.
 
 ## Injecting a platform capability into common
 

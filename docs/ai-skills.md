@@ -14,6 +14,8 @@ The command copies missing files from tracked `docs/skill-templates/` into local
 
 The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, macOS → `src/apple_feature/`, and Windows → `src/windows_feature/`. It detects the execution host when no target is specified; an explicit user target takes precedence. Shared behavior stays in `src/common`, and the skill does not expand a single-platform task into changes for every platform.
 
+The bundled [macos-architecture](skill-templates/macos-architecture/SKILL.md) skill maps macOS responsibilities to folders, records the platform contracts, and lists the native checks for refactors.
+
 ## How agents find the skills
 
 The bundled `focused-pull-requests` skill keeps independent bugs, features and other tasks in separate `limits/<description>` branches and MR/PRs. The existing `npm run setup:skills` script in `package.json` generates `skills/focused-pull-requests/SKILL.md` together with the other defaults.

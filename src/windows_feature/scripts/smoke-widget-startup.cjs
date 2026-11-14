@@ -5,7 +5,7 @@ const { execFile } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { taskbarHelperPath } = require('../panel/widget.cjs');
+const { taskbarHelperPath } = require('../taskbar/helper.cjs');
 if (process.platform !== 'win32') throw new Error('Run the widget startup check on Windows.');
 
 const artifactRoot = path.resolve(__dirname, '../../../artifacts');
@@ -38,7 +38,7 @@ async function checkOrder(before, window) {
 }
 
 let host, initial, raises = 0, lastMetrics, metricsOverride;
-const widgetModule = require('../panel/widget.cjs');
+const widgetModule = require('../widget/host.cjs');
 const NativeWidget = widgetModule.TaskbarWidget;
 widgetModule.TaskbarWidget = class extends NativeWidget {
   emit(event, ...args) {

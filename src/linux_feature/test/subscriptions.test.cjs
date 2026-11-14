@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { EventEmitter } = require('node:events');
-const { Subscriptions: AppleAccounts } = require('../../common/ai-connects/codex/subscriptions.cjs');
+const { Subscriptions } = require('../../common/ai-connects/codex/subscriptions.cjs');
 const { Monitor: SharedMonitor } = require('../../common/core/monitor.cjs');
 const { CodexController } = require('../../common/ai-connects/codex/controller.cjs');
 const Monitor = function (client, options) { return new SharedMonitor(new CodexController(client, options)); };
@@ -23,7 +23,7 @@ function setup(t) {
     monitors.set(profile.id, monitor); return monitor;
   };
   const options = { root, env: { CODEX_HOME: shared, OPENAI_API_KEY: 'fixture-key', PATH: '/bin' }, createMonitor };
-  const accounts = new AppleAccounts(options);
+  const accounts = new Subscriptions(options);
   t.after(() => { accounts.stop(); fs.rmSync(root, { recursive: true, force: true }); });
   return { root, shared, monitors, options, accounts };
 }
@@ -39,7 +39,7 @@ test('Linux distinguishes connected subscriptions and current Codex sources with
   assert.equal(monitors.get('default').options.readOnly, true);
   assert.match(monitors.get(work).options.env.CODEX_HOME, /accounts/);
   accounts.setMode('connected');
-  const restored = new AppleAccounts(options); t.after(() => restored.stop());
+  const restored = new Subscriptions(options); t.after(() => restored.stop());
   assert.equal(restored.snapshot().subscriptions.mode, 'connected');
   assert.equal(restored.snapshot().selectedProfileId, work);
   assert.equal(restored.snapshot().displayName, 'Work');

@@ -3,8 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 if (process.platform === 'win32') {
-  const source = path.resolve(__dirname, '../native/TaskbarProbe.cs');
-  const inputSource = path.resolve(__dirname, '../native/TaskbarInput.cs');
+  const source = path.resolve(__dirname, '../native/taskbar/TaskbarProbe.cs');
+  const inputSource = path.resolve(__dirname, '../native/taskbar/TaskbarInput.cs');
   const output = path.resolve(__dirname, '../../../build/taskbar-helper.exe');
   const compiler = path.join(process.env.WINDIR || 'C:\\Windows', 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe');
   const framework = path.dirname(compiler);
