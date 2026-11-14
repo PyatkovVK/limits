@@ -58,7 +58,7 @@ const platformApi = {
 const platformAssets = {
   darwin: {
     styles: ['../../apple_feature/view-panel/style.css'],
-    scripts: ['../../apple_feature/renderer/i18n.js', '../../apple_feature/view-panel/island.js', '../../apple_feature/view-panel/surface.js', '../../apple_feature/view-panel/notch.js'],
+    scripts: ['../../apple_feature/renderer/i18n.js', '../../apple_feature/view-panel/keychain.js', '../../apple_feature/view-panel/island.js', '../../apple_feature/view-panel/surface.js', '../../apple_feature/view-panel/notch.js'],
   },
   win32: {
     styles: ['../../windows_feature/view-panel/provider-picker.css'],
@@ -399,6 +399,7 @@ async function setup() {
   });
   handle('limits:key-cancel', id => { if (typeof id === 'string') monitor?.cancelKeyConnection(id); return {}; });
   handle('limits:key-browser', id => typeof id === 'string' ? openCredentials(id) : { error: 'loginUnavailable' });
+  if (process.platform === 'darwin') handle('limits:credential-storage-open', require('./apple_feature/ai-connects/keychain.cjs').openKeychain);
   handle('limits:profile-action', async (action, id, value) => {
     if (!monitor || typeof id !== 'string') return { error: 'accountActionFailed' };
     try {

@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('limits', {
   submitApiKey: (id, key) => ipcRenderer.invoke('limits:key-submit', id, key),
   cancelApiKey: id => ipcRenderer.invoke('limits:key-cancel', id),
   openKeyBrowser: id => ipcRenderer.invoke('limits:key-browser', id),
+  openCredentialStorage: () => ipcRenderer.invoke('limits:credential-storage-open'),
   accountAction: (action, id, value) => ipcRenderer.invoke('limits:profile-action', action, id, value),
   subscriptionMode: mode => ipcRenderer.invoke('limits:subscriptions-mode', mode),
   select: id => ipcRenderer.invoke('limits:select', id),

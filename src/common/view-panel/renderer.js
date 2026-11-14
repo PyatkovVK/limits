@@ -47,9 +47,7 @@ function render(next) {
   $('account').textContent = next.displayName || next.account?.email || t(next.status === 'signed-out' ? 'connectAccount' : 'account');
   $('account').title = [next.account?.email, next.account?.planType].filter(Boolean).join(' · ');
   const messageKey = actionError || next.error || next.widgetError || (next.accountAvailable === false ? 'insufficientBalance' : next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
-  const message = messageKey ? t(messageKey) : null;
-  $('error').hidden = !message;
-  $('error').textContent = message || '';
+  window.limitsI18n.notice($('error'), messageKey, language, t);
   const groups = next.groups || next.buckets;
   document.querySelector('.panel-quotas').hidden = generic;
   $('provider-metrics').hidden = !generic;

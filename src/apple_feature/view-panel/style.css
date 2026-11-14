@@ -1,5 +1,6 @@
 /* macOS supplies the native backdrop and the notch presentation. */
 body[data-platform="darwin"] { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.apple-keychain-notice { display: grid; justify-items: start; gap: 8px; color: var(--ink); }
 body[data-platform="darwin"] #settings-dialog { --settings-inset: 14px; box-sizing: border-box; }
 body[data-platform="darwin"] #settings-dialog[open] { display: flex; flex-direction: column; }
 body[data-platform="darwin"] #settings-dialog .settings-header { flex: none; min-height: 56px; padding: 12px 16px; }
