@@ -106,7 +106,9 @@ app.whenReady().then(async () => {
     const small = display => ({ ...display, workArea: { ...display.workArea, width: 360, height: 340 } });
     screen.getPrimaryDisplay = () => small(primaryDisplay()); screen.getDisplayMatching = bounds => small(matchingDisplay(bounds));
     panel.setMinimumSize(1, 1); panel.setMaximumSize(0, 0); panel.setSize(360, 324);
-    await run('document.querySelector(".reset-toggle-row").scrollIntoView({block:"center",behavior:"instant"}); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    // Native panel sizing can finish after the first paint frames and change wrapping.
+    // Scroll the checked control again as the viewport settles, as a user can.
+    await waitFor(() => run('(async () => { const control = document.getElementById("reset-notifications-info"); control.scrollIntoView({block:"center",behavior:"instant"}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); const info = control.getBoundingClientRect(); const viewport = document.querySelector(".settings-content").getBoundingClientRect(); return info.left >= viewport.left && info.right <= viewport.right && info.top >= viewport.top && info.bottom <= viewport.bottom; })()'), 'reset information reachable after native sizing');
     assert.equal(await run('(() => { const info = document.getElementById("reset-notifications-info").getBoundingClientRect(); const viewport = document.querySelector(".settings-content").getBoundingClientRect(); return info.left >= viewport.left && info.right <= viewport.right && info.top >= viewport.top && info.bottom <= viewport.bottom; })()'), true);
     assert.equal(await run('(() => { const el = document.querySelector(".settings-content"); return el.scrollWidth <= el.clientWidth + 1; })()'), true);
     fs.writeFileSync(path.join(root, 'small-window.png'), (await panel.webContents.capturePage()).toPNG());

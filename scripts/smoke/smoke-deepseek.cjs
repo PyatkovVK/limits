@@ -41,6 +41,7 @@ global.fetch = async (url, options) => {
   return options.headers.Authorization === `Bearer ${key}` ? Response.json(sample()) : new Response('{}', { status: 401 });
 };
 shell.openExternal = async url => { assert.ok([KEY_URL, ZAI_KEY_URL].includes(url)); opened.push(url); };
+if (process.platform === 'linux') require('../../src/linux_feature/core/browser.cjs').openBrowser = url => shell.openExternal(url);
 Notification.prototype.show = () => assert.fail('Smoke must not show notifications');
 registry.providers.get('codex').create = options => {
   const client = new EventEmitter(); client.start = async () => {}; client.stop = () => {};
