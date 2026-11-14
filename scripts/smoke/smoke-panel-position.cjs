@@ -2,13 +2,13 @@
 const { app, BrowserWindow, screen } = require('electron');
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const { setTimeout: delay } = require('node:timers/promises');
-const artifacts = path.resolve(__dirname, '../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
+const artifacts = path.resolve(__dirname, '../../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
 const root = fs.mkdtempSync(path.join(artifacts, 'placement-smoke-'));
 const originalSet = app.setPath.bind(app);
 app.setPath = (name, value) => originalSet(name, name === 'userData' ? root : value);
-app.getVersion = () => require('../package.json').version;
+app.getVersion = () => require('../../package.json').version;
 app.disableHardwareAcceleration(); process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../src/main.cjs');
+require('../../src/main.cjs');
 app.whenReady().then(async () => {
   try {
     let panel;

@@ -7,12 +7,27 @@ const vm = require('node:vm');
 const { EventEmitter } = require('node:events');
 const pkg = require('../package.json');
 const i18n = require('../src/common/renderer/i18n.js');
-const { buildPlan } = require('../scripts/build-plan.cjs');
+const { buildPlan } = require('../scripts/build/build-plan.cjs');
 const { configureAppleBuild } = require('../src/apple_feature/scripts/build-config.cjs');
 const { offerSignIn } = require('../src/windows_feature/ai-connects/codex/sign-in-prompt.cjs');
-const { signingEnvironment } = require('../scripts/signing.cjs');
+const { signingEnvironment } = require('../scripts/signing/signing.cjs');
 
-test('Mac and Linux build entrypoint bundles the target runtime and preserves platform resources', () => {
+function runBuild(target, requireMock, process) {
+  const dirname = path.resolve(__dirname, '../scripts/build');
+  const load = name => {
+    const module = { exports: {} };
+    vm.runInNewContext(fs.readFileSync(path.join(dirname, name), 'utf8'), {
+      module, require: mockedRequire, __dirname: dirname, structuredClone, process,
+      console: { log() {}, error: assert.fail }
+    });
+    return module.exports;
+  };
+  const mockedRequire = name => name === './build-unix.cjs' ? load(name) : requireMock(name);
+  mockedRequire.resolve = requireMock.resolve;
+  load((target === 'win' ? 'windows' : target) + '.cjs');
+}
+
+test('Mac and Linux build entrypoints bundle the target runtime and preserve platform resources', () => {
   for (const [target, platform, arch] of [['mac', 'darwin', 'arm64'], ['mac', 'darwin', 'x64'], ['linux', 'linux', 'x64'], ['linux', 'linux', 'arm64']]) {
     let captured;
     let preparedAssets = false;
@@ -24,26 +39,22 @@ test('Mac and Linux build entrypoint bundles the target runtime and preserves pl
       'node:os': { tmpdir: () => path.dirname(output) },
       'node:child_process': { spawnSync: () => ({ status: 0 }) },
       './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch }) },
-      './signing.cjs': { configureSigning: () => false, signingEnvironment },
-      './bundle-codex.cjs': { bundleCodex(_config, options) { assert.equal(options.platform, platform); assert.equal(options.arch, arch); } },
-      './assets.cjs': {},
-      '../package.json': pkg,
+      '../signing/signing.cjs': { configureSigning: () => false, signingEnvironment },
+      '../prepare/bundle-codex.cjs': { bundleCodex(_config, options) { assert.equal(options.platform, platform); assert.equal(options.arch, arch); } },
+      '../prepare/assets.cjs': {},
+      '../../package.json': pkg,
       ...(target === 'mac' ? {
-        '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
-        '../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
+        '../../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
+        '../../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
       } : {}),
     };
     const requireMock = name => {
       assert.ok(Object.hasOwn(modules, name), `Unexpected build dependency: ${name}`);
-      if (name === './assets.cjs') preparedAssets = true;
+      if (name === '../prepare/assets.cjs') preparedAssets = true;
       return modules[name];
     };
     requireMock.resolve = name => path.resolve('node_modules', name);
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../scripts/build.cjs'), 'utf8'), {
-      require: requireMock, __dirname: path.resolve(__dirname, '../scripts'), structuredClone,
-      process: { argv: ['node', 'build.cjs', target, `--${arch}`], platform, arch, env: {} },
-      console: { log() {} }
-    });
+    runBuild(target, requireMock, { argv: ['node', target, '--' + arch], platform, arch, env: {} });
     if (target === 'mac') configureAppleBuild(config, {});
     config.directories.output = output;
     config.electronDist = path.join(path.dirname(requireMock.resolve('electron/package.json')), 'dist');
@@ -63,8 +74,6 @@ test('packaging reaches electron-builder with an absent Electron dist and only r
     ['win', 'win32', 'x64', 'x64'], ['win', 'win32', 'arm64', 'x64']
   ]) {
     for (const installed of [false, true]) {
-      const script = target === 'win' ? '../scripts/build-windows.cjs' : '../scripts/build.cjs';
-      const filename = path.resolve(__dirname, script);
       const output = path.resolve('artifacts', 'limits-build-electron-test');
       const electronDist = path.resolve('node_modules', 'electron', 'dist');
       let captured;
@@ -78,15 +87,15 @@ test('packaging reaches electron-builder with an absent Electron dist and only r
         'node:path': path, 'node:os': { tmpdir: () => path.dirname(output) },
         'node:child_process': { spawnSync: (_exe, args) => { builderArgs = args; return { status: 0 }; } },
         './build-plan.cjs': { buildPlan: (target, flags) => buildPlan(target, flags, { platform, arch: hostArch }) },
-        './signing.cjs': { configureSigning: () => false, signingEnvironment },
-        '../package.json': pkg,
-        './assets.cjs': {},
-        ...(target === 'win' ? { '../src/windows_feature/scripts/build-taskbar-helper.cjs': {} } : {}),
+        '../signing/signing.cjs': { configureSigning: () => false, signingEnvironment },
+        '../../package.json': pkg,
+        '../prepare/assets.cjs': {},
+        ...(target === 'win' ? { '../../src/windows_feature/scripts/build-taskbar-helper.cjs': {} } : {}),
         ...(target === 'mac' ? {
-          '../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
-          '../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
+          '../../src/apple_feature/scripts/build-helper.cjs': { buildHelper() {} },
+          '../../src/apple_feature/scripts/build-config.cjs': { configureAppleBuild: config => configureAppleBuild(config, {}) },
         } : {}),
-        './bundle-codex.cjs': { bundleCodex(_config, options) { assert.equal(options.platform, platform); assert.equal(options.arch, targetArch); } }
+        '../prepare/bundle-codex.cjs': { bundleCodex(_config, options) { assert.equal(options.platform, platform); assert.equal(options.arch, targetArch); } }
       };
       const requireMock = name => {
         assert.ok(Object.hasOwn(modules, name), `Unexpected build dependency: ${name}`);
@@ -97,12 +106,8 @@ test('packaging reaches electron-builder with an absent Electron dist and only r
         assert.ok(['electron/package.json', 'electron-builder/package.json'].includes(name), name);
         return path.resolve('node_modules', name);
       };
-      vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
-        require: requireMock, __dirname: path.dirname(filename), structuredClone,
-        process: { argv: ['node', filename, ...(target === 'win' ? [] : [target, `--${targetArch}`])],
-          platform, arch: hostArch, execPath: process.execPath, env: {}, exit(code) { assert.fail(`Build exited: ${code}`); } },
-        console: { log() {}, error: assert.fail }
-      });
+      runBuild(target, requireMock, { argv: ['node', target, ...(target === 'win' ? [] : ['--' + targetArch])],
+        platform, arch: hostArch, execPath: process.execPath, env: {}, exit(code) { assert.fail('Build exited: ' + code); } });
       assert.equal(captured.electronDist, installed && hostArch === targetArch ? electronDist : undefined);
       assert.deepEqual(Array.from(builderArgs), [path.resolve('node_modules', 'electron-builder', 'cli.js'),
         `--${target}`, `--${targetArch}`, '--publish=never', `--config=${path.join(output, 'build-config.json')}`]);

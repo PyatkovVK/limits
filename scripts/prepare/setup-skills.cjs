@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-function setupSkills(root = path.resolve(__dirname, '..')) {
+function setupSkills(root = path.resolve(__dirname, '../..')) {
   const templates = path.join(root, 'docs', 'skill-templates');
   const local = path.join(root, 'skills');
   const names = [];

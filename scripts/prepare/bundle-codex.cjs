@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Ship only the app-server executable; the CLI's other tools are not needed.
+// Include the native Codex binary that Limits runs in app-server mode.
 function bundleCodex(config, { platform = process.platform, arch = process.arch, resolvePackage = require.resolve, fileSystem = fs } = {}) {
   const key = { win32: 'win', darwin: 'mac', linux: 'linux' }[platform];
   if (!key || !['x64', 'arm64'].includes(arch)) throw new Error(`Unsupported runtime: ${platform}-${arch}`);
@@ -16,7 +16,7 @@ function bundleCodex(config, { platform = process.platform, arch = process.arch,
     .find(file => { try { return fileSystem.statSync(file).isFile(); } catch { return false; } });
   if (!binary) throw new Error(`Missing ${target.packageName} executable. Reinstall dependencies before building.`);
   if (platform !== 'win32') fileSystem.accessSync(binary, fs.constants.X_OK);
-  const license = path.resolve(__dirname, '../licenses/Apache-2.0.txt');
+  const license = path.resolve(__dirname, '../../licenses/Apache-2.0.txt');
   if (!fileSystem.statSync(license).isFile()) throw new Error('Missing Codex license.');
   config[key].extraResources = [
     ...(config[key].extraResources || []),

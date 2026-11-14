@@ -6,8 +6,8 @@ const { spawn } = require('node:child_process');
 async function run() {
   if (process.platform !== 'win32') throw new Error('Run the Windows onboarding check on Windows.');
   const electron = require('electron');
-  const scenario = path.resolve(__dirname, '../test/smoke/windows-onboarding.cjs');
-  const parent = path.resolve(__dirname, '../artifacts');
+  const scenario = path.resolve(__dirname, '../../test/smoke/windows-onboarding.cjs');
+  const parent = path.resolve(__dirname, '../../artifacts');
   fs.mkdirSync(parent, { recursive: true });
   const root = fs.mkdtempSync(path.join(parent, 'onboarding-smoke-'));
   try {

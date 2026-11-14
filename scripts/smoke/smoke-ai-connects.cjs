@@ -4,10 +4,10 @@ const { app, BrowserWindow, ipcMain, shell, Notification } = require('electron')
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { Accounts } = require('../src/common/core/accounts.cjs');
-const { ControllerRegistry } = require('../src/common/ai-connects/registry.cjs');
-const { MoneyController } = require('../test/fixtures/money-controller.cjs');
-const artifacts = path.resolve(__dirname, '../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
+const { Accounts } = require('../../src/common/core/accounts.cjs');
+const { ControllerRegistry } = require('../../src/common/ai-connects/registry.cjs');
+const { MoneyController } = require('../../test/fixtures/money-controller.cjs');
+const artifacts = path.resolve(__dirname, '../../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
 const root = fs.mkdtempSync(path.join(artifacts, 'ai-connects-smoke-'));
 const setPath = app.setPath.bind(app);
 app.setPath = (name, value) => setPath(name, name === 'userData' ? path.join(root, 'profile') : value);
@@ -16,7 +16,7 @@ global.fetch = async () => assert.fail('Smoke must not access the network');
 shell.openExternal = async () => assert.fail('Smoke must not open a browser');
 Notification.prototype.show = () => assert.fail('Smoke must not show notifications');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../src/main.cjs');
+require('../../src/main.cjs');
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function waitFor(condition, label) {
   const deadline = Date.now() + 10000;
@@ -48,8 +48,8 @@ app.whenReady().then(async () => {
       assert.equal(action, 'select'); accounts.selectProfile(id); publish(); return {};
     });
     if (process.platform === 'win32') {
-      widget = new BrowserWindow({ width: 280, height: 39, show: false, frame: false, webPreferences: { preload: path.resolve(__dirname, '../src/common/preload.cjs'), contextIsolation: true, sandbox: true } });
-      await widget.loadFile(path.resolve(__dirname, '../src/windows_feature/widget/renderer/widget.html'));
+      widget = new BrowserWindow({ width: 280, height: 39, show: false, frame: false, webPreferences: { preload: path.resolve(__dirname, '../../src/common/preload.cjs'), contextIsolation: true, sandbox: true } });
+      await widget.loadFile(path.resolve(__dirname, '../../src/windows_feature/widget/renderer/widget.html'));
       await widget.webContents.executeJavaScript('window.renderReady');
     }
     for (const language of ['en', 'ru']) {

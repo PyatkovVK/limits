@@ -12,6 +12,7 @@ node_modules/
 /assets/
 release/
 build/
+!/scripts/build/
 artifacts/
 dist/
 out/

@@ -115,7 +115,7 @@ test('test-only pipeline runs common and native suites on all three OSes without
 
 test('every package target runs tests before its explicit native build command', () => {
   const pkg = require('../package.json');
-  const { buildPlan } = require('../scripts/build-plan.cjs');
+  const { buildPlan } = require('../scripts/build/build-plan.cjs');
   const matrix = builds.jobs.build.strategy.matrix.include;
   assert.deepEqual(matrix.map(({ os, target, script }) => [os, target, script]), [
     ['windows-latest', 'win', 'build:win:x64'], ['macos-15', 'mac', 'build:mac:arm64'],
@@ -124,10 +124,9 @@ test('every package target runs tests before its explicit native build command',
   for (const { target, arch, script } of matrix) {
     assert.ok(pkg.scripts[script], script);
     if (target === 'win') { assert.equal(pkg.scripts[script], 'npm run build:win'); continue; }
-    const [, entrypoint, platform, flag] = pkg.scripts[script].split(' ');
-    assert.equal(entrypoint, 'scripts/build.cjs');
-    assert.equal(platform, target);
-    assert.deepEqual(buildPlan(platform, [flag], { platform: target === 'mac' ? 'darwin' : 'linux' }).args,
+    const [, entrypoint, flag] = pkg.scripts[script].split(' ');
+    assert.equal(entrypoint, `scripts/build/${target}.cjs`);
+    assert.deepEqual(buildPlan(target, [flag], { platform: target === 'mac' ? 'darwin' : 'linux' }).args,
       [`--${target}`, `--${arch}`, '--publish=never']);
   }
   const steps = builds.jobs.build.steps;

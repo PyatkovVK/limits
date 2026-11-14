@@ -132,11 +132,11 @@ test('application and build preparation load only the active platform', async t 
       }
 
       const prepared = [];
-      vm.runInNewContext(fs.readFileSync(path.join(root, 'scripts/prepare-app.cjs'), 'utf8'), {
+      vm.runInNewContext(fs.readFileSync(path.join(root, 'scripts/prepare/prepare-app.cjs'), 'utf8'), {
         process: { platform }, require(spec) { prepared.push(spec); return { buildHelper() {} }; },
       });
       const helper = { win32: 'build-taskbar-helper', darwin: 'build-helper' }[platform];
-      assert.deepEqual(prepared, ['./assets.cjs', ...(helper ? [`../src/${feature}/scripts/${helper}.cjs`] : [])]);
+      assert.deepEqual(prepared, ['./assets.cjs', ...(helper ? [`../../src/${feature}/scripts/${helper}.cjs`] : [])]);
     });
   }
 });

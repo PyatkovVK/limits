@@ -4,10 +4,10 @@ const { app, BrowserWindow, ipcMain, shell, Notification } = require('electron')
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { Accounts } = require('../src/common/core/accounts.cjs');
-const { DemoMonitor } = require('../src/common/demo/demo-monitor.cjs');
-app.getVersion = () => require('../package.json').version;
-const artifacts = path.resolve(__dirname, '../artifacts');
+const { Accounts } = require('../../src/common/core/accounts.cjs');
+const { DemoMonitor } = require('../../src/common/demo/demo-monitor.cjs');
+app.getVersion = () => require('../../package.json').version;
+const artifacts = path.resolve(__dirname, '../../artifacts');
 fs.mkdirSync(artifacts, { recursive: true });
 const root = fs.mkdtempSync(path.join(artifacts, 'accounts-smoke-'));
 const setPath = app.setPath.bind(app);
@@ -17,7 +17,7 @@ global.fetch = async () => assert.fail('Smoke must not access the network');
 shell.openExternal = async () => assert.fail('Smoke must not open a browser');
 Notification.prototype.show = () => assert.fail('Smoke must not show a notification');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../src/main.cjs');
+require('../../src/main.cjs');
 const pause = (ms = 50) => new Promise(resolve => setTimeout(resolve, ms));
 async function waitFor(condition, label) {
   const deadline = Date.now() + 10000;
@@ -118,8 +118,8 @@ app.whenReady().then(async () => {
     await run('window.limitsSettings.dialog.close()');
     const quota = accounts.monitors.get('default').state.buckets[0];
     if (process.platform === 'win32') {
-      widget = new BrowserWindow({ width: 280, height: 39, show: false, frame: false, webPreferences: { preload: path.resolve(__dirname, '../src/common/preload.cjs'), contextIsolation: true, sandbox: true } });
-      await widget.loadFile(path.resolve(__dirname, '../src/windows_feature/widget/renderer/widget.html'));
+      widget = new BrowserWindow({ width: 280, height: 39, show: false, frame: false, webPreferences: { preload: path.resolve(__dirname, '../../src/common/preload.cjs'), contextIsolation: true, sandbox: true } });
+      await widget.loadFile(path.resolve(__dirname, '../../src/windows_feature/widget/renderer/widget.html'));
       await widget.webContents.executeJavaScript('window.renderReady');
     }
     for (const kind of ['short', 'weekly']) {

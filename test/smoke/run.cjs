@@ -18,18 +18,18 @@ if (process.platform !== platform.host) {
   process.exit(1);
 }
 
-require('../../scripts/prepare-app.cjs');
+require('../../scripts/prepare/prepare-app.cjs');
 const electron = require('electron');
 const root = path.resolve(__dirname, '../..');
 const scenarios = [['App in demo mode', electron, '.', '--demo', '--smoke-test']];
-if (target === 'win') scenarios.push(['First-run onboarding', process.execPath, 'scripts/smoke-onboarding.cjs']);
+if (target === 'win') scenarios.push(['First-run onboarding', process.execPath, 'scripts/smoke/smoke-onboarding.cjs']);
 scenarios.push(
   ['Subscriptions', electron, `test/smoke/${platform.subscriptions}-subscriptions.cjs`],
-  ['Account management', electron, 'scripts/smoke-accounts.cjs'],
-  ['Provider UI', electron, 'scripts/smoke-ai-connects.cjs'],
-  ['DeepSeek and Z.ai', electron, 'scripts/smoke-deepseek.cjs'],
-  ['Updates', electron, 'scripts/smoke-updates.cjs'],
-  ['Reset notifications', electron, 'scripts/smoke-resets.cjs'],
+  ['Account management', electron, 'scripts/smoke/smoke-accounts.cjs'],
+  ['Provider UI', electron, 'scripts/smoke/smoke-ai-connects.cjs'],
+  ['DeepSeek and Z.ai', electron, 'scripts/smoke/smoke-deepseek.cjs'],
+  ['Updates', electron, 'scripts/smoke/smoke-updates.cjs'],
+  ['Reset notifications', electron, 'scripts/smoke/smoke-resets.cjs'],
 );
 
 if (target === 'win') {
@@ -38,7 +38,7 @@ if (target === 'win') {
     ['Native widget startup and input', electron, 'test/smoke/windows-widget-startup.cjs'],
   );
 } else {
-  scenarios.push(['Panel position', electron, 'scripts/smoke-panel-position.cjs']);
+  scenarios.push(['Panel position', electron, 'scripts/smoke/smoke-panel-position.cjs']);
 }
 if (target === 'mac') {
   scenarios.push(['Notch layouts', electron, 'test/smoke/apple-notch.cjs', '--layout-fixture']);

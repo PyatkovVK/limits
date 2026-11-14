@@ -4,8 +4,8 @@ const { app, BrowserWindow, shell, screen, Notification } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const pkg = require('../package.json');
-const parent = path.resolve(__dirname, '../artifacts');
+const pkg = require('../../package.json');
+const parent = path.resolve(__dirname, '../../artifacts');
 fs.mkdirSync(parent, { recursive: true });
 const root = fs.mkdtempSync(path.join(parent, 'resets-smoke-'));
 const profile = path.join(root, 'profile');
@@ -17,7 +17,7 @@ global.fetch = async () => assert.fail('Smoke must not make network requests');
 shell.openExternal = async () => assert.fail('Smoke must not open a browser');
 Notification.prototype.show = () => assert.fail('Smoke must not show an OS notification');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../src/main.cjs');
+require('../../src/main.cjs');
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function waitFor(condition, label) {
   const deadline = Date.now() + 10000;
@@ -95,7 +95,7 @@ app.whenReady().then(async () => {
       languages.push({ language, defaultOff: true, future, forecast, toggleOnRight: true, credits: true, errors: true });
       await run('window.limitsSettings.dialog.close()');
     }
-    const outsider = new BrowserWindow({ show: false, webPreferences: { preload: path.resolve(__dirname, '../src/common/preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
+    const outsider = new BrowserWindow({ show: false, webPreferences: { preload: path.resolve(__dirname, '../../src/common/preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
     await outsider.loadURL('data:text/html,<title>Untrusted reset IPC</title>');
     for (const action of ['setResetNotifications(true)', 'openResetLink("site")', 'demoReset("forecast")']) {
       assert.equal(await outsider.webContents.executeJavaScript(`window.limits.${action}.then(() => false, () => true)`), true);

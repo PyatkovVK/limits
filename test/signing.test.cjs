@@ -2,10 +2,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { configureSigning, signingEnvironment } = require('../scripts/signing.cjs');
+const { configureSigning, signingEnvironment } = require('../scripts/signing/signing.cjs');
 const { spawnSync } = require('node:child_process');
-const { verifySigning } = require('../scripts/verify-signing.cjs');
-const signResources = require('../scripts/sign-windows-resources.cjs');
+const { verifySigning } = require('../scripts/signing/verify-signing.cjs');
+const signResources = require('../scripts/signing/sign-windows-resources.cjs');
 const { configureAppleBuild } = require('../src/apple_feature/scripts/build-config.cjs');
 const pkg = require('../package.json');
 const config = () => structuredClone(pkg.build);
@@ -25,7 +25,7 @@ test('signed release configurations validate and never serialize signing secrets
   const { validateConfiguration } = require('app-builder-lib/out/util/config/config');
   const win = config(); configureSigning(win, 'win', { CODEX_LIMITS_RELEASE: '1', WIN_CSC_LINK: 'dummy-private-certificate' });
   assert.equal(win.win.forceCodeSigning, true); assert.equal(win.win.signExecutable, true);
-  assert.equal(win.afterPack, path.resolve(__dirname, '../scripts/sign-windows-resources.cjs'));
+  assert.equal(win.afterPack, path.resolve(__dirname, '../scripts/signing/sign-windows-resources.cjs'));
   await validateConfiguration(win);
   for (const credentials of [
     { APPLE_ID: 'dummy', APPLE_APP_SPECIFIC_PASSWORD: 'dummy', APPLE_TEAM_ID: 'dummy' },

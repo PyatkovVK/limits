@@ -42,7 +42,7 @@ Keep generated files and account details out of commits.
 - [`src/windows_feature`](../src/windows_feature): taskbar widget, Windows tray rendering, Win32 helper, NSIS installer, build scripts, and platform tests.
 - [`src/apple_feature`](../src/apple_feature): menu bar rendering, native screen helper, panel geometry, notch mode, packaging, and platform tests.
 - [`src/linux_feature`](../src/linux_feature): Linux tray rendering, details panel sizing, and platform tests.
-- [`scripts`](../scripts): packaging, build planning, bundled Codex setup, diagnostics, and onboarding checks.
+- [`scripts`](../scripts): platform builds, release signing, app preparation, provider diagnostics, and shared smoke scenarios.
 - [`test`](../test): shared behavior, build configuration, and release-workflow tests.
 
 ## Configuration
@@ -63,6 +63,10 @@ CODEX_LIMITS_CODEX_PATH='/absolute/path/to/codex' './Limits-<version>-x86_64.App
 For DEB on a compatible Debian-based distribution, use `sudo apt install ./Limits-<version>-amd64.deb`, replacing `<version>` first.
 
 On Linux, Codex must be visible in the graphical app's `PATH` or configured explicitly. Automatic discovery inside VS Code extensions is not implemented on Linux. macOS also searches supported app bundles, Homebrew, nvm, and user directories.
+
+## Provider diagnostics
+
+Run `npm run doctor -- codex` to check the local ChatGPT sign-in and read its subscription limits. For DeepSeek, set `DEEPSEEK_API_KEY` in the environment and run `npm run doctor -- deepseek` to read the balance. For Z.ai, set `ZAI_API_KEY` and run `npm run doctor -- zai` to read the Coding Plan limits.
 
 ## Usage data and timing
 

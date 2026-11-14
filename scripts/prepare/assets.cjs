@@ -30,7 +30,7 @@ return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHD
 }
 const png = makePng(256);
 const header = Buffer.alloc(22); header.writeUInt16LE(1, 2); header.writeUInt16LE(1, 4); header.writeUInt16LE(1, 10); header.writeUInt16LE(32, 12); header.writeUInt32LE(png.length, 14); header.writeUInt32LE(22, 18);
-const dir = path.resolve(__dirname, '../assets'); fs.mkdirSync(dir, { recursive: true });
+const dir = path.resolve(__dirname, '../../assets'); fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, 'app.ico'), Buffer.concat([header, png]));
 fs.writeFileSync(path.join(dir, 'app.png'), makePng(512));
 console.log('Created app.ico and app.png');

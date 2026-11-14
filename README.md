@@ -193,6 +193,8 @@ For additional AI integrations, see the [shared controller guide](docs/ai-contro
 
 For local testing, choose the [suite for the code you changed](docs/development.md#checks).
 
+Use `npm run doctor -- codex`, `npm run doctor -- deepseek`, or `npm run doctor -- zai` to check a provider connection. [Provider diagnostics](docs/development.md#provider-diagnostics)
+
 See [CHANGELOG.md](CHANGELOG.md) for release features. Limits uses the [MIT license](LICENSE); bundled dependencies have their own [third-party notices](THIRD-PARTY-NOTICES.md).
 
 ## Roadmap

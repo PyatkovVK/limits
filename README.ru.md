@@ -193,6 +193,8 @@ Limits проверяет стабильные релизы GitHub в фоне �
 
 Для локальной проверки выберите [набор тестов для изменённого кода](docs/development.md#checks).
 
+Для проверки подключения запустите `npm run doctor -- codex`, `npm run doctor -- deepseek` или `npm run doctor -- zai`. [Настройка диагностики](docs/development.md#provider-diagnostics)
+
 Возможности релизов описаны в [CHANGELOG.md](CHANGELOG.md). Проект распространяется по [лицензии MIT](LICENSE); для включённых зависимостей есть [уведомления о сторонних компонентах](THIRD-PARTY-NOTICES.md).
 
 ## Планы

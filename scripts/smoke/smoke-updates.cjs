@@ -4,8 +4,8 @@ const { app, BrowserWindow, shell, screen } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const pkg = require('../package.json');
-const parent = path.resolve(__dirname, '../artifacts');
+const pkg = require('../../package.json');
+const parent = path.resolve(__dirname, '../../artifacts');
 fs.mkdirSync(parent, { recursive: true });
 const root = fs.mkdtempSync(path.join(parent, 'updates-smoke-'));
 const profile = path.join(root, 'profile');
@@ -16,7 +16,7 @@ app.disableHardwareAcceleration();
 shell.openExternal = async () => assert.fail('Smoke must not open an external browser');
 global.fetch = async () => assert.fail('Smoke must not contact GitHub');
 process.argv.push('--demo', '--hidden', '--smoke-tray-only');
-require('../src/main.cjs');
+require('../../src/main.cjs');
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function waitFor(condition, label) {
   const deadline = Date.now() + 10000;
@@ -105,7 +105,7 @@ app.whenReady().then(async () => {
       languages.push({ language, ...labels, offerDeferred: true, backgroundChecks: 4, modalRetained: true, dismissed: true, downloadOnRequest: true, separateInstallAction: true, browserSimulated: true, failureShown: true });
     }
     // Even a window using the common preload cannot invoke commands unless trusted.
-    const outsider = new BrowserWindow({ show: false, webPreferences: { preload: path.resolve(__dirname, '../src/common/preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
+    const outsider = new BrowserWindow({ show: false, webPreferences: { preload: path.resolve(__dirname, '../../src/common/preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
     await outsider.loadURL('data:text/html,<title>Untrusted IPC test</title>');
     for (const action of ['checkUpdates()', 'openRelease()', 'dismissUpdate("1.4.0")', 'demoUpdate("available")']) {
       assert.equal(await outsider.webContents.executeJavaScript(`window.limits.${action}.then(() => false, () => true)`), true);

@@ -5,12 +5,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { registry } = require('../src/common/ai-connects/registry.cjs');
-const { CodexController } = require('../src/common/ai-connects/codex/controller.cjs');
-const { Subscriptions } = require('../src/common/ai-connects/codex/subscriptions.cjs');
-const { BALANCE_URL, KEY_URL } = require('../src/common/ai-connects/deepseek/client.cjs');
-const { QUOTA_URL, KEY_URL: ZAI_KEY_URL } = require('../src/common/ai-connects/zai/client.cjs');
-const artifacts = path.resolve(__dirname, '../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
+const { registry } = require('../../src/common/ai-connects/registry.cjs');
+const { CodexController } = require('../../src/common/ai-connects/codex/controller.cjs');
+const { Subscriptions } = require('../../src/common/ai-connects/codex/subscriptions.cjs');
+const { BALANCE_URL, KEY_URL } = require('../../src/common/ai-connects/deepseek/client.cjs');
+const { QUOTA_URL, KEY_URL: ZAI_KEY_URL } = require('../../src/common/ai-connects/zai/client.cjs');
+const artifacts = path.resolve(__dirname, '../../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
 const root = fs.mkdtempSync(path.join(artifacts, 'deepseek-smoke-'));
 const setPath = app.setPath.bind(app);
 app.setPath = (name, value) => setPath(name, name === 'userData' ? path.join(root, 'profile') : value);
@@ -49,7 +49,7 @@ registry.providers.get('codex').create = options => {
   return new CodexController(client, options);
 };
 process.argv.push('--hidden', '--smoke-tray-only');
-require('../src/main.cjs');
+require('../../src/main.cjs');
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function waitFor(condition, label) {
   const deadline = Date.now() + 10000;

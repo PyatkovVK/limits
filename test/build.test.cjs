@@ -1,10 +1,10 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildPlan } = require('../scripts/build-plan.cjs');
+const { buildPlan } = require('../scripts/build/build-plan.cjs');
 const pkg = require('../package.json');
 const path = require('node:path');
-const { bundleCodex } = require('../scripts/bundle-codex.cjs');
+const { bundleCodex } = require('../scripts/prepare/bundle-codex.cjs');
 const { findCodex } = require('../src/common/ai-connects/codex/path.cjs');
 
 test('each platform bundles its matching standalone runtime and license', async () => {
