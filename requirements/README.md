@@ -1,8 +1,8 @@
 # Core requirements for Limits
 
-This directory describes the core requirements for the Limits application: common features and Windows, macOS, and Linux specifics. Requirements for the details window, its content, and settings are in common. Runtime independence and the separate future goal of fully isolated Codex account storage are described in [common/accounts/codex.md](common/accounts/codex.md).
+This directory describes the core requirements for Limits on Windows, macOS, and Linux. Shared requirements cover the details window, settings, and [accounts on all three platforms](common/accounts/accounts.md). The [Codex provider requirements](common/providers/codex.md) describe runtime independence and the future goal of fully isolated Codex account storage.
 
-[Pluggable AI controllers](common/ai-connects.md) describe the connection infrastructure in `src/common/ai-connects/`, a common data/display contract, and the Codex, DeepSeek, and Z.ai (GLM Coding Plan) providers.
+[Pluggable AI controllers](common/ai-connects.md) define how Limits connects to Codex, DeepSeek, Z.ai (GLM Coding Plan), Claude Code, and Kimi Code and how it displays their data.
 
 [Build and release requirements](common/build-and-release.md) define short GitHub Actions workflows, mandatory `limits/*` task names, tests-only main/demo branches, cross-platform builds for ordinary branches, numeric release publication, and platform-specific npm commands.
 
@@ -17,25 +17,29 @@ Before editing, adding, deleting, renaming, or moving any of these files, descri
 - **requirements/**
   - **common/**
     - [common.md](common/common.md) — Common requirements index
+    - [architecture.md](common/architecture.md) — Shared code and platform boundaries
     - **accounts/**
-      - [accounts.md](common/accounts/accounts.md) — Account storage and authentication index
-      - [codex.md](common/accounts/codex.md) — Codex accounts and authentication
+      - [accounts.md](common/accounts/accounts.md) — Subscriptions and account storage on Windows, macOS, and Linux
     - **providers/**
+      - [codex.md](common/providers/codex.md) — Codex account sources, authentication, and monitoring
       - [deepseek.md](common/providers/deepseek.md) — DeepSeek API-key balance provider
       - [zai.md](common/providers/zai.md) — Z.ai (GLM Coding Plan) API-key quota provider
-    - [ai-connects.md](common/ai-connects.md) — Shared AI controllers, data/display contracts, and the Codex, DeepSeek, and Z.ai providers
+    - [ai-connects.md](common/ai-connects.md) — Shared controller contracts and supported providers
     - [build-and-release.md](common/build-and-release.md) — Feature branch naming, branch pipelines, package verification, releases, and local build commands
     - [interface.md](common/interface.md) — Details window, settings, and appearance
-    - [updates.md](common/updates.md) — Update checks and opening GitHub releases
+    - [updates.md](common/updates.md) — Update checks, package verification, and installation
     - [privacy.md](common/privacy.md) — Data and privacy
   - **windows/**
+    - [windows.md](windows/windows.md) — Windows requirements index
     - [widget.md](windows/widget.md) — Taskbar widget
     - [panel-and-tray.md](windows/panel-and-tray.md) — Tray and notifications
     - [installation.md](windows/installation.md) — Installation and startup
   - **macos/**
+    - [macos.md](macos/macos.md) — macOS requirements index
     - [menu-and-panel.md](macos/menu-and-panel.md) — Menu-bar indicators
     - [notch.md](macos/notch.md) — MacBook notch
     - [installation.md](macos/installation.md) — Installation and startup
   - **linux/**
+    - [linux.md](linux/linux.md) — Linux requirements index
     - [tray-and-panel.md](linux/tray-and-panel.md) — System-tray indicators
     - [installation.md](linux/installation.md) — Installation and environment

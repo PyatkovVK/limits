@@ -1,8 +1,10 @@
 # Linux: system-tray indicators
 
+The two-indicator styles below apply to profiles with the five-hour and weekly quota layout. Profiles with other metrics follow the [shared compact display contract](../common/interface.md#controller-driven-display).
+
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
-| LIN-UI-001 | Display two independent limit indicators. | The five-hour indicator is turquoise and the weekly indicator purple; both refer to the selected common profile. |
+| LIN-UI-001 | Display two independent indicators for the five-hour and weekly quota layout. | The five-hour indicator is turquoise and the weekly indicator purple. Both use the selected profile. |
 | LIN-UI-002 | Retain the classic percentage style as the default. | A new profile or existing setting without an explicit choice uses classic, preserving the earlier colored badges. |
 | LIN-UI-003 | Provide a bar style with the period label above the remaining bar. | English shows `5h`/`7d` and Russian `5ч`/`7д`; bar fill is proportional to the confirmed remainder. |
 | LIN-UI-004 | Distinguish missing data, zero, full allowance, and stale data. | Unknown values use a dashed bar in bar style; 0% does not look unknown and 100% fills the bar; stale/low values have distinct styling. |

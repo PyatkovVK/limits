@@ -1,8 +1,10 @@
 # macOS: menu-bar indicators
 
+The two-indicator layout below applies to profiles with the five-hour and weekly quotas. Profiles with other metrics follow the [shared compact display contract](../common/interface.md#controller-driven-display).
+
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
-| MAC-MENU-001 | Display two independent menu-bar indicators. | Five-hour and weekly limits have distinct labels and bars and use the selected common account. |
+| MAC-MENU-001 | Display two independent menu-bar indicators for the five-hour and weekly quota layout. | Five-hour and weekly limits have distinct labels and bars and use the selected profile. |
 | MAC-MENU-002 | Show a countdown next to the five-hour indicator. | Time is derived from the server reset and updated locally approximately every 15 seconds without artificially changing percentages. |
 | MAC-MENU-003 | Retain readability in light/dark themes and on Retina displays. | Text and bars remain distinct; higher-scale images are provided, and the weekly indicator is not widened by the five-hour countdown. |
 | MAC-MENU-004 | Distinguish fresh, low, stale, and unknown limits. | Zero allowance does not look absent; unknown time does not become a full reset. |

@@ -1,10 +1,18 @@
 # Pluggable AI controllers
 
-This document defines the shared infrastructure for connecting AI services to Limits on Windows, macOS, and Linux. The production registry contains the OpenAI Codex, DeepSeek, and Z.ai (GLM Coding Plan) providers. Codex uses browser sign-in; DeepSeek and Z.ai are API-key providers documented separately in [DeepSeek](providers/deepseek.md) and [Z.ai](providers/zai.md).
+This document defines the shared infrastructure for connecting AI services to Limits on Windows, macOS, and Linux.
+
+| Provider | Account or usage source |
+| --- | --- |
+| [Codex](providers/codex.md) | Browser sign-in for connected accounts and read-only monitoring of the local Codex or VS Code sign-in. |
+| [DeepSeek](providers/deepseek.md) | API key for balance data. |
+| [Z.ai (GLM Coding Plan)](providers/zai.md) | API key for plan quotas. |
+| Claude Code | Local quota sample written by the optional status line script. The user signs in to Claude Code separately. |
+| Kimi Code | API key for coding quota data. |
 
 ## Location and responsibilities
 
-The target organization is:
+The shared infrastructure and Codex implementation use these paths:
 
 ```text
 src/common/ai-connects/
@@ -24,7 +32,7 @@ The shared monitor schedules updates and reconnects through the controller contr
 | ID | Requirement | Acceptance criterion |
 | --- | --- | --- |
 | COM-AI-001 | Place the shared connection infrastructure in `src/common/ai-connects/`. | All supported operating systems use the same controller contracts and registry. Provider logic is not duplicated in platform implementations. |
-| COM-AI-002 | Add a provider through a subclass of the abstract controller and one registry entry. | A provider using the existing data types and display primitives can be added with its own directory and registry entry, without adding provider branches to the shared monitor, account management, or renderer. The production registry contains `codex`, `deepseek`, and `zai`. Runtime installation of third-party plugins is outside this task. |
+| COM-AI-002 | Register each provider under a stable ID and create its controller through the registry. | Each controller implements the shared contract. The production registry contains `codex`, `deepseek`, `zai`, `claude`, and `kimi`. A provider that fits the existing authentication capabilities and display primitives can reuse the shared monitor, account management, and renderer. |
 | COM-AI-003 | Keep service details behind the controller contract. | Codex RPC method names, authentication environment variables, credential-home rules, and response field names remain in the Codex implementation. Shared orchestration does not access a controller's transport or raw responses directly. |
 | COM-AI-004 | Distinguish connection readiness, authentication, and access to limit data. | Starting a transport does not imply a signed-in account or supported quota access. The controller reports signed-out, unsupported, and failed access separately; a network failure is not reported as a successful sign-out or a zero balance. |
 | COM-AI-005 | Refresh data through one common operation. | Automatic polling and manual refresh obtain the same normalized snapshot through `refresh()`. Service notifications are translated into the same snapshot/state events rather than exposed as provider-specific RPC events to consumers. |
@@ -33,11 +41,11 @@ The shared monitor schedules updates and reconnects through the controller contr
 | COM-AI-008 | Give every controller an explicit lifecycle. | Connection setup is safe to repeat; stopping releases owned processes, timers, subscriptions, and pending work without signing the account out. Late responses or events from a stopped connection or obsolete login cannot restore account state or start a new browser action. |
 | COM-AI-009 | Keep scheduling and recovery shared while preserving provider policy. | The common monitor owns polling, concurrent-refresh coalescing, retry backoff, stale-data tracking, and reconnect orchestration. A provider can declare its polling policy without changing the scheduler. Codex retains its existing interval, manual-refresh behavior, credential refresh after connection, and recovery behavior. |
 | COM-AI-010 | Isolate account state and failures. | Every result and event belongs to a provider/profile and current connection or login attempt. A failed controller does not stop other profiles. A transient failure can retain that profile's last successful sample as stale; an account identity change clears the old identity's metrics before new data is displayed. |
-| COM-AI-011 | Preserve existing profiles when introducing provider IDs. | Stored profiles without a `providerId` are interpreted as `codex`. Profile IDs, local names, selected profile, source references, settings, and authentication locations remain valid. An unknown provider ID is unavailable and is never silently treated as Codex. |
+| COM-AI-011 | Preserve existing profiles and persist a provider ID for new profiles. | Stored profiles without a `providerId` are interpreted as `codex`. Profile IDs, local names, selected profile, source references, settings, and authentication locations remain valid. An unknown provider ID is unavailable and is never silently treated as Codex. |
 | COM-AI-012 | Preserve metric units and distinguish missing data from zero. | Percentages, monetary amounts, and counts use explicit types and semantics. Currency is not converted into a percentage or another currency. Missing values remain `null`; invalid numeric values are not shown as real quota values. A real zero remains visible. |
-| COM-AI-013 | Move the existing Codex integration behind the new controller. | The Codex controller owns the current App Server client, account/access checks, browser login and cancellation, logout, quota response normalization, and notification translation. It reads limits without starting a chat or sending a prompt. Unsupported Codex authentication modes retain a clear unsupported state. |
+| COM-AI-013 | Keep the Codex integration behind its controller. | The Codex controller owns the App Server client, account/access checks, browser login and cancellation, logout, quota response normalization, and notification translation. It reads limits without starting a chat or sending a prompt. Unsupported Codex authentication modes retain a clear unsupported state. |
 | COM-AI-014 | Preserve the existing Codex user experience and runtime independence. | Five-hour and weekly remaining percentages, other reported windows, reset countdowns, plan/account information, account switching, demo mode, connected profiles, and read-only external sources continue to work. Packaged Limits still owns its connection runtime and does not require the Codex desktop app or VS Code to be running or installed. |
-| COM-AI-015 | Carry existing privacy and account guarantees through the refactor. | Credentials and raw authentication responses are never included in snapshots, schemas, IPC state, or diagnostics. Login address validation, account isolation, and credential maintenance remain enforced. This refactor does not implement the separate full-storage-isolation goal in COM-ACC-013. |
+| COM-AI-015 | Preserve privacy and account guarantees across controllers. | Credentials and raw authentication responses stay out of snapshots, schemas, IPC state, and diagnostics. Controllers enforce sign-in address validation, account isolation, and credential maintenance where applicable. The future Codex storage goal is documented in [COM-ACC-013](providers/codex.md#planned-improvement). |
 | COM-AI-016 | Verify both compatibility and extension through the public contract. | Codex regression checks cover existing account and monitoring behavior. An in-memory test controller supplies monetary data to the same monitor and shared presentation path without service-specific branches. The test controller is not a production integration or a user-selectable service. |
 
 ## Base controller contract
@@ -85,4 +93,4 @@ These checks verify the shared architecture:
 - Verify that delayed results after cancellation, disconnection, account removal, or identity changes do not update another attempt/profile or reopen a browser.
 - Exercise Codex demo UI on the native host and verify that details, account cards, and the compact indicator agree. Report native checks on other operating systems only when actually performed.
 
-Related requirements: [Codex accounts](accounts/codex.md), [DeepSeek](providers/deepseek.md), [Z.ai](providers/zai.md), [interface and settings](interface.md#controller-driven-display), and [privacy](privacy.md#controller-boundaries).
+See also the [shared account workflow](accounts/accounts.md), [interface and settings](interface.md#controller-driven-display), and [privacy requirements](privacy.md#controller-boundaries).
