@@ -164,7 +164,7 @@ function update() {
     if (!demo && !smoke && !stale && value !== null && value <= 10) {
       const key = `${state.selectedProfileId}:${bucket.id}:${kind}:${bucket[kind].resetsAt}`;
       if (!notified.has(key)) {
-        const notification = { title: t('lowTitle').replace('{provider}', state.capabilities?.apiKey ? bucket.name : 'Codex'), body: `${label}: ${value}%.` };
+        const notification = { title: t('lowTitle').replace('{provider}', state.providerId === 'codex' ? 'Codex' : bucket.name), body: `${label}: ${value}%.` };
         const delivered = applePresentation?.notify(widgetSettings.displayMode, appleNotch, notification);
         if (delivered === false) continue;
         if (delivered == null && Notification.isSupported()) new Notification(notification).show();
@@ -338,6 +338,10 @@ async function setup() {
     let attempt;
     try {
       const profile = monitor.snapshot().profiles.find(item => item.id === profileId);
+      if (profile?.capabilities.setup) {
+        try { return { setup: monitor.setup(profileId) }; }
+        catch { return { error: 'accountActionFailed' }; }
+      }
       if (profile?.capabilities.apiKey) return await openKeyConnection(profile.providerId, profileId);
       if (monitor.isExternal?.(profileId)) {
         if (monitor.loginActive) return { error: 'loginBusy' };
@@ -381,6 +385,10 @@ async function setup() {
       if (monitor.registry.list().find(provider => provider.id === providerId)?.authentication === 'api-key') return await openKeyConnection(providerId);
       const id = monitor.add(providerId);
       const profile = monitor.snapshot().profiles.find(item => item.id === id);
+      if (profile?.capabilities.setup) {
+        void monitor.refresh();
+        return { setup: monitor.setup(id) };
+      }
       if (profile?.capabilities?.signIn === false) { void monitor.refresh(); return {}; }
       return await openLogin(id);
     } catch { return { error: 'accountActionFailed' }; }
@@ -388,7 +396,7 @@ async function setup() {
   handle('limits:key-submit', async (id, key) => {
     if (!monitor || demo || typeof id !== 'string') return { error: 'loginUnavailable' };
     try { return { profileId: await monitor.submitKeyConnection(id, key) }; }
-    catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'quotaRefreshFailed', 'codingPlanRequired', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
+    catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'quotaRefreshFailed', 'kimiQuotaRefreshFailed', 'codingPlanRequired', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
   });
   handle('limits:key-cancel', id => { if (typeof id === 'string') monitor?.cancelKeyConnection(id); return {}; });
   handle('limits:key-browser', id => typeof id === 'string' ? openCredentials(id) : { error: 'loginUnavailable' });

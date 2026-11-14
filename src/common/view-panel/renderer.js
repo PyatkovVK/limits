@@ -21,7 +21,7 @@ function renderCountdown() {
   const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets[0];
   timer.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
   const weeklyReset = $('weekly-reset');
-  weeklyReset.hidden = !state.capabilities?.apiKey || bucket?.weekly?.resetsAt == null;
+  weeklyReset.hidden = !(state.capabilities?.apiKey || state.capabilities?.setup) || bucket?.weekly?.resetsAt == null;
   if (!weeklyReset.hidden) timer.render(weeklyReset, bucket.weekly.resetsAt, state.language || 'ru', Date.now(), { compactDays: true });
 }
 
@@ -75,9 +75,10 @@ function render(next) {
   $('other').hidden = !bucket?.other?.length;
   $('other').textContent = bucket?.other?.map(item => `${item.duration ?? '?'} ${t('minutes')}: ${item.remaining === null ? t('noData') : `${item.remaining}%`}`).join(' · ') || '';
   $('refresh').disabled = next.refreshing || next.demo;
-  $('login').hidden = next.demo || next.readOnly || Boolean(next.account && next.status !== 'signing-in');
-  $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
-  $('login').textContent = t(next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
+  const setup = next.capabilities?.setup;
+  $('login').hidden = next.demo || next.readOnly || Boolean(next.account && next.status !== 'signing-in' && !(setup && !next.updatedAt));
+  $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly && !setup) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
+  $('login').textContent = t(setup ? 'claudeSetup' : next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
   const updatedTime = next.updatedAt ? new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   $('updated').title = updatedTime ? t('updated') + ' ' + updatedTime : t('waiting');
   $('updated').textContent = updatedTime || '—';
@@ -95,6 +96,7 @@ async function beginLogin(id) {
   actionError = null; $('login').disabled = true;
   const result = await window.limits.login(id);
   window.limitsKeyConnection?.open(result);
+  if (result.setup) showClaudeSetup(result.setup);
   actionError = result.connection ? null : result.error || null;
   render(await window.limits.get());
 }
@@ -104,10 +106,23 @@ async function addAccount(providerId) {
   try {
     const result = await window.limits.addAccount(providerId);
     window.limitsKeyConnection?.open(result);
+    if (result.setup) showClaudeSetup(result.setup);
     actionError = result.connection ? null : result.error || null;
   } catch { actionError = 'accountActionFailed'; }
   render(await window.limits.get());
 }
+function showClaudeSetup(settings) {
+  const dialog = $('claude-setup');
+  const input = $('claude-settings');
+  input.value = settings;
+  if (!dialog.open) dialog.showModal();
+  input.focus();
+  input.select();
+  input.scrollTop = 0;
+  input.scrollLeft = 0;
+}
+$('claude-setup-close').onclick = () => $('claude-setup').close();
+$('claude-setup').addEventListener('keydown', event => { if (event.key === 'Escape') event.stopPropagation(); });
 async function loadPlatformAssets() {
   let assets;
   try { assets = await window.limits.platformAssets(); }

@@ -10,6 +10,10 @@ For DeepSeek, Limits opens `https://platform.deepseek.com/api_keys` in the syste
 
 For GLM Coding Plan, Limits sends the pasted key to the main process and uses it only in the Authorization header of requests to `GET https://api.z.ai/api/monitor/usage/quota/limit`. A verified key is stored through the same encrypted OS storage in `accounts/<profile-id>/zai-key.bin`. Disconnecting deletes the local key. The interface receives normalized quota percentages, reset times, plan and connection state.
 
+For Kimi Code, Limits uses the pasted key in the Authorization header of `GET https://api.kimi.ai/coding/v1/usages` and stores it encrypted in `accounts/<profile-id>/kimi-key.bin` after validation. Disconnecting deletes the local key.
+
+For Claude Code, the optional status line script stores quota percentages, reset times, and the sample time in `accounts/<profile-id>/claude-quota.json`. Sign-in stays in Claude Code. Limits reads the local sample and deletes it along with the script when you disconnect the profile.
+
 On macOS, the default profile tracks Codex's current local `CODEX_HOME` without offering login/logout into that source. Connections created in Limits use isolated accounts. Optional external profiles store directory references in `mac-subscriptions.json`, together with the subscription view mode and selected profile. Forgetting an external source does not delete its files or log it out. External account reads do not force refresh-token rotation and reload the managed store on each poll.
 
 On Windows and Linux, the default external profile inherits `CODEX_HOME` from the environment, or uses Codex's default storage. Sign in or out of that source in Codex / VS Code. Limits connects new accounts in isolated homes instead of switching the external profile. Optional external directory references, subscription filters and selection are stored in `subscriptions.json`; forgetting a source does not sign it out or remove its files.
@@ -36,6 +40,10 @@ The RPC client discards the subprocess's stderr instead of forwarding potential 
 Для DeepSeek Limits открывает `https://platform.deepseek.com/api_keys` в системном браузере и предлагает вставить API-ключ в поле пароля. Ключ передаётся основному процессу для проверки и не возвращается в состоянии интерфейса, метаданных профиля, схемах отображения или диагностике. Limits обращается только к `GET https://api.deepseek.com/user/balance`, передавая ключ в заголовке Authorization; запросы модели не отправляются. После успешной проверки ключ хранится в зашифрованном файле `accounts/<profile-id>/deepseek-key.bin` через Electron safeStorage и хранилище ОС. Без доступного шифрования подключение не сохраняется; резервный режим Linux `basic_text` запрещён. Отмена и ошибка подключения не сохраняют ключ и не добавляют профиль. Отключение удаляет локальный ключ профиля, но не отзывает его в DeepSeek. Состояние баланса содержит только валюту, суммы, доступность и время обновления; история расходов и токенов всего аккаунта не включена.
 
 Для GLM Coding Plan Limits передаёт вставленный ключ основному процессу и использует его только в заголовке Authorization запроса `GET https://api.z.ai/api/monitor/usage/quota/limit`. Проверенный ключ хранится в `accounts/<profile-id>/zai-key.bin` с тем же шифрованием через хранилище ОС. Отключение профиля удаляет локальный ключ. Интерфейс получает проценты остатка квот, время сброса, тариф и состояние подключения.
+
+Для Kimi Code Limits использует вставленный ключ в заголовке Authorization запроса `GET https://api.kimi.ai/coding/v1/usages` и после проверки хранит его в зашифрованном файле `accounts/<profile-id>/kimi-key.bin`. Отключение профиля удаляет локальный ключ.
+
+Для Claude Code скрипт строки состояния сохраняет проценты квот, время сброса и время получения данных в `accounts/<profile-id>/claude-quota.json`. Вход выполняется в Claude Code. Limits читает локальный файл и удаляет его вместе со скриптом при отключении профиля.
 
 Limits запускает локальный процесс Codex App Server и общается с ним через стандартный ввод/вывод. Приложение читает аккаунт и лимиты, а для входа, отмены входа и выхода использует операции самого Codex. Чаты и запросы модели не создаются.
 

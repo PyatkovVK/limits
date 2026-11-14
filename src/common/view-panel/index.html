@@ -74,5 +74,11 @@
       <p class="subscription-error settings-item-error" role="status" hidden></p>
     </section>
   </main>
+  <dialog id="claude-setup" class="key-connection" aria-labelledby="claude-setup-title">
+    <h2 id="claude-setup-title" data-i18n="claudeSetup"></h2>
+    <p class="key-connection-hint" id="claude-setup-hint" data-i18n="claudeSetupHint"></p>
+    <textarea id="claude-settings" rows="5" wrap="off" readonly spellcheck="false" aria-describedby="claude-setup-hint" data-i18n-aria="claudeSettings"></textarea>
+    <div class="key-connection-actions"><button id="claude-setup-close" type="button" class="refresh-button" data-i18n="closeDialog"></button></div>
+  </dialog>
 </body>
 </html>

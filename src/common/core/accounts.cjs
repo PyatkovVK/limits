@@ -96,6 +96,11 @@ class Accounts extends EventEmitter {
     this.attach(profile); this.profiles.push(profile); this.persist(); this.publish();
     return profile.id;
   }
+  setup(id) {
+    const monitor = this.monitors.get(id);
+    if (!monitor?.state.capabilities.setup || this.removing.has(id)) throw contractError('loginUnavailable');
+    return monitor.controller.setup();
+  }
   beginKeyConnection(providerId, profileId) {
     if (this.loginActive || this.keyConnection) throw contractError('loginBusy');
     if (this.registry.providers.get(providerId)?.authentication !== 'api-key') throw contractError('loginUnavailable');

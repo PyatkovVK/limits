@@ -27,7 +27,7 @@ scenarios.push(
   ['Subscriptions', electron, `test/smoke/${platform.subscriptions}-subscriptions.cjs`],
   ['Account management', electron, 'scripts/smoke/smoke-accounts.cjs'],
   ['Provider UI', electron, 'scripts/smoke/smoke-ai-connects.cjs'],
-  ['DeepSeek and Z.ai', electron, 'scripts/smoke/smoke-deepseek.cjs'],
+  ['DeepSeek, Z.ai, Claude Code and Kimi Code', electron, 'scripts/smoke/smoke-deepseek.cjs'],
   ['Updates', electron, 'scripts/smoke/smoke-updates.cjs'],
   ['Reset notifications', electron, 'scripts/smoke/smoke-resets.cjs'],
 );

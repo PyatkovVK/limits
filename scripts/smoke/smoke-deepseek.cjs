@@ -10,6 +10,7 @@ const { CodexController } = require('../../src/common/ai-connects/codex/controll
 const { Subscriptions } = require('../../src/common/ai-connects/codex/subscriptions.cjs');
 const { BALANCE_URL, KEY_URL } = require('../../src/common/ai-connects/deepseek/client.cjs');
 const { QUOTA_URL, KEY_URL: ZAI_KEY_URL } = require('../../src/common/ai-connects/zai/client.cjs');
+const { USAGE_URL, KEY_URL: KIMI_KEY_URL } = require('../../src/common/ai-connects/kimi/controller.cjs');
 const artifacts = path.resolve(__dirname, '../../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
 const root = fs.mkdtempSync(path.join(artifacts, 'deepseek-smoke-'));
 const setPath = app.setPath.bind(app);
@@ -22,6 +23,11 @@ const weeklyReset = Date.now() + 2 * 86400000;
 let quotaCalls = 0, shortOnly = false;
 const sample = () => ({ is_available: !empty, balance_infos: [{ currency: 'USD', total_balance: empty ? '0' : '12.3456', granted_balance: '0', topped_up_balance: empty ? '0' : '12.3456' }] });
 global.fetch = async (url, options) => {
+  if (url === USAGE_URL) {
+    assert.equal(options.method, 'GET');
+    assert.equal(options.headers.Authorization, 'Bearer kimi-smoke-key');
+    return Response.json({ usages: { limit_5h: { used_ratio: 0.42, reset_time: new Date(weeklyReset - 47 * 3600000).toISOString() } } });
+  }
   if (url === QUOTA_URL) {
     quotaCalls++;
     assert.equal(options.method, 'GET');
@@ -40,7 +46,7 @@ global.fetch = async (url, options) => {
   if (offline) throw new Error('offline fixture');
   return options.headers.Authorization === `Bearer ${key}` ? Response.json(sample()) : new Response('{}', { status: 401 });
 };
-shell.openExternal = async url => { assert.ok([KEY_URL, ZAI_KEY_URL].includes(url)); opened.push(url); };
+shell.openExternal = async url => { assert.ok([KEY_URL, ZAI_KEY_URL, KIMI_KEY_URL].includes(url)); opened.push(url); };
 if (process.platform === 'linux') require('../../src/linux_feature/core/browser.cjs').openBrowser = url => shell.openExternal(url);
 Notification.prototype.show = () => assert.fail('Smoke must not show notifications');
 registry.providers.get('codex').create = options => {
@@ -70,7 +76,8 @@ app.whenReady().then(async () => {
     const get = () => run('window.limits.get()');
     const screenshot = async name => { panel.showInactive(); await pause(); fs.writeFileSync(path.join(root, name), (await panel.webContents.capturePage()).toPNG()); };
     await run('window.limitsSettings.open()');
-    assert.deepEqual(await run('[...document.querySelectorAll("#subscription-providers button")].map(button => button.textContent)'), ['ChatGPT (Codex)', 'DeepSeek', 'GLM Coding Plan (Z.ai)']);
+    assert.deepEqual(await run('[...document.querySelectorAll("#subscription-providers button")].map(button => button.textContent)'),
+      ['ChatGPT (Codex)', 'DeepSeek', 'GLM Coding Plan (Z.ai)', 'Claude Code', 'Kimi Code']);
     await run('document.querySelector(".accounts-section").scrollIntoView({ block: "end", behavior: "instant" }); document.getElementById("add-account").click()');
     await screenshot('subscriptions.png');
     await run('document.getElementById("subscription-providers").hidePopover()');
@@ -218,9 +225,44 @@ app.whenReady().then(async () => {
     await run(`window.limits.accountAction('remove', '${zaiId}')`);
     assert.equal(fs.existsSync(zaiFile), false);
     assert.equal((await get()).providerId, 'codex');
+
+    await run('window.limitsSettings.open()'); await begin('kimi');
+    assert.equal(opened.at(-1), KIMI_KEY_URL);
+    await submit('kimi-smoke-key');
+    await waitFor(async () => (await get()).profiles.some(profile => profile.providerId === 'kimi'), 'connect Kimi Code');
+    const kimiId = (await get()).profiles.find(profile => profile.providerId === 'kimi').id;
+    const kimiFile = path.join(root, 'profile', 'accounts', kimiId, 'kimi-key.bin');
+    assert.equal(safeStorage.decryptString(fs.readFileSync(kimiFile)), 'kimi-smoke-key');
+    await run(`window.limits.accountAction('select', '${kimiId}')`);
+    await run('window.limitsSettings.dialog.close()');
+    await waitFor(() => run('document.getElementById("short-value").textContent === "58"'), 'Kimi quota');
+    assert.equal(await run('document.getElementById("weekly-value").textContent'), '—');
+    await run(`window.limits.accountAction('remove', '${kimiId}')`);
+    assert.equal(fs.existsSync(kimiFile), false);
+
+    await run('window.limitsSettings.open(); document.getElementById("add-account").click(); document.querySelector(\'#subscription-providers [data-provider="claude"]\').click()');
+    await waitFor(() => run('document.getElementById("claude-setup").open'), 'Claude setup dialog');
+    const settings = JSON.parse(await run('document.getElementById("claude-settings").value'));
+    assert.match(settings.statusLine.command, /claude-statusline\.cjs/);
+    await screenshot('claude-setup.png');
+    const claudeId = (await get()).profiles.find(profile => profile.providerId === 'claude').id;
+    const claudeDirectory = path.join(root, 'profile', 'accounts', claudeId);
+    fs.writeFileSync(path.join(claudeDirectory, 'claude-quota.json'), JSON.stringify({ updatedAt: Date.now(), limits: {
+      five_hour: { used_percentage: 10 },
+      seven_day: { used_percentage: 30, resets_at: Math.floor(weeklyReset / 1000) }
+    } }));
+    await run('document.getElementById("claude-setup-close").click(); window.limitsSettings.dialog.close()');
+    await run(`window.limits.accountAction('select', '${claudeId}').then(() => window.limits.refresh())`);
+    await waitFor(() => run('document.getElementById("short-value").textContent === "90"'), 'Claude quota');
+    assert.equal(await run('document.getElementById("weekly-value").textContent'), '70');
+    assert.equal(await run('document.getElementById("weekly-reset").hidden'), false);
+    await screenshot('claude-quotas.png');
+    await run(`window.limits.accountAction('remove', '${claudeId}')`);
+    assert.equal(fs.existsSync(path.join(claudeDirectory, 'claude-statusline.cjs')), false);
+    assert.equal(fs.existsSync(path.join(claudeDirectory, 'claude-quota.json')), false);
     const report = { platform: process.platform, realIpc: true, browserLink: true, invalidKeyAndRetry: true, cancellation: true,
       encryptedOsStorage: true, restartPersistence: true, replacement: true, localRemoval: true, monetaryDisplay: true, staleAndZero: true,
-      codexPreserved: true, glmCodingPlan: true, artifacts: root };
+      codexPreserved: true, glmCodingPlan: true, kimiCode: true, claudeCode: true, artifacts: root };
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify(report, null, 2));
     console.log('DEEPSEEK_SMOKE_OK', JSON.stringify(report)); app.quit();
   } catch (error) { restored?.stop(); console.error('DEEPSEEK_SMOKE_FAILED', error.stack); app.exit(1); }

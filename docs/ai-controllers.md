@@ -1,6 +1,6 @@
 # AI controllers
 
-Limits registers its AI integrations in `src/common/ai-connects/registry.cjs`. Production providers include `codex`, `deepseek`, and `zai`. The Codex folder owns App Server transport, runtime discovery, account storage options, authentication, local source tracking, quota normalization, and display metadata.
+Limits registers its AI integrations in `src/common/ai-connects/registry.cjs`. Production providers include `codex`, `deepseek`, `zai`, `claude`, and `kimi`. The Codex folder owns App Server transport, runtime discovery, account storage options, authentication, local source tracking, quota normalization, and display metadata. Claude Code reads a local status line sample and Kimi Code uses an API key.
 
 `AiController` defines `connect()`, `checkAccess()`, `refresh()`, `getDisplaySchema()`, and `disconnect()`. Account actions are optional and declared by `state.capabilities`. Disconnect releases resources without signing out. Interactive authentication must be explicit; access checks and quota reads must not invoke a model.
 

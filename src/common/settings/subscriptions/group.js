@@ -167,8 +167,9 @@
         card.input.placeholder = t('nickname'); card.input.setAttribute('aria-label', t('nickname'));
         if (document.activeElement !== card.input) card.input.value = profile.nickname;
         card.save.textContent = t('save');
-        card.login.textContent = t(profile.capabilities?.apiKey ? profile.account ? 'replaceApiKey' : 'connectApiKey' : profile.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
-        card.login.disabled = (profile.capabilities?.signIn === false && !profile.capabilities?.apiKey) || next.demo || Boolean(next.keyConnection || next.loginProfileId && next.loginProfileId !== profile.id) || profile.refreshing;
+        const setup = profile.capabilities?.setup;
+        card.login.textContent = t(setup ? 'claudeSetup' : profile.capabilities?.apiKey ? profile.account ? 'replaceApiKey' : 'connectApiKey' : profile.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
+        card.login.disabled = (profile.capabilities?.signIn === false && !profile.capabilities?.apiKey && !setup) || next.demo || Boolean(next.keyConnection || next.loginProfileId && next.loginProfileId !== profile.id) || profile.refreshing;
         card.cancel.textContent = t('cancelLogin'); card.cancel.hidden = next.loginProfileId !== profile.id;
         const removeLabel = `${t('removeAccount')}: ${card.name.textContent}`;
         card.remove.title = removeLabel; card.remove.setAttribute('aria-label', removeLabel);

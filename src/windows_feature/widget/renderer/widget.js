@@ -22,7 +22,8 @@ function render(next) {
   document.body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
   setText($('widget-account'), next.displayName || next.account?.email || t('connectAccount'));
   $('widget-account').title = next.account?.email || t('login');
-  const provider = generic ? next.providerId || 'Limits' : next.capabilities?.apiKey ? bucket?.name || next.displayName || 'Limits' : 'Codex';
+  const externalQuota = next.capabilities?.apiKey || next.capabilities?.setup;
+  const provider = generic ? next.providerId || 'Limits' : externalQuota ? bucket?.name || next.displayName || 'Limits' : 'Codex';
   setText($('widget-plan'), next.demo ? t('demo') : `${provider}${next.account?.planType ? ` · ${next.account.planType}` : ''}`);
   for (const kind of generic ? [] : ['short', 'weekly']) {
     const quota = bucket?.[kind];
