@@ -8,11 +8,13 @@ Installed builds offer a new version first. Matching packages download only afte
 | --- | --- | --- |
 | Windows x64 portable | portable EXE | Wait for Limits to exit, stage beside the original, replace and restart; restore the original if replacement or launch fails. |
 | Windows x64 per-user installation | NSIS setup EXE | Wait for exit, run the installer silently in the existing installation directory, then restart. |
-| macOS arm64/x64 in writable Applications | ZIP | Existing bundle identity, architecture, version, signature checks and bundle replacement/restore. |
+| macOS arm64/x64 in writable `/Applications` or `~/Applications` | Matching ZIP | Verify the bundle, wait for Limits to exit, replace `Limits.app` and restart. Restore the previous bundle if replacement or launch fails. |
 | Linux x64/arm64 AppImage | matching AppImage | Require a writable real file and parent directory; verify ELF/AppImage format and architecture; stage on the same filesystem and restore the original on replacement/launch failure. |
 | Linux installed DEB | matching DEB | Check Package, Version and Architecture with dpkg-deb; use pkexec/dpkg after exit and restart as the desktop user. System authorization is requested on installation. |
 
 Windows packages must be PE executables. If the running app has a valid Authenticode signature, the package must have the same publisher certificate. Unsigned current releases use the published checksum, consistent with the existing unsigned release policy. NSIS/DEB use their native installers; executable rollback applies to portable Windows and AppImage installs. Installation failure is reported on the next launch. An unwritable location or missing dpkg/pkexec prevents installation and explains how to proceed.
+
+On macOS, move Limits to Applications before updating if it is running from a DMG. The updater validates archive paths before extraction and verifies the bundle ID, version, architecture and code signature. Developer ID builds must keep the same signing team. Ad hoc signed builds are also supported.
 
 Linux AppImage helper processes preserve the desktop/session environment and strip AppImage library overrides before launching external programs. The main UI does not need administrator rights. The standard Actions release matrix publishes Linux x64; arm64 updating requires a maintainer-published matching package and checksum.
 

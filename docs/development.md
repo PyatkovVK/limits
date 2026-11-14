@@ -1,140 +1,65 @@
 # Development and configuration
 
-[English README](../README.md) · [README на русском](../README.ru.md) · [Contributing](../CONTRIBUTING.md)
-
-## Prerequisites
-
-Use Git, Node.js 22.12 or newer, and npm. Windows native helpers need Windows x64 and .NET Framework 4.x; the built-in compiler is used, so .NET SDK is not required. On macOS, install Xcode Command Line Tools with `xcode-select --install`. Linux needs a graphical desktop with tray support.
-
-For real usage data, macOS and Linux need an installed native Codex. The Windows app can use its bundled connection component. Demo mode does not require sign-in.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for the contribution workflow.
 
 ## Run from source
 
+Use Git, Node.js 22.12 or later, and npm. Windows x64 needs .NET Framework 4.x for its native helper. On macOS, install Xcode Command Line Tools. Linux needs a graphical desktop with tray support.
+
 ```sh
-git clone https://github.com/PyatkovVK/limits.git
-cd limits
 npm install
 npm run demo
 ```
 
-If the default branch does not yet contain the app, switch to `create-mvp` before installing dependencies. Use `npm start` to debug the app with real accounts, `npm run demo` to explore it with demo data, and `npm run setup:skills` to set up the local AI skills.
-
-In PowerShell, use `npm.cmd` if execution policy blocks `npm.ps1`. Reinstall dependencies on each OS; do not copy `node_modules` across platforms.
+Run `npm start` to use real accounts and `npm run setup:skills` to install the default [local AI skills](ai-skills.md). Use `npm.cmd` in PowerShell if execution policy blocks `npm.ps1`. Install dependencies separately on each target OS.
 
 ## Checks
 
-| Command | Purpose |
-| --- | --- |
-| `npm run test:common` | Shared behavior, build configuration, and CI tests in `test/` |
-| `npm run test:win` | Windows tests in `src/windows_feature/test/` |
-| `npm run test:mac` | macOS tests in `src/apple_feature/test/` |
-| `npm run test:linux` | Linux tests in `src/linux_feature/test/` |
+| Scope | Unit and integration tests | Desktop smoke tests |
+| --- | --- | --- |
+| Shared | `npm run test:common` | |
+| Windows | `npm run test:win` | `npm run test:win:smoke` |
+| macOS | `npm run test:mac` | `npm run test:mac:smoke` |
+| Linux | `npm run test:linux` | `npm run test:linux:smoke` |
 
-Run the suite for the code you changed. For a Windows-only change, run `npm run test:win`. GitHub Actions runs the shared suite and the matching platform suite on each runner. Tests that exercise native helpers require the matching OS.
-
-Run `npm run test:win:smoke`, `npm run test:mac:smoke`, or `npm run test:linux:smoke` locally in an interactive desktop session on the target OS. Each suite prepares the app once, runs the scenarios sequentially, and writes screenshots and reports under `artifacts/`. Keep the mouse free during the Windows widget checks. Linux needs a desktop with tray support and an unlocked system keyring for the provider checks. The macOS suite includes simulated notch layouts on any Mac. See the [platform verification checklist](../TODO.md) for native checks still to run.
-
-Keep generated files and account details out of commits.
+Run the suite for the affected code. Smoke tests need an interactive session on the target OS and write reports and screenshots to `artifacts/`.
 
 ## Source layout
 
-- [`src/common`](../src/common): app lifecycle, account isolation, usage monitoring, RPC client, preload, tray controller, and shared details UI.
-- [`src/windows_feature`](../src/windows_feature): taskbar widget, Windows tray rendering, Win32 helper, NSIS installer, build scripts, and platform tests.
-- [`src/apple_feature`](../src/apple_feature): menu bar rendering, native screen helper, panel geometry, notch mode, packaging, and platform tests.
-- [`src/linux_feature`](../src/linux_feature): Linux tray rendering, details panel sizing, and platform tests.
-- [`scripts`](../scripts): platform builds, release signing, app preparation, provider diagnostics, and shared smoke scenarios.
-- [`test`](../test): shared behavior, build configuration, and release-workflow tests.
+- [`src/common/`](../src/common) contains shared providers, monitoring, account management and UI.
+- [`src/windows_feature/`](../src/windows_feature), [`src/apple_feature/`](../src/apple_feature) and [`src/linux_feature/`](../src/linux_feature) contain OS-specific code and tests.
+- [`scripts/`](../scripts) contains build, release and diagnostic tooling. [`test/`](../test) contains shared tests and app smoke entry points.
 
 ## Configuration
 
 | Variable | Purpose |
 | --- | --- |
-| `CODEX_LIMITS_CODEX_PATH` | Absolute path to a native Codex executable |
-| `CODEX_HOME` | Shared account storage inherited by the default account; added accounts are isolated |
-| `CODEX_LIMITS_KEEP_BUILD=1` | Preserve unpacked packaging output for diagnostics |
+| `CODEX_LIMITS_CODEX_PATH` | Absolute path to a Codex executable, used as an override. |
+| `CODEX_HOME` | Local Codex home for the default external profile. See [Codex subscriptions](privacy.md#codex-subscriptions). |
+| `CODEX_LIMITS_KEEP_BUILD=1` | Keep unpacked build output. |
 
-For AppImage, replace the placeholder with the exact downloaded filename:
-
-```sh
-chmod +x './Limits-<version>-x86_64.AppImage'
-CODEX_LIMITS_CODEX_PATH='/absolute/path/to/codex' './Limits-<version>-x86_64.AppImage'
-```
-
-For DEB on a compatible Debian-based distribution, use `sudo apt install ./Limits-<version>-amd64.deb`, replacing `<version>` first.
-
-On Linux, Codex must be visible in the graphical app's `PATH` or configured explicitly. Automatic discovery inside VS Code extensions is not implemented on Linux. macOS also searches supported app bundles, Homebrew, nvm, and user directories.
+Packaged builds include Codex. Source runs can use the executable from the project's npm dependencies or an installed CLI. On Linux, if the app cannot find your CLI in its desktop session's `PATH`, set `CODEX_LIMITS_CODEX_PATH` explicitly.
 
 ## Provider diagnostics
 
-Run `npm run doctor -- codex` to check the local ChatGPT sign-in and read its subscription limits. For DeepSeek, set `DEEPSEEK_API_KEY` in the environment and run `npm run doctor -- deepseek` to read the balance. For Z.ai, set `ZAI_API_KEY` and run `npm run doctor -- zai` to read the Coding Plan limits.
-
-## Usage data and timing
-
-The app starts `codex app-server --listen stdio://`, performs the initialization handshake, and reads `account/read` and `account/rateLimits/read`. Remaining usage is `100 - usedPercent`; multiple `rateLimitsByLimitId` entries are supported.
-
-Polling occurs one minute after the previous request completes. Received `account/rateLimits/updated` notifications apply immediately, but updates from other processes may only be discovered by polling. Error backoff can reach five minutes; waking from sleep triggers a refresh.
-
-The five-hour countdown uses the server's `resetsAt`, rounding up to the next minute. Reaching zero does not restore the remaining percentage until the server confirms a reset. Missing values are shown as unknown.
-
-## Platform behavior
-
-The Windows widget remains a top-level Electron window owned by the horizontal taskbar, preserving native clicks and mouse capture while keeping the widget above its owner. It does not reserve taskbar button space; a crowded taskbar uses a separate floating row above it. Widget placement, details and saved drag positions use screen coordinates. Position, width, display mode, and language are saved. True full-screen apps hide it; maximized windows, Start, and Windows Search do not count as full-screen apps. The helper restarts after failure, and the widget is recreated if its taskbar owner is replaced. In tray mode, two usage icons replace the widget; unchanged icon images are reused.
-
-macOS uses menu bar indicators or notch mode on a compatible screen. The menu bar countdown updates locally every 15 seconds. Native screen information controls notch availability and monitor placement; disconnecting the notch screen falls back to menu bar mode.
-
-Linux uses separate tray indicators and a details panel that adapts to content, capped by the screen size. Click and tooltip behavior depends on the desktop environment. AppImage uses gzip compression to avoid the slow startup observed with maximum XZ compression on the tested Linux Mint environment.
+- Codex uses the local ChatGPT sign-in. Run `npm run doctor -- codex`.
+- DeepSeek uses `DEEPSEEK_API_KEY`. Run `npm run doctor -- deepseek`.
+- Z.ai uses `ZAI_API_KEY`. Run `npm run doctor -- zai`.
 
 ## Build packages
 
-Build on the target OS after installing dependencies:
+Run the build on the target OS. Packages are written to `release/`.
 
-| Host | Command | Output |
+| Target | Command | Packages |
 | --- | --- | --- |
-| Windows x64 | `npm run build:win:x64` | Portable EXE and per-user NSIS installer with the Codex component |
+| Windows x64 | `npm run build:win:x64` | Portable EXE and NSIS installer |
 | macOS Apple Silicon | `npm run build:mac:arm64` | DMG and ZIP |
 | macOS Intel | `npm run build:mac:x64` | DMG and ZIP |
 | Linux x64 | `npm run build:linux:x64` | AppImage and DEB |
-| Linux arm64 (local only) | `npm run build:linux:arm64` | AppImage and DEB |
-
-`package.json` groups preparation, Windows, macOS and Linux commands separately. CI uses the explicit architecture commands above. The existing `build:win`, `build:mac` and `build:linux` commands remain available; macOS and Linux default to the current Node.js architecture and also accept `-- --arm64` or `-- --x64`. The release matrix includes Linux x64. `npm run build:win:standalone` is a compatibility command for the same bundled Windows app with the older Standalone filenames.
-
-Finished packages are written to `release/`; local build commands do not publish anything. Intermediate files use the OS temporary directory, which needs about 2 GB of free space. Windows builds without signing credentials are unsigned. macOS builds use ad hoc signing unless a certificate is configured. Signing and macOS notarization follow the policy below.
-
-### Signing releases
-
-CI packaging sets `CODEX_LIMITS_RELEASE=1` and `CODEX_LIMITS_ALLOW_UNSIGNED=1`. Ordinary branch and PR builds receive no signing credentials: Windows packages are unsigned and macOS packages use ad hoc signing without notarization. Numeric branch pushes and manual runs can use configured certificates. Once a certificate is configured for a release, signing and verification are mandatory; macOS also requires complete notarization credentials. Failed signing, incomplete notarization credentials, or failed verification stop the release. Remove `CODEX_LIMITS_ALLOW_UNSIGNED=1` to require certificates for every Windows and macOS release. Existing downloads are not re-signed by this configuration change.
-
-Configure these GitHub Actions secrets to enable signed releases:
-
-| Platform | Secrets |
-| --- | --- |
-| Windows | `WIN_CSC_LINK` (certificate accepted by electron-builder), `WIN_CSC_KEY_PASSWORD` |
-| macOS | `MAC_CSC_LINK` (Developer ID Application certificate), `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
-
-The Windows resource hook signs the taskbar helper and bundled Codex executable as well as the application and installers. Verification requires valid Authenticode signatures from the same certificate. macOS releases enable hardened runtime and notarization, include the native helper in signing, and verify Developer ID, the app bundle, Gatekeeper acceptance and its stapled ticket. Linux retains its existing packaging path.
-
-Local development builds without `CODEX_LIMITS_RELEASE=1` remain available without certificates. Windows builds enable signing when `WIN_CSC_LINK` or `CSC_LINK` is provided. Local macOS signing follows the existing certificate configuration. For a local macOS release, the signing preflight also accepts the complete `APPLE_API_KEY` / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER` or `APPLE_KEYCHAIN` / `APPLE_KEYCHAIN_PROFILE` notarization groups supported by electron-builder. Never commit certificates, private keys or passwords. See [electron-builder v26 signing documentation](https://www.electron.build/v26/docs/features/code-signing/).
+| Linux arm64 (local) | `npm run build:linux:arm64` | AppImage and DEB |
 
 ## Automated releases
 
-Create feature/task branches only as `limits/<description>`, for example `limits/improve-installation`; the prefix is mandatory for fixes, refactors and documentation as well. `main`, `demo`, numeric versions and numeric `-demo` branches are reserved for integration and releases. The [branch naming requirements](../requirements/common/build-and-release.md#branch-naming) define this policy, and the [GitHub ruleset guide](github-rulesets.md) explains server enforcement.
+GitHub Actions runs tests on every active branch and PR. The `main`, `demo` and numeric `<release>-demo` branches run tests only. Other branches build the four release targets and produce `SHA256SUMS.txt`. Only numeric release branch pushes and manual runs publish the verified packages. Release builds with configured certificates must pass signing verification and, on macOS, notarization.
 
-The [Test, build and release workflow](../.github/workflows/release.yml) runs on every branch push, manual branch dispatch, and pull request to any target. Routing uses exact branch names and patterns, with no per-version demo list or legacy fix-branch exception. See the agreed [build and release requirements](../requirements/common/build-and-release.md).
-
-| Branch | Tests | Packaging and verification | Publication |
-| --- | --- | --- | --- |
-| `main` and `demo` | Windows, macOS and Linux | No packaging or uploads | No release or tag |
-| Numeric version: `<major>.<minor>[.<patch>]` | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | Publish/update `v<branch>` |
-| Numeric version with `-demo`: `<release>-demo` | Windows, macOS and Linux | No packaging or uploads | No release or tag |
-| Every other branch, including feature branches and names with other suffixes | Each of the four build targets | All eight packages and SHA-256 checksums in Actions artifacts | No release or tag |
-
-Pull requests use the **source** branch for this table and test the proposed merge result. A feature branch targeting a demo branch therefore builds all targets; a PR from a numeric demo branch runs only tests. PR runs never publish or move tags and receive no signing secrets in their process environment. Manual branch runs use the same rules as pushes. Tag pushes do not trigger CI, and tag refs or deleted branches cannot build or publish.
-
-- Ordinary branches use the version in `package.json`. Numeric branches derive the package version from their name, appending a zero patch component if omitted. The override occurs inside CI without a version commit or npm-created tag. Test-only branches do not override the version.
-- All four build jobs run the shared suite and the suite for their target OS before packaging. A separate job with read-only repository access verifies that all eight packages exist and are nonempty files, calculates `SHA256SUMS.txt`, and saves it as `packages-checksums`. Packages and checksums stay in Actions artifacts for seven days for ordinary and numeric branches. `main`, `demo` and numeric-demo branches never build or upload packages.
-- Only numeric branch pushes or manual runs can enter the publication job, after all tests, builds and verification pass. It uses the standard `GITHUB_TOKEN` with `contents: write`, points `v<branch>` at the built commit, uploads the eight packages and checksums to a draft, then makes the release public.
-- A later run for the same numeric branch updates that release's tag and assets. Other versions are preserved, and runs for the same workflow/ref are serialized.
-
-The entrypoint calls small workflows for [tests](../.github/workflows/ci-tests.yml), [builds](../.github/workflows/ci-build.yml), [verification](../.github/workflows/ci-verify.yml) and [publication](../.github/workflows/ci-publish.yml). A [composite action](../.github/actions/setup/action.yml) shares Node.js/dependency setup. Every CI YAML file stays within 100 lines; branch routing, checksums, tags and publication logic live in [scripts/ci](../scripts/ci/).
-
-The workflows must exist in the selected branch; manual dispatch also requires the entrypoint on the default branch. See [CHANGELOG.md](../CHANGELOG.md) for release contents.
+See the [build and release requirements](../requirements/common/build-and-release.md) for routing, artifacts and publication details.

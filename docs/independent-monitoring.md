@@ -1,8 +1,8 @@
 # Monitoring without the Codex desktop app
 
-Limits owns a separate `codex app-server --listen stdio://` child process on all three platforms. It reads account and quota RPCs directly; opening or keeping the Codex desktop app running is unnecessary. Packaged builds include the native executable (the runtime packaging PR is required for Linux/macOS).
+On Windows, macOS, and Linux, Limits starts its own `codex app-server --listen stdio://` process to read account details and quotas. Packaged builds include the Codex executable and can monitor quotas while Codex Desktop is closed.
 
-The shared monitor requests a credential refresh after each successful server connection, including recovery after a crash. Regular quota polls use the same process and its automatic credential maintenance instead of rotating tokens on every poll. A failed initial credential read is retried with refresh enabled. Credentials remain in Codex's managed store, and additional accounts keep their isolated homes.
+For accounts connected in Limits, the first account read on each server connection requests a credential refresh. Regular polls reuse the process. For the default external profile, each regular poll starts a fresh server to pick up sign-in changes in the local `CODEX_HOME`, with forced token refresh disabled. See [Codex subscriptions and local storage](privacy.md#codex-subscriptions).
 
 After a failed account or quota read, the monitor discards the failed server connection so the next automatic retry reloads managed credentials, including credentials changed by a parallel Codex session. Retries retain the last sample and back off up to five minutes. On Linux, waking from sleep or unlocking the desktop reconnects all profiles immediately, cancels requests left pending before sleep, and bypasses that backoff. Overlapping recovery requests share one reconnect; an active browser sign-in is preserved.
 

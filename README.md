@@ -22,9 +22,9 @@ Remaining usage, reset timers, and multiple accounts — right in your taskbar, 
 **Limits** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
 
 <p align="center">
-  <img src="docs/screenshots/windows-accounts.png" width="400" alt="Windows details panel showing the five-hour and weekly Codex limits side by side">
+  <img src="docs/screenshots/windows/accounts.png" width="400" alt="Windows details panel showing the five-hour and weekly Codex limits side by side">
   <br><br>
-  <img src="docs/screenshots/windows-widget.png" width="280" alt="Windows taskbar widget with demo usage and a reset timer">
+  <img src="docs/images/widget-weekly.png" width="280" alt="Windows taskbar widget with demo usage and reset times">
 </p>
 
 *Windows and macOS screenshots use demo data. The macOS desktop background and menu bar are recreated for publication.*
@@ -85,7 +85,7 @@ macOS remembers this exception for the app, so subsequent launches can use a nor
 
 ### macOS — menu bar and notch
 
-![Limits in the macOS menu bar with a light details panel](docs/screenshots/apple-menu-bar-light.png)
+![Limits in the macOS menu bar with a light details panel](docs/screenshots/macos/apple-menu-bar-light.png)
 
 Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. After installing the app, enable **Settings → General → Launch at login** to start in the background at login. This also works with local ad hoc signed builds; disabling the option removes the startup entry.
 
@@ -98,11 +98,11 @@ The side panel adapts to additional metrics. Values that do not fit move into a 
 <details>
 <summary>Dark theme and MacBook notch</summary>
 
-![Dark macOS details panel](docs/screenshots/apple-menu-bar-dark.png)
+![Dark macOS details panel](docs/screenshots/macos/apple-menu-bar-dark.png)
 
-![Compact usage view on notch hover](docs/screenshots/apple-notch-hover.png)
+![Compact usage view on notch hover](docs/screenshots/macos/apple-notch-hover.png)
 
-![Expanded MacBook notch panel](docs/screenshots/apple-notch-expanded.png)
+![Expanded MacBook notch panel](docs/screenshots/macos/apple-notch-expanded.png)
 
 The notch mode uses the compatible MacBook screen, including when an external display is attached. It is hidden on Macs without a physical notch. Esc or loss of focus collapses the panel. Reduced motion and transparency settings are respected.
 
@@ -110,7 +110,7 @@ The notch mode uses the compatible MacBook screen, including when an external di
 
 ### Linux — system tray
 
-![Five-hour and weekly usage indicators in the Linux system tray](docs/screenshots/linux-tray.jpg)
+![Five-hour and weekly usage indicators in the Linux system tray](docs/screenshots/linux/tray.png)
 
 The turquoise **5h** and purple **7d** indicators show remaining usage with numbers and short bars. Tooltips expose account details and reset information where supported by the desktop environment. The details panel adapts to its contents and scrolls for long account lists.
 
@@ -132,15 +132,15 @@ Choose a layout in **Settings → Panel settings → Widget style**. **Classic**
 
 - **Classic**
 
-  ![Windows taskbar widget in Classic style](docs/screenshots/windows-widget.png)
+  ![Windows taskbar widget in Classic style](docs/screenshots/windows/widget.png)
 - **Rows**
 
-  ![Windows taskbar widget in Rows style](docs/screenshots/windows-widget-rows.png)
+  ![Windows taskbar widget in Rows style](docs/screenshots/windows/widget-rows.png)
 - **Cells**
 
-  ![Windows taskbar widget in Cells style](docs/screenshots/windows-widget-cells.png)
+  ![Windows taskbar widget in Cells style](docs/screenshots/windows/widget-cells.png)
 
-![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows-widget-compact.png)
+![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows/widget-compact.png)
 
 ## Everyday use
 
@@ -176,9 +176,7 @@ For Codex, Limits starts a local **Codex App Server** process and reads account 
 
 **Kimi Code:** choose **Settings → Subscriptions → + Add → Kimi Code** and paste a key from the Kimi Code Console. Limits stores a verified key encrypted on this device and refreshes the allowances about once per minute. Weekly usage is available on plans with a weekly limit. Use **Manage → Replace API key** to switch keys or disconnect to remove the local copy. [Kimi Code Console](https://www.kimi.com/code/console) · [Kimi membership quotas](https://www.kimi.com/en/help/membership/membership-update-rules)
 
-**macOS:** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Extra local `CODEX_HOME` folders are not tracked. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
-
-On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically and reloads sign-in changes on polling; sign in or out in Codex / VS Code. Extra CODEX_HOME folders are not tracked. Codex accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
+On Windows, macOS, and Linux, **Settings → Subscriptions** shows **All**, **Connected in Limits**, or **In Codex / VS Code**. Limits stores profile settings locally in the Electron app data directory. The default external profile reads the sign-in from the local `CODEX_HOME` (normally `~/.codex`) through Codex App Server and picks up changes on the next poll. Sign in or out of that profile in Codex / VS Code. Codex accounts added in Limits each use a separate home in the app data directory. [Codex subscriptions and storage](docs/privacy.md#codex-subscriptions).
 
 Limits has no app-level analytics or telemetry integration in its source. Codex connects to OpenAI services for sign-in and usage data; its behavior is managed by Codex. See [data storage and privacy](docs/privacy.md).
 

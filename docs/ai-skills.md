@@ -2,7 +2,7 @@
 
 Keep local skills in `skills/<name>/SKILL.md`. The root `/skills/` directory is ignored by Git, including supporting scripts/assets, so personal skills and edits are not committed or pushed.
 
-The English/Russian [template catalog](skill-templates/README.md) stays in `docs/skill-templates/`. The local `skills/` directory contains skill folders only; the generator does not create a root README. Agents discover `SKILL.md` files directly so personal skills are not missed.
+The [template catalog](skill-templates/README.md) stays in `docs/skill-templates/`. The local `skills/` directory contains skill folders only; the generator does not create a root README. Agents discover `SKILL.md` files directly so personal skills are not missed.
 
 Run this once after cloning, or whenever a default skill is missing:
 
@@ -24,7 +24,7 @@ The bundled [version-branches-from-main](skill-templates/version-branches-from-m
 
 The bundled `changelog` skill records user-visible fixes and features directly under their target release version in `CHANGELOG.md`, as part of the same focused change, without an `Unreleased` placeholder. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
 
-The bundled [versionless-documentation](skill-templates/versionless-documentation/SKILL.md) skill keeps concrete Limits release numbers only in `CHANGELOG.md`, unless the user explicitly requests a specific occurrence elsewhere. README files, documentation, requirements, comments and skill examples describe current behavior without release labels and use placeholders for branch/tag examples. Machine-readable version metadata and update logic retain their technical values.
+The bundled [versionless-documentation](skill-templates/versionless-documentation/SKILL.md) skill keeps concrete Limits release numbers in the changelog when writing documentation. When preparing a release, it also aligns the versions in `package.json` and `package-lock.json` with the target changelog heading.
 
 The bundled [test-failure-analysis](skill-templates/test-failure-analysis/SKILL.md) skill traces a failing test or CI check to its introducing commit, explains the affected platform behavior, proposes a systemic repair, and audits which tests and builds actually ran before applying a minimal authorized fix.
 
