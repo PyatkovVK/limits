@@ -5,9 +5,6 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 ## 2.0.0
 
 - **Claude Code and Kimi Code.** Track available 5-hour and weekly quotas and their reset times on Windows, macOS and Linux. Claude Code supplies local quota data through its status line. Kimi Code connects with an API key from the Kimi Code Console.
-
-## 1.8.0
-
 - **Linux desktop widget removed.** Keep percentage icons and period/bar icons in the tray; previously saved widget selections automatically switch to tray mode while preserving the chosen tray style.
 - **GLM Coding Plan (Z.ai).** Connect a personal API key on Windows, macOS and Linux to track the remaining 5-hour and weekly allowances and see reset times when available.
 - **Redesigned Settings.** General, Subscriptions, Updates and Codex Resets have dedicated cards, and Background shows a live preview.
