@@ -15,7 +15,7 @@ app.setPath = (name, value) => setPath(name, name === 'userData' ? profile : val
 app.disableHardwareAcceleration();
 
 // Foreground apps must not affect this test's own widget visibility.
-const widgetModule = require('../panel/widget.cjs');
+const widgetModule = require('../widget/host.cjs');
 const NativeWidget = widgetModule.TaskbarWidget;
 widgetModule.TaskbarWidget = class extends NativeWidget {
   emit(event, ...args) {

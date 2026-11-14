@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { changePreference } = require('../../common/core/preferences.cjs');
-const { trayStyle, changeTrayStyle } = require('../preferences.cjs');
+const { trayStyle, changeTrayStyle } = require('../core/preferences.cjs');
 
 test('Linux tray styles save and redraw immediately, rejecting other platforms and invalid values', () => {
   const settings = {}, events = [];

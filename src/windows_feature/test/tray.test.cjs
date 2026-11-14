@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { bitmap, png } = require('../tray-icon.cjs');
+const { bitmap, png } = require('../tray/tray-icon.cjs');
 const { TrayPresentation, tooltip } = require('../../common/tray/tray.cjs');
 
 test('icons distinguish unavailable quotas from zero and keep a complete 100% bar', () => {

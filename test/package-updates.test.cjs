@@ -3,7 +3,7 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os');
 const { createHash } = require('node:crypto'), { EventEmitter } = require('node:events');
 const { PackageUpdates } = require('../src/common/updates/package-updates.cjs');
-const { LinuxUpdates } = require('../src/linux_feature/updates.cjs');
+const { LinuxUpdates } = require('../src/linux_feature/updates/updates.cjs');
 const release = { version: '1.5.0', tag: 'v1.5', url: 'https://github.com/PyatkovVK/limits/releases/tag/v1.5' };
 function pe() { const value = Buffer.alloc(128); value.write('MZ'); value.writeUInt32LE(64, 60); value.write('PE', 64); value.writeUInt16LE(0x14c, 68); return value; }
 function image() { const value = Buffer.alloc(128); Buffer.from('7f454c460201', 'hex').copy(value); Buffer.from('414902', 'hex').copy(value, 8); value.writeUInt16LE(62, 18); return value; }

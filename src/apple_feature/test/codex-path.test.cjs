@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { findCodex } = require('../../common/ai-connects/codex/path.cjs');
-const { findMacCodex } = require('../codex-path.cjs');
+const { findMacCodex } = require('../ai-connects/codex/path.cjs');
 // The fake filesystem uses Unix paths; Node's path.join follows the test host OS.
 const fixturePath = file => file.replaceAll('\\', '/');
 

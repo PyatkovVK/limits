@@ -4,10 +4,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const countdown = require('../panel/reset-clock.js');
+const countdown = require('../renderer/reset-clock.js');
 const i18n = require('../../common/renderer/i18n.js');
-const windowsI18n = require('../i18n.js');
-const widgetStyle = require('../panel/widget-style.js');
+const windowsI18n = require('../renderer/i18n.js');
+const widgetStyle = require('../settings/widget/styles.js');
 
 test('weekly widget countdown updates between samples and switches selected buckets', async () => {
   const nodes = new Map(); let listener, tick;
@@ -28,8 +28,8 @@ test('weekly widget countdown updates between samples and switches selected buck
     window: { limitsI18n: { ...i18n, apply() {} }, limitsWindowsI18n: windowsI18n, limitsWindowsWidgetStyle: widgetStyle,
       limitsWindows: { onWidgetClick() {} },
       limits: { subscribe(fn) { listener = fn; }, get: async () => sample } }, setInterval(fn) { tick = fn; }, Date };
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../panel/reset-clock.js'), 'utf8'), context.window);
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../panel/widget.js'), 'utf8'), context);
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../renderer/reset-clock.js'), 'utf8'), context.window);
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../widget/renderer/widget.js'), 'utf8'), context);
   await context.window.renderReady;
   assert.equal(context.document.body.dataset.widgetStyle, 'classic');
   for (const style of ['rows', 'cells', 'invalid']) {

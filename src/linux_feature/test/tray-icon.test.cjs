@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { bitmap, png, icon } = require('../tray-icon.cjs');
+const { bitmap, png, icon } = require('../tray/tray-icon.cjs');
 const { createHash } = require('node:crypto');
 const { EventEmitter } = require('node:events');
 const { TrayPresentation } = require('../../common/tray/tray.cjs');

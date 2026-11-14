@@ -1,7 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { panelBounds, panelEdge, createPanelController } = require('../panel.cjs');
+const { panelBounds, panelEdge } = require('../panel/geometry.cjs');
+const { createPanelController } = require('../panel/panel.cjs');
 
 const area = { x: 0, y: 0, width: 1280, height: 767 };
 class FakeWindow extends EventEmitter {

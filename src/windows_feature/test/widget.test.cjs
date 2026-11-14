@@ -1,8 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { TaskbarWidget } = require('../panel/widget.cjs');
-const { widgetBounds } = require('../taskbar.cjs');
+const { TaskbarWidget } = require('../widget/host.cjs');
+const { widgetBounds } = require('../taskbar/widget-bounds.cjs');
 const { EventEmitter } = require('node:events');
 
 test('shell-driven native movement never overwrites the saved drag position', () => {
