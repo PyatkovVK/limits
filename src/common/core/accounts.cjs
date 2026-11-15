@@ -196,7 +196,10 @@ class Accounts extends EventEmitter {
     if (this.selectedProfileId === id) this.selectedProfileId = this.profiles[0].id;
     this.persist(); this.publish();
   }
-  stop() { if (this.keyConnection) this.cancelKeyConnection(this.keyConnection.id); this.monitors.forEach(monitor => monitor.stop()); }
+  stop() {
+    if (this.keyConnection) this.cancelKeyConnection(this.keyConnection.id);
+    return Promise.all([...this.monitors.values()].map(monitor => monitor.stop()));
+  }
   isSignInUrlAllowed(id, url) { return this.monitors.get(id)?.isSignInUrlAllowed(url) === true; }
 }
 module.exports = { Accounts };

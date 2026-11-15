@@ -20,18 +20,21 @@ const { startupState, changePreference } = require('./common/core/preferences.cj
 const { welcomeMode, markWelcomeShown } = require('./common/welcome/once.cjs');
 const { openWelcome } = require('./common/welcome/window.cjs');
 
-const demo = process.argv.includes('--demo');
+const cleanDemo = process.platform === 'win32' && app.isPackaged && require('../package.json').limitsDemo === true;
+const demo = process.argv.includes('--demo') || (cleanDemo && process.argv.includes('--sample-data'));
 const smoke = process.argv.includes('--smoke-test');
 const taskbarSupported = process.platform === 'win32' && !process.argv.includes('--smoke-tray-only');
 const windowsWidgetStyle = process.platform === 'win32' ? require('./windows_feature/settings/widget/styles.js') : null;
 const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '..'), 'artifacts');
 if (smoke && !process.argv.includes('--smoke-gpu')) app.disableHardwareAcceleration();
 if (smoke) app.setPath('userData', path.join(artifactRoot, 'smoke-profile'));
+// The demo's portable launcher deletes its extraction directory on exit.
+else if (cleanDemo) app.setPath('userData', fs.mkdtempSync(path.join(path.dirname(process.execPath), 'profile-')));
 else if (demo) app.setPath('userData', path.join(app.getPath('appData'), 'Codex Limits Demo'));
 // Keep the existing settings and Windows upgrade identity across the rename.
 else app.setPath('userData', path.join(app.getPath('appData'), 'Codex Limits'));
 app.setName('Limits');
-app.setAppUserModelId('dev.codexlimits.desktop');
+app.setAppUserModelId(cleanDemo ? 'dev.codexlimits.desktop.demo' : 'dev.codexlimits.desktop');
 const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
@@ -108,7 +111,7 @@ function publicState() { return { ...state, platform: process.platform, dark: na
   preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle, widgetResetDisplay: widgetSettings.widgetResetDisplay,
     ...(taskbarSupported ? { widgetStyle: windowsWidgetStyle.normalize(widgetSettings.widgetStyle) } : {}),
     ...(applePresentation && { islandHoverStyle: widgetSettings.islandHoverStyle || 'minimal' }),
-    startup: startupState({ app, platform: process.platform, demo, smoke, platformApi }) } }; }
+    startup: startupState({ app, platform: process.platform, demo: demo || cleanDemo, smoke, platformApi }) } }; }
 function persistWidgetSettings() {
   const target = path.join(app.getPath('userData'), 'widget-settings.json');
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -267,7 +270,7 @@ async function createWidget() {
 
 async function setup() {
   const profileRoot = app.getPath('userData');
-  const demoWelcome = demo && ['install', 'update'].find(mode => process.argv.includes('--welcome-' + mode));
+  const demoWelcome = cleanDemo ? 'install' : demo && ['install', 'update'].find(mode => process.argv.includes('--welcome-' + mode));
   const introMode = demoWelcome || (!demo && !smoke && !process.argv.includes('--smoke-tray-only')
     && welcomeMode(profileRoot, app.getVersion()));
   welcomePending = Boolean(introMode);
@@ -285,8 +288,8 @@ async function setup() {
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
   const UpdateService = process.platform === 'darwin' ? require('./apple_feature/updates/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('./windows_feature/updates/updates.cjs').WindowsUpdates : process.platform === 'linux' ? require('./linux_feature/updates/updates.cjs').LinuxUpdates : Updates;
-  updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
-  resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || smoke || process.argv.includes('--smoke-tray-only'),
+  updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || cleanDemo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
+  resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || cleanDemo || smoke || process.argv.includes('--smoke-tray-only'),
     notify: showResetNotification, openExternal: url => shell.openExternal(url) });
   window = new BrowserWindow({ width: 400, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, transparent: true, backgroundColor: '#00000000', ...(process.platform === 'darwin' ? require('./apple_feature/panel/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
   restrictWindow(window);
@@ -342,7 +345,7 @@ async function setup() {
   });
   handle('limits:preference', (key, value) => {
     const changed = changePreference(key, value, { app, settings: widgetSettings, platform: process.platform,
-      taskbarSupported, demo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget, platformApi });
+      taskbarSupported, demo: demo || cleanDemo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget, platformApi });
     return { ...publicState(), preferenceError: changed ? null : 'unavailable' };
   });
   ipcMain.handle('limits:panel-size', (event, height, surface) => {
@@ -459,7 +462,7 @@ async function setup() {
         const { DemoMonitor } = require('./common/demo/demo-monitor.cjs');
         monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
       } else {
-        monitor = new AccountService({ root, controllerContext: () => ({ safeStorage, resourcesPath: app.isPackaged ? process.resourcesPath : null,
+        monitor = new AccountService({ root, isolateDefault: cleanDemo, controllerContext: () => ({ safeStorage, resourcesPath: app.isPackaged ? process.resourcesPath : null,
           preserveStartupSample: process.platform === 'linux', codexPlatformFinders }) });
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
@@ -720,4 +723,24 @@ if (singleInstance) {
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { quitting = true; stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop(); for (const notification of resetToasts) notification.close(); resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy(); clearInterval(tick); clearTimeout(saveTimer); if (window) persistWidgetSettings(); widgetHost?.stop(); monitor?.stop(); trayPresentation?.destroy(); });
+let accountsStopped, waitingForAccounts = false;
+app.on('before-quit', () => {
+  if (quitting) return;
+  quitting = true;
+  stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop();
+  for (const notification of resetToasts) notification.close();
+  resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy();
+  clearInterval(tick); clearTimeout(saveTimer);
+  if (window) persistWidgetSettings();
+  widgetHost?.stop(); accountsStopped = monitor?.stop(); trayPresentation?.destroy();
+});
+if (cleanDemo) app.on('will-quit', event => {
+  // Let app-servers close the directories in the isolated profile before NSIS removes it.
+  if (!accountsStopped) return;
+  event.preventDefault();
+  if (waitingForAccounts) return;
+  waitingForAccounts = true;
+  const timer = setTimeout(() => app.exit(0), 2000);
+  const finish = () => { clearTimeout(timer); app.exit(0); };
+  accountsStopped.then(finish, finish);
+});

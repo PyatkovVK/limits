@@ -10,6 +10,7 @@ if (process.platform !== 'win32') {
 
 const standalone = process.argv.includes('--standalone');
 const portableOnly = process.argv.includes('--portable');
+const cleanDemo = process.argv.includes('--demo');
 require('../../src/windows_feature/scripts/build-taskbar-helper.cjs');
 require('../prepare/assets.cjs');
 const root = path.resolve(__dirname, '../..');
@@ -19,7 +20,7 @@ const output = fs.mkdtempSync(path.join(tempRoot, 'limits-build-'));
 console.log('Temporary build directory:', output);
 const config = structuredClone(require('../../package.json').build);
 const { configureSigning, signingEnvironment } = require('../signing/signing.cjs');
-const signedRelease = configureSigning(config, 'win');
+const signedRelease = !cleanDemo && configureSigning(config, 'win');
 config.directories.output = output;
 // Electron 44 may not have downloaded its runtime yet. Otherwise let the builder fetch it.
 if (process.arch === 'x64') {
@@ -27,7 +28,15 @@ if (process.arch === 'x64') {
   if (fs.existsSync(path.join(electronDist, 'version'))) config.electronDist = electronDist;
 }
 require('../prepare/bundle-codex.cjs').bundleCodex(config, { platform: 'win32', arch: 'x64' });
-if (standalone) {
+if (cleanDemo) {
+  config.appId = 'dev.codexlimits.desktop.demo';
+  config.productName = 'Limits Demo';
+  config.extraMetadata = { limitsDemo: true };
+  config.win.target = ['portable'];
+  config.win.signExecutable = false;
+  // Let NSIS allocate and remove a separate extraction directory for each run.
+  config.portable = { artifactName: 'Limits-Demo-${version}-clean-portable.${ext}', unpackDirName: true };
+} else if (standalone) {
   // Preserve the legacy command's filenames; every build now includes the runtime.
   config.nsis.artifactName = 'Limits-Standalone-Setup-${version}.${ext}';
   config.portable.artifactName = 'Limits-Standalone-${version}-portable.${ext}';

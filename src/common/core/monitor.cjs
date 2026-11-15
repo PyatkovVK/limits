@@ -91,7 +91,7 @@ class Monitor extends EventEmitter {
     this.controller.off('refresh-requested', this.onRefreshRequested);
     this.controller.off('login-ended', this.onLoginEnded);
     this.controller.off('diagnostic', this.onDiagnostic);
-    this.controller.disconnect();
+    return this.controller.disconnect();
   }
 }
 module.exports = { Monitor };

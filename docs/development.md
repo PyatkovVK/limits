@@ -14,6 +14,8 @@ npm run demo
 To open either welcome tour with demo data, use `npm run demo -- --welcome-install` or
 `npm run demo -- --welcome-update`. These previews leave the real profile's one-time marker alone.
 
+On Windows, `npm run build:win -- --demo` builds a portable demo for testing provider connections. Each launch starts with the welcome tour and a fresh profile. The launcher removes its data when Limits exits normally. The Claude Code status-line command generated in this build is valid for the current session. To preview the same build with sample quotas, pass `--sample-data`.
+
 Run `npm start` to use real accounts and `npm run setup:skills` to install the default [local AI skills](ai-skills.md). Use `npm.cmd` in PowerShell if execution policy blocks `npm.ps1`. Install dependencies separately on each target OS.
 
 ## Checks

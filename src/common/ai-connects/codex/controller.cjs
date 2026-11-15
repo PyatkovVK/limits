@@ -229,7 +229,7 @@ class CodexController extends AiController {
     this.client.off('disconnected', this.disconnectedListener);
     this.listening = false;
     if (this.loginAttempt) { this.loginAttempt.cancelled = true; this.finishLogin(this.loginAttempt); }
-    this.client.stop();
+    return this.client.stop();
   }
 }
 

@@ -3,15 +3,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { Accounts } = require('../../core/accounts.cjs');
-const { externalOptions } = require('./options.cjs');
+const { externalOptions, fileAuthArgs } = require('./options.cjs');
 
 class Subscriptions extends Accounts {
-  constructor({ root, createMonitor, env = process.env, initialProfiles, demo = false, sourcesName = 'subscriptions.json', registry, controllerContext = () => ({}) }) {
-    let defaultHome = path.resolve(env.CODEX_HOME || path.join(env.HOME || os.homedir(), '.codex'));
+  constructor({ root, createMonitor, env = process.env, initialProfiles, demo = false, isolateDefault = false, sourcesName = 'subscriptions.json', registry, controllerContext = () => ({}) }) {
+    let defaultHome = path.resolve(isolateDefault ? path.join(root, 'codex-source') : env.CODEX_HOME || path.join(env.HOME || os.homedir(), '.codex'));
+    if (isolateDefault) fs.mkdirSync(defaultHome, { recursive: true });
     try { defaultHome = fs.realpathSync(defaultHome); } catch { /* Codex may not have created its home yet. */ }
     let saved;
     try { if (!demo) saved = JSON.parse(fs.readFileSync(path.join(root, sourcesName), 'utf8')); } catch { /* First launch. */ }
-    super({ root, initialProfiles, createMonitor, registry, controllerContext: profile => ({ env, ...controllerContext(profile), ...(profile.providerId === 'codex' && profile.id === 'default' ? { sourceHome: defaultHome } : {}) }) });
+    const defaultSource = { sourceHome: defaultHome, ...(isolateDefault ? { args: fileAuthArgs } : {}) };
+    super({ root, initialProfiles, createMonitor, registry, controllerContext: profile => ({ env, ...controllerContext(profile),
+      ...(profile.providerId === 'codex' && profile.id === 'default' ? defaultSource : {}) }) });
     this.demo = demo;
     this.mode = ['all', 'connected', 'active'].includes(saved?.mode) ? saved.mode : 'all';
     this.sourcesFile = path.join(root, sourcesName);

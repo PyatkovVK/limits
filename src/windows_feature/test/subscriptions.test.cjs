@@ -36,3 +36,20 @@ test('Windows tracks the current Codex home alongside connected subscriptions an
   assert.equal(logouts, 0); assert.equal(fs.existsSync(home), true);
   assert.equal(accounts.selectedProfileId, connected);
 });
+
+test('the clean Windows demo uses file-based Codex credentials inside its temporary profile', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-win-demo-'));
+  const options = new Map();
+  const accounts = new Subscriptions({ root, isolateDefault: true,
+    env: { CODEX_HOME: path.join(root, 'external'), OPENAI_API_KEY: 'fixture' },
+    createMonitor(profile, settings) { options.set(profile.id, settings); return new DemoMonitor(profile); } });
+  t.after(() => { accounts.stop(); fs.rmSync(root, { recursive: true, force: true }); });
+  const connected = accounts.add();
+  assert.equal(options.get('default').env.CODEX_HOME, path.join(root, 'codex-source'));
+  assert.ok(fs.statSync(options.get('default').env.CODEX_HOME).isDirectory());
+  assert.equal(options.get(connected).env.CODEX_HOME, path.join(root, 'accounts', connected));
+  for (const settings of options.values()) {
+    assert.ok(settings.args.includes('cli_auth_credentials_store="file"'));
+    assert.equal(settings.env.OPENAI_API_KEY, undefined);
+  }
+});
