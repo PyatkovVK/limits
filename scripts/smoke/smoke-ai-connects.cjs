@@ -31,7 +31,10 @@ app.whenReady().then(async () => {
       panel = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/index.html'));
       return panel && !panel.webContents.isLoading() && panel.webContents.executeJavaScript('window.limits?.get().then(next => next.profiles?.length === 2)');
     }, 'demo ready');
-    const run = source => panel.webContents.executeJavaScript(source);
+    const run = async source => {
+      try { return await panel.webContents.executeJavaScript(source); }
+      catch (error) { throw new Error(`Could not evaluate ${source}`, { cause: error }); }
+    };
     await run('window.renderReady');
     const base = await run('window.limits.get()');
     const appearance = await run('window.limits.appearance()');
@@ -39,6 +42,9 @@ app.whenReady().then(async () => {
     accounts = new Accounts({ root: path.join(root, 'accounts'), registry, initialProfiles: [{ id: 'default', providerId: 'test-money', nickname: 'Test wallet' }] });
     const extra = accounts.add('test-money'); accounts.rename(extra, 'Second wallet'); await accounts.refresh();
     const state = () => ({ ...base, ...accounts.snapshot(), demo: true, readOnly: false, subscriptions: null });
+    // Background updates must keep rendering the same accounts as limits:get.
+    const send = panel.webContents.send.bind(panel.webContents);
+    panel.webContents.send = (channel, ...args) => send(channel, ...(channel === 'limits:state' ? [state()] : args));
     const publish = () => {
       for (const target of [panel, widget]) if (target && !target.isDestroyed()) target.webContents.send('limits:state', state());
     };
@@ -54,7 +60,7 @@ app.whenReady().then(async () => {
     }
     for (const language of ['en', 'ru']) {
       base.language = language; publish();
-      await waitFor(() => run(`document.querySelector('#provider-metrics .metric-label').textContent.includes('${language === 'ru' ? 'Баланс' : 'Balance'}')`), 'localized balance');
+      await waitFor(() => run(`document.querySelector('#provider-metrics .metric-label')?.textContent.includes('${language === 'ru' ? 'Баланс' : 'Balance'}')`), 'localized balance');
       assert.equal(await run('document.getElementById("provider-metrics").hidden'), false);
       assert.match(await run('document.querySelector("#provider-metrics .metric-value").textContent'), /USD/);
       assert.equal(await run('[...document.querySelectorAll("#provider-metrics progress")].every(node => node.hidden)'), true);

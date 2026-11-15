@@ -12,4 +12,13 @@ function dismissTrayOverflow(resourcesPath) {
   });
 }
 
-module.exports = { taskbarHelperPath, dismissTrayOverflow };
+function disablePanelTransitions(window, resourcesPath) {
+  const handle = window.getNativeWindowHandle();
+  const id = handle.length === 8 ? handle.readBigInt64LE() : handle.readUInt32LE();
+  if (!id) return false;
+  return spawnSync(taskbarHelperPath(resourcesPath), ['--disable-panel-transitions', String(process.pid), String(id)], {
+    windowsHide: true, timeout: 1000, stdio: 'ignore',
+  }).status === 0;
+}
+
+module.exports = { taskbarHelperPath, dismissTrayOverflow, disablePanelTransitions };

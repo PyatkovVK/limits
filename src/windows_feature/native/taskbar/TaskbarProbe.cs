@@ -46,6 +46,8 @@ partial class TaskbarProbe {
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
   [DllImport("user32.dll")] static extern bool SetProcessDpiAwarenessContext(IntPtr context);
   [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
+  const uint DWMWA_TRANSITIONS_FORCEDISABLED = 3;
+  [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, uint attribute, ref int value, uint size);
 
   static string Bounds(Rect r) { return "{\"x\":" + r.Left + ",\"y\":" + r.Top + ",\"width\":" + (r.Right-r.Left) + ",\"height\":" + (r.Bottom-r.Top) + "}"; }
   static string ClassName(IntPtr hwnd) { StringBuilder text = new StringBuilder(256); GetClassName(hwnd, text, text.Capacity); return text.ToString(); }
@@ -205,6 +207,20 @@ partial class TaskbarProbe {
   }
   static void Main(string[] args) {
     try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch { SetProcessDPIAware(); }
+    if (args.Length == 3 && args[0] == "--disable-panel-transitions") {
+      uint owner, pid;
+      long handle;
+      if (!UInt32.TryParse(args[1], out owner) || owner == 0 || !Int64.TryParse(args[2], out handle) || handle == 0) {
+        Environment.ExitCode = 1;
+        return;
+      }
+      IntPtr panel = new IntPtr(handle);
+      GetWindowThreadProcessId(panel, out pid);
+      int disabled = 1;
+      if (pid != owner || DwmSetWindowAttribute(panel, DWMWA_TRANSITIONS_FORCEDISABLED, ref disabled, sizeof(int)) != 0)
+        Environment.ExitCode = 1;
+      return;
+    }
     if (args.Length == 3 && args[0] == "--test-restore-order") {
       Owner = UInt32.Parse(args[1]); Widget = new IntPtr(Int64.Parse(args[2]));
       uint pid; GetWindowThreadProcessId(Widget, out pid);

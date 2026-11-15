@@ -67,19 +67,25 @@ async function until(check) {
   while (!check() && Date.now() < deadline) await pause();
   assert.ok(check(), 'Native parent/placement transition must complete');
 }
-async function click(target, selector, delta, fast = false) {
-  const point = await target.webContents.executeJavaScript(`(() => {
+function pointIn(target, selector) {
+  return target.webContents.executeJavaScript(`(() => {
     const node = document.querySelector(${JSON.stringify(selector)});
     if (!node) throw new Error('Missing click target');
     const r = node.getBoundingClientRect();
     return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
   })()`);
+}
+async function nativeClick(target, point, delta, fast) {
+  const handle = target.getNativeWindowHandle();
+  const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
+  const bounds = target.getBounds();
+  const native = screen.dipToScreenPoint({ x: bounds.x + point.x, y: bounds.y + point.y });
+  await runHelper([delta ? fast ? '--test-widget-drag-fast' : '--test-widget-drag' : '--test-widget-click', String(process.pid), id, String(native.x), String(native.y), ...(delta ? [String(delta)] : [])]);
+}
+async function click(target, selector, delta, fast = false) {
+  const point = await pointIn(target, selector);
   if (target.webContents.getURL().endsWith('/widget.html')) {
-    const handle = target.getNativeWindowHandle();
-    const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
-    const bounds = target.getBounds();
-    const native = screen.dipToScreenPoint({ x: bounds.x + point.x, y: bounds.y + point.y });
-    await runHelper([delta ? fast ? '--test-widget-drag-fast' : '--test-widget-drag' : '--test-widget-click', String(process.pid), id, String(native.x), String(native.y), ...(delta ? [String(delta)] : [])]);
+    await nativeClick(target, point, delta, fast);
   } else {
     target.webContents.sendInputEvent({ type: 'mouseDown', ...point, button: 'left', clickCount: 1 });
     target.webContents.sendInputEvent({ type: 'mouseUp', ...point, button: 'left', clickCount: 1 });
@@ -145,11 +151,43 @@ app.whenReady().then(async () => {
     const top = metrics.bar.y < metrics.monitor.y + metrics.monitor.height / 2;
     assert.ok(top ? fallback.y >= metrics.bar.y + metrics.bar.height : fallback.y + fallback.height <= metrics.bar.y,
       'The Windows-accepted height must not overlap shell buttons');
+    const panel = BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/view-panel/index.html'));
+    assert.ok(panel);
+    panel.hide();
+    await click(window, '.account');
+    assert.ok(panel.isVisible(), 'Clicking the account area of the floating widget must open details');
+    assert.deepEqual(window.getBounds(), fallback, 'Opening the panel must not drag the floating widget');
+    panel.hide();
+    await pause(); const floating = await inspect(window);
     metricsOverride = null;
     host.probe.child.stdin.write('query\n');
     await until(() => lastMetrics.attached === true && window.getBounds().y >= metrics.bar.y);
     clearInterval(host.probe.timer);
-    const restoredParent = await checkOrder(before, window);
+    const restoredParent = await checkOrder(floating, window);
+
+    // The embedded widget's native click must work while its renderer is paused.
+    const account = await pointIn(window, '.account');
+    const widgetDebugger = window.webContents.debugger;
+    widgetDebugger.attach();
+    try {
+      await widgetDebugger.sendCommand('Debugger.enable');
+      const paused = new Promise(resolve => {
+        const onMessage = (_event, method) => {
+          if (method !== 'Debugger.paused') return;
+          widgetDebugger.removeListener('message', onMessage);
+          resolve();
+        };
+        widgetDebugger.on('message', onMessage);
+      });
+      await window.webContents.executeJavaScript('setTimeout(() => { debugger; }, 0);');
+      await paused;
+      await nativeClick(window, account);
+      assert.ok(panel.isVisible(), 'The first native click must open details without the widget renderer');
+      await widgetDebugger.sendCommand('Debugger.resume');
+    } finally {
+      widgetDebugger.detach();
+    }
+    panel.hide();
 
     const shellChecks = [];
     for (const [cls, processName, shell, flyout] of [
@@ -160,8 +198,6 @@ app.whenReady().then(async () => {
       shellChecks.push({ cls, processName, shell, flyout });
     }
 
-    const panel = BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/index.html'));
-    assert.ok(panel);
     await panel.webContents.executeJavaScript('window.renderReady');
     const panelTrace = [];
     for (const event of ['show', 'hide', 'focus', 'blur']) panel.on(event, () => panelTrace.push({ event, at: Date.now() }));
@@ -171,7 +207,7 @@ app.whenReady().then(async () => {
       for (const selector of ['#short-reset', '#short-bar', '#short-value', '#weekly-reset', '#weekly-bar', '#weekly-value']) {
         panel.hide();
         await click(window, selector);
-        if (!panel.isVisible()) console.log('NATIVE_INPUT_TRACE', JSON.stringify({ panelTrace, dragResult: await window.webContents.executeJavaScript('lastDragResult'), events: await window.webContents.executeJavaScript('inputTrace'), native: await inspect(window) }));
+        if (!panel.isVisible()) console.log('NATIVE_INPUT_TRACE', JSON.stringify({ panelTrace, events: await window.webContents.executeJavaScript('inputTrace'), native: await inspect(window) }));
         assert.equal(panel.isVisible(), true, selector + ' must open details');
         const order = await inspect(window);
         assert.ok(order.visible && order.topmost && order.aboveTaskbar, selector + ' must keep the bar above Explorer');

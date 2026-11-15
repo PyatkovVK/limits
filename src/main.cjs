@@ -242,6 +242,7 @@ async function createWidget() {
     { label: t('quit'), click: () => app.quit() }
   ] });
   widgetHost.on('window', (created, createdPlacement) => { widget = created; placement = createdPlacement; });
+  widgetHost.on('click', () => showPanel());
   widgetHost.on('probe', createdProbe => { probe = createdProbe; });
   widgetHost.on('failure', error => console.error(error.message));
   widgetHost.on('ready', update);
@@ -292,6 +293,7 @@ async function setup() {
   if (process.platform === 'win32') windowsPanel = require('./windows_feature/panel/panel.cjs').createPanelController({
     window, screen, ipcMain, getWidgetHost: () => widgetHost, root: app.getPath('userData'),
     resourcesPath: app.isPackaged ? process.resourcesPath : null,
+    reducedMotion: () => nativeTheme.prefersReducedMotion,
     getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
   });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });

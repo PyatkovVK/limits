@@ -23,7 +23,7 @@ class TaskbarWidget extends EventEmitter {
     const point = this.screen.screenToDipPoint({ x: input.x, y: input.y });
     this.input.handleNative(input, point, {
       drag: (phase, position) => this.drag(phase, position),
-      click: () => target.webContents.send('limits:windows-widget-click'),
+      click: () => this.emit('click'),
       openMenu: () => this.openMenu(target),
     });
   }

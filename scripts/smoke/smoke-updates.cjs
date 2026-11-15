@@ -117,6 +117,10 @@ app.whenReady().then(async () => {
     panel.webContents.setBackgroundThrottling(false);
     await run('window.limits.setAppearance({mode:"color",color:"#ffffff"})');
     await run('window.limitsSettings.open(); document.querySelector(".updates-section").scrollIntoView({block:"center"})');
+    if (process.platform === 'win32') {
+      const maxHeight = screen.getDisplayMatching(panel.getBounds()).workArea.height - 16;
+      await waitFor(() => run(`innerHeight === Math.min(${maxHeight}, window.limitsViewPanel.measure())`), 'full-size settings window');
+    }
     await pause();
     // The panel owns native sizing, so model a small work area rather than
     // resizing against the real monitor's much larger available height.

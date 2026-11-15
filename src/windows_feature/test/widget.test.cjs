@@ -79,8 +79,8 @@ test('native gestures use event positions even when the live cursor has already 
   const host = new TaskbarWidget({ screen: { screenToDipPoint: point => ({ x: point.x / 2, y: point.y / 2 }) },
     onMove(next) { moves.push(next.x); bounds.x = next.x; },
     getMenu: () => [], Menu: { buildFromTemplate: () => ({ popup: () => menus.push(true) }) } });
-  host.window = { isDestroyed: () => false, isVisible: () => true, getBounds: () => ({ ...bounds }),
-    webContents: { send: channel => clicks.push(channel) } };
+  host.window = { isDestroyed: () => false, isVisible: () => true, getBounds: () => ({ ...bounds }) };
+  host.on('click', () => clicks.push(true));
   const input = (type, x, button = 'left') => host.nativeInput({ type, x: x * 2, y: 2100, button });
   input('mouseDown', 125);
   input('mouseMove', 85);
@@ -93,7 +93,7 @@ test('native gestures use event positions even when the live cursor has already 
   assert.equal(moves.length, count, 'Release ends the drag');
   input('mouseDown', -300);
   input('mouseUp', -300);
-  assert.deepEqual(clicks, ['limits:windows-widget-click']);
+  assert.deepEqual(clicks, [true], 'A native click must open details without a widget renderer');
   input('mouseDown', -300, 'right'); input('mouseUp', -300, 'right');
   assert.equal(menus.length, 1, 'Right-click keeps the context menu');
 });

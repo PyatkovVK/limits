@@ -13,12 +13,17 @@ function controller(root, ipcMain) {
     isVisible() { return this.visible; },
     size: [440, 590],
     minimum: [440, 590], maximum: [440, 590],
+    getNativeWindowHandle() { return Buffer.alloc(8); },
+    setOpacity() {},
     getSize() { return this.size; },
+    getBounds() { return { x: this.position[0], y: this.position[1], width: this.size[0], height: this.size[1] }; },
     setMinimumSize(width, height) { this.minimum = [width, height]; },
     setMaximumSize(width, height) { this.maximum = [width, height]; },
-    setSize(width, height) { this.size = [width, Math.max(this.minimum[1], Math.min(this.maximum[1], height))]; },
+    setBounds({ x, y, width, height }) {
+      this.size = [width, Math.max(this.minimum[1], Math.min(this.maximum[1], height))];
+      if (x !== this.position[0] || y !== this.position[1]) { this.position = [x, y]; this.moves++; }
+    },
     getPosition() { return this.position; },
-    setPosition(x, y) { this.position = [x, y]; this.moves++; },
     show() { this.visible = true; this.shows++; },
     focus() { this.focuses++; },
     hide() { this.visible = false; },
@@ -31,7 +36,7 @@ function controller(root, ipcMain) {
     getBounds() { return this.bounds; },
   };
   const screen = { getDisplayMatching: () => ({ workArea: area }), getPrimaryDisplay: () => ({ workArea: area }) };
-  const panel = createPanelController({ window, screen, getAnchorBounds: () => widget.bounds, root, ipcMain });
+  const panel = createPanelController({ window, screen, getAnchorBounds: () => widget.bounds, root, ipcMain, reducedMotion: () => true });
   return { window, widget, screen, panel };
 }
 

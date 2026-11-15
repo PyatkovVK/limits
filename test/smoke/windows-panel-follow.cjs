@@ -23,6 +23,10 @@ widgetModule.TaskbarWidget = class extends NativeWidget {
     return super.emit(event, ...args);
   }
 };
+const panelModule = require('../../src/windows_feature/panel/panel.cjs');
+const createPanel = panelModule.createPanelController;
+let reducedMotion = false;
+panelModule.createPanelController = options => createPanel({ ...options, reducedMotion: () => reducedMotion });
 process.argv.push('--demo', '--hidden');
 require('../../src/main.cjs');
 
@@ -57,11 +61,76 @@ app.whenReady().then(async () => {
     const show = panel.show.bind(panel), focus = panel.focus.bind(panel);
     panel.show = (...args) => { calls.shows++; return show(...args); };
     panel.focus = (...args) => { calls.focuses++; return focus(...args); };
-    await widget.webContents.executeJavaScript('window.limits.open()');
-    assert.equal(panel.isVisible(), true);
+    const open = () => widget.webContents.executeJavaScript('window.limits.open()');
+    async function observeReveal() {
+      const frames = [];
+      const record = () => { if (panel.isVisible()) frames.push({ opacity: panel.getOpacity(), bounds: panel.getBounds() }); };
+      const timer = setInterval(record, 8);
+      panel.once('show', record);
+      try {
+        await open();
+        const deadline = Date.now() + 1500;
+        while (panel.getOpacity() < 1 && Date.now() < deadline) await pause(15);
+        record();
+        assert.ok(panel.isVisible());
+        assert.equal(panel.getOpacity(), 1, 'The panel must reach full opacity');
+        return frames;
+      } finally {
+        clearInterval(timer);
+        panel.removeListener('show', record);
+      }
+    }
+    async function observeResize(action, expectedHeight) {
+      const frames = [];
+      const record = () => { if (panel.isVisible()) frames.push(panel.getBounds()); };
+      panel.on('resize', record);
+      panel.on('show', record);
+      try {
+        await action();
+        const deadline = Date.now() + 1500;
+        while (Math.abs(panel.getSize()[1] - expectedHeight) > 1 && Date.now() < deadline) await pause(15);
+        record();
+        assert.ok(panel.isVisible());
+        assert.ok(Math.abs(panel.getSize()[1] - expectedHeight) <= 1, 'The panel must settle at the measured height');
+        return frames;
+      } finally {
+        panel.removeListener('resize', record);
+        panel.removeListener('show', record);
+      }
+    }
+    const openSettings = () => panel.webContents.executeJavaScript('window.limitsSettings.open(); window.limitsViewPanel.report()');
+    const closeSettings = () => panel.webContents.executeJavaScript('window.limitsSettings.dialog.close(); window.limitsViewPanel.report()');
+    // First open and reopen both start transparent at the final size.
+    const reveal = [];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const frames = await observeReveal();
+      assert.equal(frames[0].opacity, 0, 'The first visible frame must be transparent');
+      assert.ok(frames.filter(frame => frame.opacity > 0 && frame.opacity < 1).length >= 3);
+      for (const [index, frame] of frames.entries()) {
+        assert.deepEqual(frame.bounds, frames[0].bounds, 'Opening must not resize or move the native surface');
+        assert.ok(index === 0 || frames[index - 1].opacity <= frame.opacity, 'Reveal must never flash back to a lower opacity');
+      }
+      assert.ok(Math.abs(frames[0].bounds.height - compactHeight) <= 1);
+      reveal.push(frames.map(frame => frame.opacity));
+      if (attempt === 0) panel.hide();
+    }
+    const grow = await observeResize(openSettings, settingsHeight);
+    const shrink = await observeResize(closeSettings, compactHeight);
+    const area = screen.getDisplayMatching(widget.getBounds()).workArea;
+    const anchoredAtTop = widget.getBounds().y < area.y + area.height / 2;
+    const anchorEdge = bounds => anchoredAtTop ? bounds.y : bounds.y + bounds.height;
+    for (const [name, frames] of Object.entries({ grow, shrink })) {
+      assert.ok(new Set(frames.map(frame => frame.height)).size >= 3, `${name} must use intermediate native heights`);
+      const edges = frames.map(anchorEdge);
+      assert.ok(Math.max(...edges) - Math.min(...edges) <= 1, `${name} must keep the taskbar-facing edge fixed`);
+    }
+    panel.hide();
+    reducedMotion = true;
+    const instant = await observeReveal();
+    assert.ok(instant.every(frame => frame.opacity === 1 && Math.abs(frame.bounds.height - compactHeight) <= 1), 'Reduced motion must show a complete panel immediately');
+    reducedMotion = false;
     const openings = { ...calls };
     const before = { widget: widget.getBounds(), panel: panel.getBounds() };
-    const area = screen.getDisplayMatching(widget.getBounds()).workArea;
     let testCursor;
     const readCursor = screen.getCursorScreenPoint;
     screen.getCursorScreenPoint = () => testCursor;
@@ -107,7 +176,7 @@ app.whenReady().then(async () => {
     await pause();
     panel.emit('moved');
     const manual = panel.getPosition();
-    await drag(widget.getBounds().x);
+    await pause(1100);
     assert.deepEqual(panel.getPosition(), manual);
     panel.hide();
     await drag(Math.round(area.x + area.width * .2));
@@ -115,22 +184,23 @@ app.whenReady().then(async () => {
     assert.deepEqual(panel.getPosition(), manual);
     assert.deepEqual(calls, openings);
     await widget.webContents.executeJavaScript('window.limits.open()');
+    await pause(230);
     assert.deepEqual(panel.getPosition(), manual);
     const saved = JSON.parse(fs.readFileSync(path.join(profile, 'windows-panel-position.json'), 'utf8'));
     assert.deepEqual(saved, { x: manual[0], y: manual[1] });
-    await panel.webContents.executeJavaScript('window.limitsSettings.open(); window.limitsViewPanel.report()');
-    await pause();
+    await openSettings();
+    await pause(230);
     assert.deepEqual(panel.getPosition(), [manual[0], Math.max(area.y, Math.min(manual[1], area.y + area.height - panel.getSize()[1]))], 'Settings must preserve placement unless the work area requires clamping');
-    await panel.webContents.executeJavaScript('window.limitsSettings.dialog.close(); window.limitsViewPanel.report()');
-    await pause();
+    await closeSettings();
+    await pause(230);
     assert.deepEqual(panel.getPosition(), manual, 'Shrinking content restores the preferred position');
     const restoredWindow = new BrowserWindow({ width: 440, height: compactHeight, show: false });
-    const restored = require('../../src/windows_feature/panel/panel.cjs').createPanelController({ window: restoredWindow, screen, root: profile });
+    const restored = createPanel({ window: restoredWindow, screen, root: profile, reducedMotion: () => true });
     restored.show(); await pause();
     assert.deepEqual(restoredWindow.getPosition(), manual, 'A new controller must restore the persisted position');
     restoredWindow.destroy(); panel.show();
     fs.writeFileSync(path.join(artifactRoot, 'windows-panel-compact.png'), (await panel.webContents.capturePage()).toPNG());
-    const clickTargets = dragTargets.filter(selector => !['.account', 'body'].includes(selector));
+    const clickTargets = dragTargets;
     for (const selector of clickTargets) {
       panel.hide();
       const bounds = widget.getBounds(), point = await pointIn(selector);
@@ -147,11 +217,11 @@ app.whenReady().then(async () => {
     await pause();
     assert.ok(panel.isVisible(), 'Non-pointer activation must still open details');
     screen.getCursorScreenPoint = readCursor;
-    const report = { compactHeight, settingsHeight, shrankAfterSettings: true, continuousCursorDrag: true, before, moves, clickTargets, nonPointerClickOpensDetails: true, manualPositionPreserved: true, hiddenPanelStayedHidden: true, restoredSavedPosition: true };
+    const report = { compactHeight, settingsHeight, reveal, grow, shrink, reducedMotion: true, continuousCursorDrag: true, before, moves, clickTargets, nonPointerClickOpensDetails: true, manualPositionPreserved: true, hiddenPanelStayedHidden: true, restoredSavedPosition: true };
     fs.writeFileSync(path.join(artifactRoot, 'panel-follow-smoke.json'), JSON.stringify(report, null, 2));
     console.log('PANEL_FOLLOW_SMOKE_OK', JSON.stringify(report));
     app.exit(0);
   } catch (error) {
-    console.error('PANEL_FOLLOW_SMOKE_FAILED:', error.message); app.exit(1);
+    console.error('PANEL_FOLLOW_SMOKE_FAILED:', error.stack); app.exit(1);
   }
 });

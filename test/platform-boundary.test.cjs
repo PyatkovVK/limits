@@ -85,6 +85,7 @@ test('application and build preparation load only the active platform', async t 
             session: { registerPreloadScript: ({ filePath }) => assert.ok(inPackage(filePath, fs.statSync(filePath))) },
           });
           getSize() { return [400, 590]; }
+          getNativeWindowHandle() { return Buffer.alloc(8); }
           async loadFile(file) {
             assert.ok(inPackage(file, fs.statSync(file)));
             const assets = handlers.get('limits:platform-assets')({ sender: this.webContents, senderFrame: this.webContents.mainFrame });

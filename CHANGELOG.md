@@ -10,6 +10,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 - **GLM Coding Plan (Z.ai).** Connect a personal API key on Windows, macOS and Linux to track the remaining 5-hour and weekly allowances and see reset times when available.
 - **Redesigned Settings.** General, Subscriptions, Updates and Codex Resets have dedicated cards, and Background shows a live preview.
 - **Reset times in the Windows widget.** Show the date and time, switch to a countdown, or hide reset times. Limits saves your choice.
+- **Windows panel and widget.** Open the details panel with a single click anywhere on the widget. The panel fades in smoothly and resizes when Settings opens or closes. Windows reduced motion preferences are respected.
 - **macOS notch side panel display fixes.** The collapsed panel lines up with the physical notch and returns to its wider layout when there is room in the menu bar.
 
 ## 1.7.0

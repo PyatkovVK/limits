@@ -38,33 +38,30 @@ function render(next) {
   renderCountdown();
 }
 const dragArea = document.body;
-let drag = null, lastDragResult = Promise.resolve(false);
-window.limitsWindows.onWidgetClick(() => { void window.limits.open(); });
-$('details').addEventListener('click', async event => {
-  // The native cursor decides whether the gesture moved. Wait for pointerup's
-  // result before opening details so a drag never also acts as a click.
-  if (event.detail !== 0 && await lastDragResult) return;
-  void window.limits.open();
+let drag = null;
+$('details').addEventListener('click', event => {
+  // Keyboard and assistive technology activate the button without a gesture.
+  if (event.detail === 0) void window.limits.open();
 });
 dragArea.addEventListener('pointerdown', event => {
   if (!event.isPrimary || event.button !== 0) return;
-  lastDragResult = Promise.resolve(false);
-  drag = { pointer: event.pointerId, target: event.target };
-  // Capture on the pressed element so a stationary click still reaches the
-  // details button, including clicks on its labels, bars and percentages.
+  drag = { pointer: event.pointerId, target: event.target, started: window.limitsWindows.widgetDrag('start') };
   drag.target.setPointerCapture(drag.pointer);
-  void window.limitsWindows.widgetDrag('start');
 });
 dragArea.addEventListener('pointermove', event => {
   if (event.pointerId !== drag?.pointer) return;
   void window.limitsWindows.widgetDrag('move');
 });
-function finishDrag(event) {
+async function finishDrag(event) {
   if (event.pointerId !== drag?.pointer) return;
   const completed = drag;
   drag = null;
-  lastDragResult = window.limitsWindows.widgetDrag(event.type === 'pointerup' ? 'end' : 'cancel');
+  const released = event.type === 'pointerup';
+  const moved = window.limitsWindows.widgetDrag(released ? 'end' : 'cancel');
   if (completed.target.hasPointerCapture(completed.pointer)) completed.target.releasePointerCapture(completed.pointer);
+  // In the floating widget, any stationary primary gesture opens details.
+  const [started, dragged] = await Promise.all([completed.started, moved]);
+  if (released && started && !dragged) void window.limits.open();
 }
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) dragArea.addEventListener(type, finishDrag);
 window.limits.subscribe(render);
