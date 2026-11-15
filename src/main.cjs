@@ -534,6 +534,7 @@ async function setup() {
       if (firstPlacement && (firstPlacement.fallback || !require('./apple_feature/panel/panel.cjs').isMenuBarAnchor(firstPlacement.anchor, firstPlacement.display) || !window.isVisible() || window.getBounds().y !== firstPlacement.bounds.y)) throw new Error('Mac first launch did not open below a menu-bar indicator');
       for (const entry of trayPresentation.entries) {
         window.hide(); entry.tray.emit('click');
+        for (let tries = 0; !window.isVisible() && tries < 100; tries++) await new Promise(resolve => setTimeout(resolve, 10));
         if (!window.isVisible()) throw new Error('Tray click did not open the panel');
       }
       if (setDisplayMode('widget').displayMode !== 'tray' || widget) throw new Error('Widget was enabled in tray-only mode');

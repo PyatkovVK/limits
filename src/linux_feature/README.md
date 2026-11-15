@@ -62,7 +62,7 @@ After explicit overrides, bundled runtimes and PATH, Linux checks common per-use
 
 ## Details panel
 
-The Linux panel is 528 DIP wide with 120% interface scaling. Its height follows content between 80 and 720 DIP, limited by the display work area. Opening from a top panel places details below the indicator; opening from a bottom panel places them above it, on the indicator's display. Content changes preserve the attached edge.
+The Linux panel is 528 DIP wide with 120% interface scaling. Its height follows content between 80 and 720 DIP, limited by the display work area. Opening from a top panel places details below the indicator; opening from a bottom panel places them above it, on the indicator's display. Content changes preserve the attached edge. Before showing a hidden panel, the controller waits for renderer styles and fonts and measures content at the final width. The controller paints a transparent frame before showing the native window and waits for native placement before fading the fully sized panel in over 180 ms without translating or scaling its edges. The page viewport stays fixed while content scrolls inside the panel; reduced-motion settings disable this animation. A second tray click cancels an opening that is still being prepared.
 
 When the tray host does not expose icon bounds, activation uses the current cursor position near the top or bottom of the display. Without usable bounds or cursor coordinates, startup and menu actions follow the reserved top or bottom panel on the primary display. Native Wayland compositors may restrict cursor coordinates and window placement; this fallback cannot determine an exact indicator position there.
 

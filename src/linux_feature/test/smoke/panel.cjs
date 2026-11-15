@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
+const { verifyOpening } = require('./opening.cjs');
 // Native X11 window sizes may round a CSS/zoom conversion by one DIP.
 const near = (left, right) => Math.abs(left - right) <= 1;
 
@@ -58,7 +59,8 @@ async function verifyPanel({ window, trayPresentation, artifactRoot }) {
     if (compactHeight >= 480) throw new Error('Short Linux content retained the old height floor');
     await window.webContents.executeJavaScript(`document.querySelector('.panel-content').append(...window.linuxSmokeChildren); delete window.linuxSmokeChildren`);
     await delay(150);
-    return { zoom: 1.2, simulatedTrayPlacements: placements, growsAndShrinks: true, compactHeight };
+    const opening = await verifyOpening({ window, artifactRoot });
+    return { zoom: 1.2, simulatedTrayPlacements: placements, growsAndShrinks: true, compactHeight, opening };
   } finally {
     if (original) Object.defineProperty(tray, 'getBounds', original);
     else delete tray.getBounds;

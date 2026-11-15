@@ -81,7 +81,7 @@ test('application and build preparation load only the active platform', async t 
         }),
         BrowserWindow: class extends EventEmitter {
           webContents = Object.assign(new EventEmitter(), {
-            mainFrame: {}, setWindowOpenHandler() {}, setZoomFactor() {},
+            mainFrame: {}, setWindowOpenHandler() {}, setZoomFactor() {}, setBackgroundThrottling() {},
             session: { registerPreloadScript: ({ filePath }) => assert.ok(inPackage(filePath, fs.statSync(filePath))) },
           });
           getSize() { return [400, 590]; }
