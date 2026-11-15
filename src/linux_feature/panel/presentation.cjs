@@ -1,14 +1,10 @@
 'use strict';
 
+const { setTimeout: delay } = require('node:timers/promises');
+
 async function preparePanel(webContents) {
   return webContents.executeJavaScript(`(async () => {
     await window.limitsViewPanelReady;
-    await Promise.all([...document.querySelectorAll('link[rel="stylesheet"]')].map(link =>
-      link.sheet ? undefined : new Promise(resolve => {
-        link.addEventListener('load', resolve, { once: true });
-        link.addEventListener('error', resolve, { once: true });
-      })));
-    await document.fonts.ready;
     document.body.classList.remove('linux-panel-enter');
     document.body.classList.add('linux-panel-preparing');
     // Hidden windows can throttle animation frames. Measure layout directly
@@ -26,9 +22,22 @@ async function revealPanel(webContents) {
 }
 
 async function paintPanel(webContents) {
-  await webContents.executeJavaScript(`new Promise(resolve => {
-    requestAnimationFrame(() => requestAnimationFrame(resolve));
-  })`);
+  const timer = new AbortController();
+  try {
+    // An unmapped or occluded surface may never get a frame from the compositor.
+    await Promise.race([
+      webContents.executeJavaScript(`new Promise(resolve => {
+        const fallback = setTimeout(resolve, 180);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          clearTimeout(fallback);
+          resolve();
+        }));
+      })`),
+      delay(220, undefined, { signal: timer.signal }),
+    ]);
+  } finally {
+    timer.abort();
+  }
 }
 
 module.exports = { preparePanel, paintPanel, revealPanel };

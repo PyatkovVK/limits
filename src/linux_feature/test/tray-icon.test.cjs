@@ -12,16 +12,13 @@ test('classic pixels match the archived Linux renderer exactly', () => {
   }
   assert.equal(digest.digest('hex'), '0e0e4ad400c17229cb4f75d22d06efdbe4ab298ce42958feefb07b6d7cfcbf96');
 });
-test('bar icons put the fixed period above a proportional bar and distinguish unavailable values', () => {
-  for (const [language, labels] of [['ru', ['5ч', '7д']], ['en', ['5h', '7d']]]) for (const [index, kind] of ['short', 'weekly'].entries()) {
-    const bar = bitmap({ style: 'bar', kind, remaining: 50, language });
-    assert.equal(bar.label, labels[index]);
-    for (let x = 2; x < 18; x++) {
-      const offset = (16 * 20 + x) * 4;
-      assert.deepEqual([...bar.pixels.subarray(offset, offset + 3)], x < 10 ? bar.color : [91, 102, 114]);
-    }
-    assert.notDeepEqual(bar.pixels, bitmap({ kind, remaining: 50 }).pixels);
-    assert.notDeepEqual(bitmap({ style: 'bar', remaining: null, stale: true }).pixels, bitmap({ style: 'bar', remaining: 0, stale: true }).pixels);
+test('digits and rings distinguish both quota periods, zero, unknown, and stale usage', () => {
+  for (const style of ['digits', 'rings']) {
+    const sample = options => bitmap({ style, ...options }).pixels;
+    assert.notDeepEqual(sample({ remaining: 50 }), sample({ remaining: 50, kind: 'weekly' }));
+    assert.notDeepEqual(sample({ remaining: 50 }), sample({ remaining: 50, stale: true }));
+    assert.notDeepEqual(sample({ remaining: 50 }), sample({ remaining: 100 }));
+    assert.notDeepEqual(sample({ remaining: 0 }), sample({ remaining: null }));
   }
 });
 test('switching Linux styles updates both existing tray icons without recreating them', () => {
@@ -34,12 +31,14 @@ test('switching Linux styles updates both existing tray icons without recreating
   const state = { mode: 'tray', bucket: { short: { remaining: 53 }, weekly: { remaining: 53 } }, language: 'ru', menu: [] };
   view.update(state);
   const trays = view.entries.map(entry => entry.tray), classic = trays.map(tray => tray.image.buffer);
-  view.update({ ...state, linuxTrayStyle: 'bar' });
-  assert.deepEqual(view.entries.map(entry => entry.tray), trays);
-  trays.forEach((tray, i) => assert.notDeepEqual(tray.image.buffer, classic[i]));
-  const updates = trays.map(tray => tray.updates);
-  view.update({ ...state, linuxTrayStyle: 'bar' });
-  assert.deepEqual(trays.map(tray => tray.updates), updates);
+  for (const linuxTrayStyle of ['digits', 'rings']) {
+    view.update({ ...state, linuxTrayStyle });
+    assert.deepEqual(view.entries.map(entry => entry.tray), trays);
+    trays.forEach((tray, i) => assert.notDeepEqual(tray.image.buffer, classic[i]));
+    const updates = trays.map(tray => tray.updates);
+    view.update({ ...state, linuxTrayStyle });
+    assert.deepEqual(trays.map(tray => tray.updates), updates);
+  }
   view.update({ ...state, linuxTrayStyle: 'classic' });
   trays.forEach((tray, i) => assert.deepEqual(tray.image.buffer, classic[i]));
 });

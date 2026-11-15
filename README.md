@@ -117,9 +117,9 @@ Use menu bar indicators or display quotas around the notch on compatible MacBook
 
 ### Linux
 
-Choose percentages or usage bars in the system tray. Click an indicator to open the details panel. The tray has been tested on Linux Mint with XFCE and X11.
+Choose Classic, Digits, or Rings in the system tray. On XFCE, Genmon adds a wide Line or Shelf to the panel. Click an indicator to open the details panel. See the [Linux display setup](src/linux_feature/README.md).
 
-<img src="docs/screenshots/linux/tray.png" width="52" alt="Five-hour and weekly quota bars in the Linux system tray">
+<img src="src/linux_feature/welcome/images/icons.png" width="52" alt="Classic five-hour and weekly quota icons in the Linux system tray">
 
 <img src="docs/screenshots/linux/content-height.png" width="528" alt="Linux details panel showing both Codex quotas">
 

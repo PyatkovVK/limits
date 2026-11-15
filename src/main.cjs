@@ -1,5 +1,5 @@
 'use strict';
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog, safeStorage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog, safeStorage, clipboard } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { CODEX_POLL_INTERVAL_MINUTES } = require('./common/core/polling-defaults.cjs');
@@ -23,6 +23,10 @@ const { openWelcome } = require('./common/welcome/window.cjs');
 const cleanDemo = process.platform === 'win32' && app.isPackaged && require('../package.json').limitsDemo === true;
 const demo = process.argv.includes('--demo') || (cleanDemo && process.argv.includes('--sample-data'));
 const smoke = process.argv.includes('--smoke-test');
+const linuxGenmon = process.platform === 'linux' ? require('./linux_feature/panel/genmon.cjs') : null;
+const linuxPanelActivation = Boolean(linuxGenmon && process.argv.includes(linuxGenmon.activationFlag));
+const xfcePanelAvailable = linuxGenmon?.genmonAvailable(process.env) || false;
+const linuxPreferences = process.platform === 'linux' ? require('./linux_feature/core/preferences.cjs') : null;
 const taskbarSupported = process.platform === 'win32' && !process.argv.includes('--smoke-tray-only');
 const windowsWidgetStyle = process.platform === 'win32' ? require('./windows_feature/settings/widget/styles.js') : null;
 const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '..'), 'artifacts');
@@ -35,11 +39,12 @@ else if (demo) app.setPath('userData', path.join(app.getPath('appData'), 'Codex 
 else app.setPath('userData', path.join(app.getPath('appData'), 'Codex Limits'));
 app.setName('Limits');
 app.setAppUserModelId(cleanDemo ? 'dev.codexlimits.desktop.demo' : 'dev.codexlimits.desktop');
-const singleInstance = app.requestSingleInstanceLock();
+const singleInstance = app.requestSingleInstanceLock({ linuxPanelActivation });
 if (!singleInstance) app.quit();
 
 let window, windowsPanel, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
 let welcomePending = false, welcomeWindow;
+let genmonPresentation;
 let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray', linuxTrayStyle: 'classic', widgetResetDisplay: 'clock' };
 const t = key => (process.platform === 'darwin' ? require('./apple_feature/renderer/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key, process.platform);
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60, demo };
@@ -51,7 +56,7 @@ const codexPlatformFinders = process.platform === 'linux' ? { linux: require('./
 const platformApi = {
   linuxStartup: process.platform === 'linux' ? require('./linux_feature/core/startup.cjs') : undefined,
   appleStartup: process.platform === 'darwin' ? require('./apple_feature/core/startup.cjs') : undefined,
-  changeTrayStyle: process.platform === 'linux' ? require('./linux_feature/core/preferences.cjs').changeTrayStyle : undefined,
+  changeTrayStyle: linuxPreferences && ((value, context) => linuxPreferences.changeTrayStyle(value, context, xfcePanelAvailable)),
   widgetStyles: windowsWidgetStyle?.styles,
   presentation: applePresentation,
 };
@@ -80,7 +85,7 @@ const platformAssets = {
   },
   linux: {
     styles: ['../../linux_feature/view-panel/style.css'],
-    scripts: ['../../linux_feature/settings/general/group.js'],
+    scripts: ['../../linux_feature/settings/general/styles.js', '../../linux_feature/settings/general/group.js'],
   },
 };
 
@@ -109,6 +114,7 @@ function publicState() { return { ...state, platform: process.platform, dark: na
   updates: updates?.snapshot(),
   resetNotifications: resetNotifications?.snapshot(),
   preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle, widgetResetDisplay: widgetSettings.widgetResetDisplay,
+    ...(linuxPreferences && { xfcePanelAvailable }),
     ...(taskbarSupported ? { widgetStyle: windowsWidgetStyle.normalize(widgetSettings.widgetStyle) } : {}),
     ...(applePresentation && { islandHoverStyle: widgetSettings.islandHoverStyle || 'minimal' }),
     startup: startupState({ app, platform: process.platform, demo: demo || cleanDemo, smoke, platformApi }) } }; }
@@ -136,9 +142,9 @@ function setLanguage(language) {
   return publicState();
 }
 function setDisplayMode(mode) {
-  if (process.platform === 'linux' && ['classic', 'bar'].includes(mode)) {
-    widgetSettings.linuxTrayStyle = mode;
-    mode = 'tray';
+  if (linuxPreferences && !['widget', 'tray'].includes(mode)) {
+    platformApi.changeTrayStyle(mode, { settings: widgetSettings, save: saveWidgetSettings, update });
+    return publicState();
   }
   if (!['widget', 'tray'].includes(mode) && !applePresentation?.isNotchMode(mode)) return publicState();
   if (mode === 'widget' && !taskbarSupported) mode = 'tray';
@@ -166,6 +172,10 @@ function presentationMenu() {
   return [
       { label: t('details'), click: showPanel },
       { label: t('settings'), click: showSettings },
+      ...(genmonPresentation ? [{
+        label: widgetSettings.language === 'ru' ? 'Скопировать команду для Genmon' : 'Copy Genmon command',
+        click: () => clipboard.writeText(genmonPresentation.command),
+      }] : []),
       { label: t('refresh'), enabled: !demo && (process.platform === 'linux' || !state.refreshing), click: () => void monitor?.refresh() },
       { type: 'separator' },
       { label: t('quit'), click: () => app.quit() }
@@ -175,6 +185,8 @@ function update() {
   if (quitting || !window || window.isDestroyed()) return;
   const bucket = selectedBucket(state);
   const stale = isStale(state);
+  genmonPresentation?.update({ style: widgetSettings.linuxTrayStyle, bucket, metricsState: state, stale,
+    dark: nativeTheme.shouldUseDarkColors, language: widgetSettings.language });
   if (usesNotch()) trayPresentation?.destroy();
   else trayPresentation?.update({ mode: widgetSettings.displayMode, linuxTrayStyle: widgetSettings.linuxTrayStyle, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: presentationMenu(), metricsState: state });
   for (const kind of ['short', 'weekly']) {
@@ -279,12 +291,17 @@ async function setup() {
     const saved = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget-settings.json'), 'utf8'));
     const width = saved.layoutVersion !== 1 && saved.width === 320 ? 280 : saved.width;
     widgetSettings = { visible: saved.visible !== false, width: [240, 280, 320, 400].includes(width) ? width : 280, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language, layoutVersion: 1, displayMode: (process.platform === 'darwin' && ['notch', 'island'].includes(saved.displayMode)) || displayModes().includes(saved.displayMode) ? saved.displayMode : displayModes()[0] };
-    if (process.platform === 'linux') widgetSettings.linuxTrayStyle = require('./linux_feature/core/preferences.cjs').trayStyle(saved.linuxTrayStyle);
+    if (linuxPreferences) widgetSettings.linuxTrayStyle = linuxPreferences.trayStyle(saved.linuxTrayStyle, xfcePanelAvailable);
     if (applePresentation?.islandHoverStyles.includes(saved.islandHoverStyle)) widgetSettings.islandHoverStyle = saved.islandHoverStyle;
     widgetSettings.widgetResetDisplay = ['hidden', 'countdown', 'clock'].includes(saved.widgetResetDisplay) ? saved.widgetResetDisplay : 'clock';
     if (taskbarSupported) widgetSettings.widgetStyle = windowsWidgetStyle.normalize(saved.widgetStyle);
   } catch { /* Defaults on first launch. */ }
   if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
+  if (xfcePanelAvailable) {
+    const activate = linuxGenmon.activationCommand({ executable: process.execPath, appPath: path.resolve(__dirname, '..'),
+      packaged: app.isPackaged, appImage: process.env.APPIMAGE, demo });
+    genmonPresentation = linuxGenmon.createGenmonPresentation({ root: profileRoot, activate });
+  }
   if (process.platform === 'darwin') app.dock.hide();
   appearance = new AppearanceStore(app.getPath('userData'));
   const UpdateService = process.platform === 'darwin' ? require('./apple_feature/updates/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('./windows_feature/updates/updates.cjs').WindowsUpdates : process.platform === 'linux' ? require('./linux_feature/updates/updates.cjs').LinuxUpdates : Updates;
@@ -719,7 +736,10 @@ async function setup() {
 }
 
 if (singleInstance) {
-  app.on('second-instance', showPanel);
+  app.on('second-instance', (_event, _argv, _cwd, data) => {
+    if (data?.linuxPanelActivation && linuxPanel && !welcomePending) return linuxPanel.toggle({});
+    return showPanel();
+  });
   app.on('activate', () => showPanel());
   app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
 }
@@ -731,6 +751,7 @@ app.on('before-quit', () => {
   stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop();
   for (const notification of resetToasts) notification.close();
   resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy();
+  genmonPresentation?.clear();
   clearInterval(tick); clearTimeout(saveTimer);
   if (window) persistWidgetSettings();
   widgetHost?.stop(); accountsStopped = monitor?.stop(); trayPresentation?.destroy();

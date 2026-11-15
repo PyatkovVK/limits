@@ -3,6 +3,11 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { panelBounds, panelEdge } = require('../panel/geometry.cjs');
 const { createPanelController } = require('../panel/panel.cjs');
+const { paintPanel } = require('../panel/presentation.cjs');
+
+test('opening can continue when the compositor never paints the hidden or mapped window', { timeout: 2000 }, async () => {
+  await paintPanel({ executeJavaScript: () => new Promise(() => {}) });
+});
 
 const area = { x: 0, y: 0, width: 1280, height: 767 };
 class FakeWindow extends EventEmitter {

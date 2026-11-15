@@ -139,11 +139,13 @@ async function loadPlatformAssets() {
     script.async = false;
     return script;
   });
-  document.head.append(...links, ...scripts);
-  await Promise.all(scripts.map(script => new Promise(resolve => {
-    script.addEventListener('load', resolve, { once: true });
-    script.addEventListener('error', resolve, { once: true });
-  })));
+  const elements = [...links, ...scripts];
+  const ready = elements.map(element => new Promise(resolve => {
+    element.addEventListener('load', resolve, { once: true });
+    element.addEventListener('error', resolve, { once: true });
+  }));
+  document.head.append(...elements);
+  await Promise.all(ready);
 }
 
 let renderSubscriptions;

@@ -8,18 +8,17 @@ const glyphs = {
   '6': ['111', '100', '111', '101', '111'], '7': ['111', '001', '010', '010', '010'],
   '8': ['111', '101', '111', '101', '111'], '9': ['111', '101', '111', '001', '111'],
   'h': ['100', '100', '110', '101', '101'], 'd': ['001', '001', '011', '101', '011'],
-  'ч': ['101', '101', '111', '001', '001'], 'д': ['010', '101', '101', '111', '101'],
   '—': ['000', '000', '111', '000', '000']
 };
 
 // StatusNotifier hosts such as XFCE fit both dimensions into their icon size.
 // Keep a square canvas and draw a separate, padded badge for each quota.
 // Its own dark surface keeps text readable when the panel and GTK themes differ.
-function bitmap({ remaining = null, kind = 'short', stale = false, size = 20, style = 'classic', language = 'en' } = {}) {
+function bitmap({ remaining = null, kind = 'short', stale = false, size = 20, style = 'classic' } = {}) {
   const pixels = Buffer.alloc(size * size * 4), scale = size / 20;
   const value = percentage(remaining);
   const period = kind === 'weekly' ? '7d' : '5h';
-  const label = style === 'bar' ? (language === 'ru' ? kind === 'weekly' ? '7д' : '5ч' : period) : value === null ? '—' : String(value);
+  const label = value === null ? '—' : String(value);
   const muted = stale || value === null;
   const accent = kind === 'weekly' ? [205, 180, 255] : [122, 239, 208];
   const surface = muted ? [36, 41, 48] : kind === 'weekly' ? [54, 36, 77] : [19, 61, 54];
@@ -43,14 +42,24 @@ function bitmap({ remaining = null, kind = 'short', stale = false, size = 20, st
       if (bit === '1') rect(left + (i * 4 + x) * unit, top + y * unit, unit, unit, rgb);
     }));
   }
-  if (style === 'bar') {
-    // The fixed quota period sits above the remaining-usage bar.
-    const unit = label.length > 2 ? 1.5 : 2;
-    text(label, unit, 3 + (10 - 5 * unit) / 2, color);
-    if (value === null) {
-      for (let x = 2; x < 18; x += 4) rect(x, 16, 2, 3, [91, 102, 114]);
-    } else rect(2, 16, 16, 3, [91, 102, 114]);
-    if (value !== null && value > 0) rect(2, 16, Math.max(1, Math.round(16 * value / 100)), 3, color);
+  if (style === 'rings') {
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const dx = (x + 0.5) / scale - 10, dy = (y + 0.5) / scale - 10;
+      const distance = Math.hypot(dx, dy);
+      const coverage = Math.min(1, Math.max(0, (1.45 - Math.abs(distance - 7)) * scale + 0.5));
+      if (!coverage) continue;
+      const fraction = (Math.atan2(dx, -dy) / (2 * Math.PI) + 1) % 1;
+      if (value === null && Math.floor(fraction * 12) % 2) continue;
+      const tone = value === null || fraction < value / 100 ? color : border;
+      pixels.set([...tone, Math.round(255 * coverage)], (y * size + x) * 4);
+    }
+    return { pixels, size, value, label, period, color, surface };
+  }
+  if (style === 'digits') {
+    roundedSurface(surface, 1);
+    const unit = label.length > 2 ? 1.5 : 2.2;
+    text(label, unit, 8 - 2.5 * unit, [250, 252, 255]);
+    rect(5, 15, 10, 2, color);
     return { pixels, size, value, label, period, color, surface };
   }
   roundedSurface(border, 0);

@@ -8,7 +8,8 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 - **One-time welcome tour.** See where Limits displays quotas on Windows, macOS, or Linux. New users see supported providers and existing users get a tour of the redesigned settings. Limits remembers that it showed the welcome, including when you skip it.
 - **Claude Code and Kimi Code.** Track available 5-hour and weekly quotas and their reset times on Windows, macOS and Linux. Claude Code supplies local quota data through its status line. Kimi Code connects with an API key from the Kimi Code Console.
-- **Linux desktop widget removed.** Keep percentage icons and period/bar icons in the tray; previously saved widget selections automatically switch to tray mode while preserving the chosen tray style.
+- **Linux tray and XFCE panel displays.** Choose Classic, Digits or Rings in Settings. The XFCE panel can show Line or Shelf through Genmon while keeping the tray indicators available. Saved tray bars switch to Classic.
+- **Linux details panel.** Bound the wait for compositor frames so clicking a tray indicator can open details even when the hidden window receives no frame.
 - **GLM Coding Plan (Z.ai).** Connect a personal API key on Windows, macOS and Linux to track the remaining 5-hour and weekly allowances and see reset times when available.
 - **Redesigned Settings.** General, Subscriptions, Updates and Codex Resets have dedicated cards, and Background shows a live preview.
 - **Reset times in the Windows widget.** Show the date and time, switch to a countdown, or hide reset times. Limits saves your choice.

@@ -1,13 +1,13 @@
 'use strict';
 
-const { styles: TRAY_STYLES, normalize: trayStyle } = require('../settings/general/styles.js');
+const { available, normalize: trayStyle } = require('../settings/general/styles.js');
 
-function changeTrayStyle(value, { settings, save, update }) {
-  if (!TRAY_STYLES.includes(value)) return false;
+function changeTrayStyle(value, { settings, save, update }, xfce = false) {
+  if (!available(xfce).includes(value)) return false;
   settings.linuxTrayStyle = value;
   save();
   update();
   return true;
 }
 
-module.exports = { TRAY_STYLES, trayStyle, changeTrayStyle };
+module.exports = { trayStyle, changeTrayStyle };

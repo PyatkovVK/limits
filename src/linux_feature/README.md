@@ -45,10 +45,15 @@ Application wiring, diagnostic scripts and tests import subsystem modules direct
 
 Choose **Settings → General → Display**, in this order:
 
-1. **Percentages and bar** uses the classic colored percentage badges. This is the default for profiles without an explicit selection.
-2. **Bar · 5h / 7d** displays the fixed quota duration above a proportional remaining-usage bar. Russian labels are `5ч` / `7д`. Unknown values use a dashed bar.
+1. **Classic** uses the original colored percentage badges and is the default.
+2. **Digits** shows larger percentages with a colored underline for each period.
+3. **Rings** shows the remaining share of each quota as a colored arc.
+4. **Line · XFCE** shows both percentages in a single text row.
+5. **Shelf · XFCE** adds two segmented meters below the percentages.
 
-The `displayMode` and `linuxTrayStyle` preferences are saved in `widget-settings.json`. Previously saved widget modes automatically fall back to tray mode, preserving the chosen tray style. Switching styles updates both icons in place. Account details, percentages and reset information remain available in tooltips. Clicking either quota icon toggles details. Explicit Details and Settings menu actions continue to open their targets. Polling keeps tray menus stable.
+The `displayMode` and `linuxTrayStyle` preferences are saved in `widget-settings.json`. Previously saved widget modes fall back to tray mode, and the old tray bar style falls back to Classic. Switching tray styles updates both icons in place. Account details, percentages and reset information remain available in tooltips. Clicking either quota icon toggles details. Explicit Details and Settings menu actions continue to open their targets. Polling keeps tray menus stable.
+
+For Line or Shelf, install `xfce4-genmon-plugin` if needed. In XFCE Panel Preferences → Items, add **Generic Monitor** near the notification area. Open its properties, turn off its label, and paste the command from the Limits tray menu (**Copy Genmon command**). A refresh period of two seconds lets it follow changes in Limits. The same Genmon item follows either wide style and clicking it toggles details. The classic tray icons are also available in these modes.
 
 ## Launch at login
 

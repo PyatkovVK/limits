@@ -11,11 +11,10 @@ function placement({ screen, getTrayBounds }) {
 module.exports = {
   placement,
   description: {
-    ru: 'На Linux можно выбрать значки с процентами или полоски 5ч и 7д. Нажмите на значок в трее, чтобы открыть подробности.',
-    en: 'On Linux, choose percentage icons or 5h and 7d bars. Click a tray indicator to see details.',
+    ru: 'Выберите стиль значков в настройках. Нажмите на значок в трее, чтобы открыть подробности.',
+    en: 'Choose a tray icon style in Settings. Click a tray indicator to see details.',
   },
   variants: [
-    { label: { ru: 'Значки в трее', en: 'Tray icons' }, image: path.join(__dirname, 'images/icons.png'), size: 'icons' },
-    { label: { ru: 'Полоски в трее', en: 'Tray bars' }, image: path.join(__dirname, 'images/bars.png'), size: 'icons' },
+    { label: { ru: 'Классические', en: 'Classic' }, image: path.join(__dirname, 'images/icons.png'), size: 'icons' },
   ],
 };
