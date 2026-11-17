@@ -2,19 +2,18 @@
 (function () {
   const isNotch = new URLSearchParams(location.search).get('apple') === 'notch';
   const body = document.body;
+  const resetTimers = new Map();
   let islandIndicators, updateSurface, previewMetrics;
 
   if (isNotch) {
     body.classList.add('apple-notch');
     const content = document.createElement('div');
     content.className = 'apple-content'; content.inert = true;
-    content.dataset.backgroundTarget = '';
+    window.limitsAppearance.setTarget(content);
     content.append(...body.children);
     const shell = document.createElement('div'); shell.className = 'apple-shell';
     const cap = document.createElement('div'); cap.className = 'apple-cap'; cap.setAttribute('aria-hidden', 'true');
-    const resetHint = document.createElement('div'); resetHint.className = 'apple-preview-reset'; resetHint.hidden = true;
-    const resetLabel = document.createElement('span');
-    const resetTime = document.createElement('time'); resetTime.id = 'apple-short-reset'; resetHint.append(resetLabel, resetTime);
+    const resetHints = document.createElement('div'); resetHints.className = 'apple-preview-resets';
     const trigger = document.createElement('button'); trigger.className = 'apple-trigger'; trigger.id = 'apple-trigger';
     const preview = document.createElement('div'); preview.className = 'apple-preview';
     const heading = document.createElement('div'); heading.className = 'apple-preview-heading';
@@ -28,6 +27,11 @@
       const bar = document.createElement('progress'); bar.max = 100; bar.id = `apple-${kind}-bar`;
       const value = document.createElement('span'); value.className = 'metric-value'; value.id = `apple-${kind}-value`;
       row.append(name, bar, value); previewMetrics.append(row);
+      const hint = document.createElement('span'); hint.className = `apple-preview-reset ${kind}`; hint.hidden = true;
+      const prefix = document.createElement('span');
+      const time = document.createElement('time'); time.id = `apple-${kind}-reset`;
+      hint.append(prefix, time); resetHints.append(hint);
+      resetTimers.set(kind, { hint, prefix, time, inline: name });
     }
     islandIndicators = window.limitsAppleIsland.create();
     const notification = document.createElement('section'); notification.className = 'apple-notification'; notification.hidden = true;
@@ -42,7 +46,7 @@
     const svg = 'http://www.w3.org/2000/svg';
     const outline = document.createElementNS(svg, 'svg'); outline.classList.add('apple-surface-outline'); outline.setAttribute('aria-hidden', 'true');
     outline.append(document.createElementNS(svg, 'path'));
-    trigger.append(preview, resetHint); shell.append(cap, trigger, content, islandIndicators.header, notification, outline); body.append(shell);
+    trigger.append(preview, resetHints); shell.append(cap, trigger, content, islandIndicators.header, notification, outline); body.append(shell);
     updateSurface = window.limitsAppleSurface.observeSurface(shell, body);
     const previewSize = new ResizeObserver(() => {
       if (body.dataset.notchPhase === 'peek' && body.hasAttribute('data-peek-fallback')) {
@@ -131,19 +135,28 @@
     },
     renderCountdown() {
       const next = this.state;
-      const fallback = next.appleNotch.peekFallback;
+      const { peekFallback, hoverStyle } = next.appleNotch;
       const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets[0];
-      const hint = document.querySelector('.apple-preview-reset');
-      const time = document.getElementById('apple-short-reset');
-      const parent = fallback ? document.querySelector('.apple-preview-row.short .metric-label') : hint;
-      if (time.parentElement !== parent) parent.append(time);
-      const reset = next.displaySchema && next.displaySchema.layout !== 'quota-windows'
-        ? window.limitsMetrics.view(next).primary?.resetsAt / 1000
-        : bucket?.short?.resetsAt;
-      hint.hidden = fallback || !Number.isFinite(reset) || reset <= 0;
-      if (!hint.hidden) hint.firstElementChild.textContent = window.limitsI18n.t(next.language, 'resetIn');
-      if (fallback || !hint.hidden) window.limitsCountdown.render(time, reset, next.language);
-      if (fallback) window.limitsMetricElements?.countdowns(previewMetrics);
+      const generic = next.displaySchema && next.displaySchema.layout !== 'quota-windows';
+      const resets = { short: bucket?.short?.resetsAt, weekly: bucket?.weekly?.resetsAt };
+      if (generic) {
+        const { primary, metrics } = window.limitsMetrics.view(next);
+        resets.short = primary?.resetsAt / 1000;
+        resets.weekly = metrics.find(metric => metric.slot === 'weekly' && metric.id !== primary?.id)?.resetsAt / 1000;
+      }
+      const now = Date.now();
+      for (const [kind, { hint, prefix, time, inline }] of resetTimers) {
+        const reset = resets[kind];
+        const hasReset = Number.isFinite(reset) && reset > 0;
+        const showInline = peekFallback && !generic && (kind === 'short' || hoverStyle === 'informative');
+        const parent = showInline ? inline : hint;
+        if (time.parentElement !== parent) parent.append(time);
+        hint.hidden = peekFallback || !hasReset;
+        time.hidden = !hasReset;
+        if (!hint.hidden) prefix.textContent = window.limitsI18n.t(next.language, 'resetIn');
+        if (hasReset) window.limitsCountdown.render(time, reset, next.language, now, { compactDays: kind === 'weekly' });
+      }
+      if (peekFallback) window.limitsMetricElements?.countdowns(previewMetrics);
     }
   };
   Object.assign(window.limitsPlatform ??= {}, {

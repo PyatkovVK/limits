@@ -42,7 +42,9 @@ body[data-platform="darwin"][data-theme="dark"].apple-notch {
   --content-top: var(--cap-height); --menu-bar-width: 124px;
   --closed-width: 148px; --closed-height: 30px; --peek-width: 340px; --peek-height: 126px;
   color-scheme: dark; background: transparent; border: 0; border-radius: 0; box-shadow: none; display: block;
+  user-select: none;
 }
+body.apple-notch :is(input, textarea, [contenteditable="true"]) { user-select: text; }
 .apple-shell {
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
   width: var(--closed-width); height: var(--closed-height);
@@ -136,12 +138,15 @@ body[data-platform="darwin"].apple-notch[data-notch-phase="closed"] .apple-previ
 /* The notch chrome keeps its colors independently of the details background. */
 body[data-platform="darwin"].apple-notch .apple-preview progress:not(#settings-dialog *)::-webkit-progress-value { background: var(--preview-progress, var(--short)); }
 body[data-platform="darwin"].apple-notch.stale .apple-preview progress:not(#settings-dialog *)::-webkit-progress-value { background: #949bab; }
-.apple-preview-reset { display: none; }
-body[data-notch-phase="peek"][data-notch-hover-style="informative"] .apple-preview-reset {
+.apple-preview-resets { display: none; }
+body[data-notch-phase="peek"][data-notch-hover-style="informative"] .apple-preview-resets {
   position: absolute; top: calc(var(--cap-height) + 16px); left: 18px; right: 18px;
-  display: flex; gap: 5px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+  color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums;
 }
-body[data-peek-values] .apple-preview-reset { margin-top: 17px; }
+.apple-preview-reset { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.apple-preview-reset.weekly { grid-column: 2; justify-self: end; }
+body[data-peek-values] .apple-preview-resets { margin-top: 17px; }
 body[data-notch-phase="peek"][data-peek-fallback] .apple-preview {
   display: block; top: var(--content-top); left: 22px; right: 22px; padding: 12px 0 16px; font-size: 11px;
 }
@@ -164,7 +169,7 @@ body[data-peek-fallback] .apple-preview .metric-label { display: flex; align-ite
 body[data-peek-fallback] .apple-preview-row .metric-label { gap: 9px; }
 body[data-peek-fallback].apple-narrow-preview .apple-preview-row .metric-label { gap: 4px; }
 body[data-peek-fallback] .apple-preview :is(.metric-value, .metric-reset, .metric-empty) { display: block; text-align: right; }
-body[data-peek-fallback] .apple-preview #apple-short-reset { color: var(--muted); font-size: 10px; }
+body[data-peek-fallback] .apple-preview time { color: var(--muted); font-size: 10px; white-space: nowrap; }
 body[data-platform="darwin"][data-peek-fallback] .apple-preview progress { height: 4px; }
 body[data-platform="darwin"][data-peek-fallback] .apple-preview-row progress { grid-row: auto; grid-column: auto; }
 body[data-peek-fallback] .apple-preview .metric-compact { display: grid; }
@@ -196,13 +201,14 @@ body[data-platform="darwin"].apple-island .apple-island-meters {
   display: flex; align-items: center; justify-content: space-between;
   width: min(calc(100% - 36px), calc(var(--meters-width) - 36px)); padding: 0; border: 0; border-radius: 0; background: transparent;
   color: #f4f5f8; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 650;
+  pointer-events: none;
 }
 .apple-island-wing { display: flex; align-items: center; gap: 8px; max-width: var(--island-wing-width); }
 body[data-platform="darwin"].apple-island .apple-island-meter,
 body[data-platform="darwin"].apple-island .apple-island-more {
   display: flex; flex: 0 0 auto; align-items: center; gap: 6px;
   padding: 0; border: 0; background: transparent; color: #f4f5f8;
-  font-size: var(--island-value-size, 12px); font-weight: 650; border-radius: 4px;
+  font-size: var(--island-value-size, 12px); font-weight: 650; border-radius: 4px; pointer-events: auto;
 }
 body[data-platform="darwin"].apple-island .apple-island-more { min-width: 24px; justify-content: center; color: #a7aab6; font-size: 10px; }
 .apple-island-label { max-width: 40px; font-size: .83333em; font-weight: 500; color: #9b9ca9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

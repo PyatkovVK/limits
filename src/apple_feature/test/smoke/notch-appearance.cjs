@@ -37,6 +37,12 @@ async function verifyNotchHover({ appleNotch, target, preview }) {
       return {
         indicators: ${indicators}, meters,
         reset: Boolean(document.querySelector('.apple-preview-reset').getClientRects().length),
+        weeklyReset: (() => {
+          const time = document.getElementById('apple-weekly-reset');
+          const rect = time.getBoundingClientRect();
+          const weekly = document.getElementById('apple-weekly-bar').getBoundingClientRect();
+          return { visible: Boolean(rect.width), belowWeekly: rect.top >= weekly.bottom, value: time.textContent, dateTime: time.dateTime };
+        })(),
         values: Boolean(document.getElementById('apple-short-value').getClientRects().length),
         border: getComputedStyle(document.querySelector('.apple-surface-outline')).display !== 'none',
       };
@@ -45,14 +51,35 @@ async function verifyNotchHover({ appleNotch, target, preview }) {
     if (closed.length !== (mode === 'island' ? 2 : 0) || JSON.stringify(report.indicators) !== JSON.stringify(closed) ||
         report.meters.map(meter => meter.value).join(',') !== '72,46' ||
         report.meters.some(meter => !meter.width || meter.top < layout.capHeight || meter.bottom > layout.peekHeight) ||
-        report.reset !== (style === 'informative') || report.values !== (mode === 'notch' && style === 'informative') || !report.border) {
+        report.reset !== (style === 'informative') || report.weeklyReset.visible !== (style === 'informative') ||
+        (report.weeklyReset.visible && (!report.weeklyReset.belowWeekly || !/^\d+[dд]\d+[hч]$/.test(report.weeklyReset.value) || !report.weeklyReset.dateTime)) ||
+        report.values !== (mode === 'notch' && style === 'informative') || !report.border) {
       throw new Error('Hover changed the top indicators or lost the preview below them: ' + JSON.stringify({ style, closed, report }));
     }
     await preview(`apple-${mode}-hover-${style}.png`, layout.peekHeight + 12);
-    await run("document.getElementById('apple-trigger').click()");
+    const cap = { x: Math.floor(layout.bounds.width / 2), y: Math.floor(layout.notchHeight / 2) };
+    const hit = await run(`document.elementFromPoint(${cap.x}, ${cap.y}).closest('button')?.id`);
+    if (hit !== 'apple-trigger') throw new Error('The center of the notch does not hit the preview button');
+    if (!await run(`[...document.querySelectorAll('.apple-island-meter:not([hidden])')].every(button => {
+      const { left, top, width, height } = button.getBoundingClientRect();
+      return !width || document.elementFromPoint(left + width / 2, top + height / 2).closest('button') === button;
+    })`)) throw new Error('Side indicators stopped receiving clicks');
+    target.focus();
+    for (const type of ['mouseDown', 'mouseUp']) {
+      target.webContents.sendInputEvent({ type, ...cap, button: 'left', clickCount: 1 });
+    }
     await settle();
     if (appleNotch.phase !== 'expanded') throw new Error('Hover click did not open the compact subscription preview');
     await verifyCompactMacPanel(target);
+    const quota = await run(`(() => {
+      const { left, top, width, height } = document.getElementById('short-value').getBoundingClientRect();
+      return { x: Math.floor(left + width / 2), y: Math.floor(top + height / 2) };
+    })()`);
+    for (const type of ['mouseDown', 'mouseUp']) {
+      target.webContents.sendInputEvent({ type, ...quota, button: 'left', clickCount: 2 });
+    }
+    await run('new Promise(resolve => requestAnimationFrame(resolve))');
+    if (await run("window.getSelection().toString()")) throw new Error('Notch quotas can be selected with the mouse');
   }
   await preview(`apple-${mode}-subscription-preview.png`, appleNotch.snapshot().fullHeight + 12);
   return { minimal: true, informative: true, unchangedIndicators: true, clickOpensPreview: true };

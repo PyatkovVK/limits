@@ -3,7 +3,7 @@
   let generation = 0, imageId, imageData;
   let current = { mode: 'default', color: '#202632', hasImage: false, layout: 'standard' };
   const subscribers = new Set();
-  const target = document.querySelector('[data-background-target]') || document.body;
+  let target = document.body;
 
   function isLight(color) {
     const rgb = color.slice(1).match(/../g).map(value => parseInt(value, 16) / 255)
@@ -20,6 +20,15 @@
 
   const properties = ['background-image', 'background-color', 'background-size', 'background-position', 'background-repeat'];
   const variables = ['--ink', '--muted', '--edge', '--surface', '--control', '--track', '--appearance-ink', '--appearance-muted'];
+  function setTarget(element) {
+    for (const property of properties) {
+      const value = target.style.getPropertyValue(property);
+      if (value) element.style.setProperty(property, value);
+      target.style.removeProperty(property);
+    }
+    target = element;
+  }
+
   async function apply(next) {
     if (next.error) throw new Error(next.error);
     const request = ++generation;
@@ -56,7 +65,7 @@
   }
 
   window.limitsAppearance = {
-    update, paint, isLight,
+    update, paint, isLight, setTarget,
     subscribe(listener) { subscribers.add(listener); listener(current); },
   };
   window.limits.onAppearance(next => { void update(next); });
