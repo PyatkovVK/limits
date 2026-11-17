@@ -33,17 +33,24 @@
       return;
     }
     if (connectionId !== pending.id) { connectionId = pending.id; input.value = ''; actionError = null; }
+    if (window.limitsPlatform?.activeHost?.(next) === false) {
+      if (dialog.open) dialog.close();
+      return;
+    }
     const t = words[next.language] || words.en;
+    const needsPermission = next.keychainPermissionRequired === true;
+    const restoreFocus = stored.hidden && !needsPermission && error.contains(document.activeElement);
     title.textContent = `${t.title} ${pending.name}`;
     hint.textContent = pending.providerId === 'zai' ? t.codingPlanHint : t.hint.replace('{name}', pending.name);
-    label.textContent = t.key; stored.textContent = t.stored;
+    label.textContent = t.key; stored.textContent = t.stored; stored.hidden = needsPermission;
     browser.textContent = t.browser; cancel.textContent = t.cancel;
     const checking = pending.phase === 'checking';
     input.disabled = checking; browser.disabled = checking;
-    connect.textContent = checking ? t.checking : t.connect; connect.disabled = checking || !input.value.trim();
+    connect.textContent = checking ? t.checking : t.connect; connect.disabled = checking || needsPermission || !input.value.trim();
     dialog.setAttribute('aria-busy', String(checking));
-    window.limitsI18n.notice(error, actionError, next.language);
+    window.limitsI18n.notice(error, needsPermission ? 'credentialStoragePermissionRequired' : actionError, next.language);
     if (!dialog.open) { dialog.showModal(); input.focus(); }
+    else if (restoreFocus) input.focus();
   }
   async function submit() {
     if (connect.disabled || !connectionId) return;
@@ -74,7 +81,5 @@
   };
   window.limitsKeyConnection = { open(result) {
     if (result.connection?.id === connectionId) { actionError = result.error || null; render(current); }
-  }, dialog };
-  window.limits.subscribe(render);
-  window.limits.get().then(render);
+  }, dialog, render };
 })();

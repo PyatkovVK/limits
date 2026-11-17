@@ -50,6 +50,8 @@ const t = key => (process.platform === 'darwin' ? require('./apple_feature/rende
 let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60, demo };
 let notified = new Set();
 const applePresentation = process.platform === 'darwin' ? require('./apple_feature/panel/presentation.cjs') : null;
+const appleKeychain = process.platform === 'darwin' ? require('./apple_feature/ai-connects/keychain.cjs') : null;
+const keychainAccess = appleKeychain && !demo ? new appleKeychain.KeychainAccess(app.getPath('userData'), safeStorage) : null;
 const usesNotch = () => applePresentation?.isNotchMode(widgetSettings.displayMode);
 // Platform capabilities injected into common modules, keeping common free of *_feature imports.
 const codexPlatformFinders = process.platform === 'linux' ? { linux: require('./linux_feature/ai-connects/codex/path.cjs').findLinuxCodex } : process.platform === 'darwin' ? { darwin: require('./apple_feature/ai-connects/codex/path.cjs').findMacCodex } : {};
@@ -111,6 +113,7 @@ function showPanel(anchor) {
 
 const displayModes = () => taskbarSupported ? ['widget', 'tray'] : applePresentation ? applePresentation.displayModes(appleNotch?.available) : ['tray'];
 function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, reducedMotion: nativeTheme.prefersReducedMotion, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: displayModes(), appleNotch: appleNotch?.snapshot() || null, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null,
+  ...(keychainAccess && { keychainPermissionRequired: !keychainAccess.granted }),
   updates: updates?.snapshot(),
   resetNotifications: resetNotifications?.snapshot(),
   preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle, widgetResetDisplay: widgetSettings.widgetResetDisplay,
@@ -410,7 +413,7 @@ async function setup() {
     const url = monitor?.credentialsUrl(id);
     if (!url || demo) return { error: 'loginUnavailable' };
     try {
-      if (usesNotch()) await appleNotch?.beforeBrowserLogin();
+      if (usesNotch() && appleNotch?.phase === 'expanded') appleNotch.collapse();
       if (monitor.credentialsUrl(id) !== url) return {};
       if (process.platform === 'linux') await require('./linux_feature/core/browser.cjs').openBrowser(url);
       else await shell.openExternal(url);
@@ -439,12 +442,23 @@ async function setup() {
   });
   handle('limits:key-submit', async (id, key) => {
     if (!monitor || demo || typeof id !== 'string') return { error: 'loginUnavailable' };
-    try { return { profileId: await monitor.submitKeyConnection(id, key) }; }
-    catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'quotaRefreshFailed', 'kimiQuotaRefreshFailed', 'codingPlanRequired', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
+    try {
+      keychainAccess?.check();
+      return { profileId: await monitor.submitKeyConnection(id, key) };
+    } catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'credentialStoragePermissionRequired', 'balanceRefreshFailed', 'quotaRefreshFailed', 'kimiQuotaRefreshFailed', 'codingPlanRequired', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
   });
   handle('limits:key-cancel', id => { if (typeof id === 'string') monitor?.cancelKeyConnection(id); return {}; });
   handle('limits:key-browser', id => typeof id === 'string' ? openCredentials(id) : { error: 'loginUnavailable' });
-  if (process.platform === 'darwin') handle('limits:credential-storage-open', require('./apple_feature/ai-connects/keychain.cjs').openKeychain);
+  if (appleKeychain) handle('limits:credential-storage-open', appleKeychain.openKeychain);
+  if (keychainAccess) handle('limits:credential-storage-request', async () => {
+    if (keychainAccess.granted) return true;
+    const request = () => keychainAccess.request();
+    const granted = usesNotch() && appleNotch ? await appleNotch.withModal(request) : request();
+    if (!granted) return false;
+    update();
+    if (state.profiles?.some(profile => profile.error === 'credentialStoragePermissionRequired')) void monitor.refresh();
+    return true;
+  });
   handle('limits:profile-action', async (action, id, value) => {
     if (!monitor || typeof id !== 'string') return { error: 'accountActionFailed' };
     try {
@@ -482,7 +496,7 @@ async function setup() {
         const { DemoMonitor } = require('./common/demo/demo-monitor.cjs');
         monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
       } else {
-        monitor = new AccountService({ root, isolateDefault: cleanDemo, controllerContext: () => ({ safeStorage, resourcesPath: app.isPackaged ? process.resourcesPath : null,
+        monitor = new AccountService({ root, isolateDefault: cleanDemo, controllerContext: () => ({ safeStorage, checkCredentialAccess: keychainAccess && (() => keychainAccess.check()), resourcesPath: app.isPackaged ? process.resourcesPath : null,
           preserveStartupSample: process.platform === 'linux', codexPlatformFinders }) });
       }
       if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));

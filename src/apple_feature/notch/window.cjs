@@ -9,6 +9,7 @@ function createNotchWindow({ BrowserWindow, webPreferences, restrictWindow, onBl
     transparent: true,
     backgroundColor: '#00000000',
     show: false,
+    acceptFirstMouse: true,
     resizable: false,
     movable: false,
     minimizable: false,

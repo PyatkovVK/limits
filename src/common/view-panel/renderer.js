@@ -47,7 +47,8 @@ function render(next) {
   $('connection').setAttribute('aria-label', connection);
   $('account').textContent = next.displayName || next.account?.email || t(noProfiles ? 'noAccounts' : next.status === 'signed-out' ? 'connectAccount' : 'account');
   $('account').title = [next.account?.email, next.account?.planType].filter(Boolean).join(' · ');
-  const messageKey = actionError || next.error || next.widgetError || (next.accountAvailable === false ? 'insufficientBalance' : next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
+  const profileError = next.error === 'credentialStoragePermissionRequired' && next.keychainPermissionRequired === false ? null : next.error;
+  const messageKey = actionError || profileError || next.widgetError || (next.accountAvailable === false ? 'insufficientBalance' : next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
   window.limitsI18n.notice($('error'), messageKey, language, t);
   const groups = next.groups || next.buckets;
   document.querySelector('.panel-quotas').hidden = generic || noProfiles;
@@ -90,6 +91,7 @@ function render(next) {
   renderSubscriptions(next, t, actionError);
   renderCountdown();
   window.limitsPlatform?.render?.(next);
+  window.limitsKeyConnection.render(next);
 }
 
 $('hide').addEventListener('click', () => window.limits.hide());

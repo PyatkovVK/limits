@@ -25,6 +25,13 @@ body[data-platform="darwin"].apple-notch #settings-dialog[open] {
   top: calc(var(--content-top) + var(--settings-inset));
   max-height: calc(var(--full-height) - var(--content-top) - 2 * var(--settings-inset));
 }
+body.apple-notch .key-connection {
+  --key-connection-inset: 12px;
+  top: calc(var(--content-top) + var(--key-connection-inset)); bottom: auto; margin: 0 auto;
+  max-width: calc(var(--full-width) - 2 * var(--key-connection-inset));
+  max-height: calc(var(--full-height) - var(--content-top) - 2 * var(--key-connection-inset));
+}
+body.apple-notch .key-connection::backdrop { background: transparent; }
 /* The transparent native window stays stationary while only the island morphs. */
 body[data-platform="darwin"].apple-notch,
 body[data-platform="darwin"][data-theme="dark"].apple-notch {
@@ -53,6 +60,7 @@ body[data-platform="darwin"].apple-notch .apple-trigger:hover {
   -webkit-app-region: no-drag;
 }
 body[data-notch-phase="expanded"] .apple-trigger { pointer-events: none; }
+body[data-platform="darwin"].apple-notch[data-notch-phase="notification"] .apple-trigger { height: var(--closed-height); }
 .apple-content {
   position: absolute; top: var(--content-top); left: 50%; width: var(--full-width); height: calc(var(--full-height) - var(--content-top));
   display: flex; flex-direction: column; opacity: 0; transform: translateX(-50%) translateY(-14px) scale(.975);

@@ -50,7 +50,7 @@ class ApiKeyController extends AiController {
     } catch (error) {
       if (this.stopped || generation !== this.generation) return this.state;
       const reason = error?.code;
-      const code = reason && ['invalidApiKey', 'credentialStorageUnavailable', this.accessError].includes(reason) ? reason : this.refreshError;
+      const code = reason && ['invalidApiKey', 'credentialStorageUnavailable', 'credentialStoragePermissionRequired', this.accessError].includes(reason) ? reason : this.refreshError;
       this.emit('diagnostic', { stage: 'refresh', code });
       if (code === 'invalidApiKey' || code === this.accessError) {
         this.publish({ account: null, groups: [], accountAvailable: null, updatedAt: null,

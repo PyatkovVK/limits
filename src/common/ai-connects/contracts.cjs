@@ -5,7 +5,7 @@ const time = value => number(value) !== null && value > 0 && value < 86400000000
 const captions = value => ({ ru: text(value?.ru) || '', en: text(value?.en) || '' });
 const safeCodes = new Set([
   'disconnected', 'refreshFailed', 'loginIncomplete', 'providerUnavailable', 'unsupported', 'loginBusy', 'loginUnavailable',
-  'accountActionFailed', 'controllerContract', 'invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed',
+  'accountActionFailed', 'controllerContract', 'invalidApiKey', 'credentialStorageUnavailable', 'credentialStoragePermissionRequired', 'balanceRefreshFailed',
   'quotaRefreshFailed', 'codingPlanRequired', 'browserOpenFailed', 'claudeWaitingForUsage', 'claudeUsageReadFailed', 'kimiQuotaRefreshFailed'
 ]);
 function contractError(code = 'controllerContract') { return Object.assign(new Error(code), { code }); }

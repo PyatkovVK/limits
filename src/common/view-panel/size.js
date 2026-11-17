@@ -5,6 +5,7 @@ window.limitsViewPanelReady = window.renderReady.then(async () => {
   const main = document.querySelector('main');
   const titlebar = document.querySelector('.titlebar');
   const dialog = document.getElementById('settings-dialog');
+  const keyDialog = window.limitsKeyConnection.dialog;
   const settings = dialog.querySelector('.settings-content');
   function wrap(parent, className) {
     const content = document.createElement('div');
@@ -24,7 +25,11 @@ window.limitsViewPanelReady = window.renderReady.then(async () => {
     const height = titlebar.offsetHeight + content.offsetHeight + verticalEdges(main) + verticalEdges(document.body);
     const inset = parseFloat(getComputedStyle(dialog).getPropertyValue('--settings-inset')) || 14;
     const modalHeight = dialog.open ? dialog.querySelector('.settings-header').offsetHeight + settingsContent.offsetHeight + verticalEdges(settings) + verticalEdges(dialog) + 2 * inset : 0;
-    return Math.ceil(Math.max(height, modalHeight));
+    // The notch only accepts input within the rendered panel.
+    const keyStyle = getComputedStyle(keyDialog);
+    const keyInset = parseFloat(keyStyle.getPropertyValue('--key-connection-inset')) || 0;
+    const keyHeight = keyDialog.open && keyInset ? keyDialog.scrollHeight + parseFloat(keyStyle.borderTopWidth) + parseFloat(keyStyle.borderBottomWidth) + 2 * keyInset : 0;
+    return Math.ceil(Math.max(height, modalHeight, keyHeight));
   }
   let lastHeight, frame = null;
   async function report() {
@@ -43,6 +48,7 @@ window.limitsViewPanelReady = window.renderReady.then(async () => {
   for (const node of [content, titlebar, settingsContent]) sizes.observe(node);
   document.addEventListener('toggle', schedule, true);
   dialog.addEventListener('close', schedule);
+  keyDialog.addEventListener('close', schedule);
   window.addEventListener('resize', schedule);
   window.addEventListener('pagehide', () => {
     mutations.disconnect(); sizes.disconnect();

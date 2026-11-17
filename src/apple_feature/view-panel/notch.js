@@ -97,7 +97,7 @@
       const trigger = document.getElementById('apple-trigger');
       trigger.tabIndex = expanded || (layout.mode === 'island' && layout.indicatorMode !== 'hidden') ? -1 : 0;
       trigger.setAttribute('aria-expanded', String(expanded));
-      trigger.inert = layout.phase === 'notification' || expanded;
+      trigger.inert = expanded || (layout.phase === 'notification' && !next.keyConnection);
       const loginNotice = document.getElementById('apple-login-notice');
       const noticeParent = document.querySelector('dialog[open] .settings-content') || document.querySelector('.apple-content main');
       if (loginNotice.parentElement !== noticeParent) noticeParent.prepend(loginNotice);

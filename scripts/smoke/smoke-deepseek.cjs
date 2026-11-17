@@ -11,12 +11,33 @@ const { Subscriptions } = require('../../src/common/ai-connects/codex/subscripti
 const { BALANCE_URL, KEY_URL } = require('../../src/common/ai-connects/deepseek/client.cjs');
 const { QUOTA_URL, KEY_URL: ZAI_KEY_URL } = require('../../src/common/ai-connects/zai/client.cjs');
 const { USAGE_URL, KEY_URL: KIMI_KEY_URL } = require('../../src/common/ai-connects/kimi/controller.cjs');
+let notch;
+if (process.platform === 'darwin') {
+  const module = require('../../src/apple_feature/notch/controller.cjs');
+  module.AppleNotch = class extends module.AppleNotch {
+    constructor(options) {
+      super({ ...options, readNativeScreens: async () => {
+        const { id, bounds } = options.screen.getPrimaryDisplay();
+        return [{ id, top: 38, notchWidth: 220, notchX: (bounds.width - 220) / 2 }];
+      } });
+      notch = this;
+    }
+  };
+}
 const artifacts = path.resolve(__dirname, '../../artifacts'); fs.mkdirSync(artifacts, { recursive: true });
 const root = fs.mkdtempSync(path.join(artifacts, 'deepseek-smoke-'));
 const setPath = app.setPath.bind(app);
 app.setPath = (name, value) => setPath(name, name === 'userData' ? path.join(root, 'profile') : value);
 app.disableHardwareAcceleration();
 const key = 'sk-deepseek-smoke-fixture', opened = [];
+let storageChecks = 0, denyStorage = false;
+if (process.platform === 'darwin') {
+  const isEncryptionAvailable = safeStorage.isEncryptionAvailable.bind(safeStorage);
+  safeStorage.isEncryptionAvailable = () => {
+    storageChecks++;
+    return !denyStorage && isEncryptionAvailable();
+  };
+}
 let apiCalls = 0, offline = false, empty = false, release;
 const zaiKey = 'zai-smoke-fixture.secret', replacement = 'zai-smoke-replacement.secret';
 const weeklyReset = Date.now() + 2 * 86400000;
@@ -63,6 +84,39 @@ async function waitFor(condition, label) {
   while (Date.now() < deadline) { if (await condition()) return; await pause(); }
   throw new Error(`Timed out: ${label}`);
 }
+async function verifyNotchKeyDialog(panel) {
+  await panel.webContents.executeJavaScript("window.limits.displayMode('island')");
+  await waitFor(() => notch.phase === 'expanded', 'notch expanded');
+  const win = notch.window;
+  const run = source => win.webContents.executeJavaScript(source);
+  const dialog = 'document.getElementById("key-connection-dialog")';
+  const input = 'document.getElementById("key-connection-input")';
+  const pending = () => run('window.limits.get().then(state => state.keyConnection)');
+  const cases = [['deepseek', key]];
+  if (registry.has('kimi')) cases.push(['kimi', 'kimi-smoke-key']);
+  for (const [provider, fixtureKey] of cases) {
+    const result = await run(`window.limits.addAccount(${JSON.stringify(provider)})`);
+    assert.equal(result.connection.providerId, provider);
+    const id = result.connection.id;
+    await waitFor(async () => notch.phase === 'closed' && !await run(`${dialog}.open`), 'dialog hidden during browser handoff');
+    assert.equal(await panel.webContents.executeJavaScript(`${dialog}.open`), false, 'hidden tray window opened a duplicate dialog');
+    assert.equal((await pending()).id, id);
+    await run('window.limits.open()');
+    await waitFor(() => run(`${dialog}.open && document.activeElement === ${input} &&
+      ${dialog}.getBoundingClientRect().bottom <= parseFloat(document.body.style.getPropertyValue('--full-height'))`), 'focused dialog fits inside notch');
+    await win.webContents.insertText(fixtureKey);
+    await waitFor(() => run(`${input}.value === ${JSON.stringify(fixtureKey)}`), 'editable key field');
+    await run('document.getElementById("key-connection-browser").click()');
+    await waitFor(async () => notch.phase === 'closed' && !await run(`${dialog}.open`), 'reopened browser hides dialog again');
+    await run('window.limits.open()');
+    await waitFor(() => run(`${dialog}.open && document.activeElement === ${input} && ${input}.value === ${JSON.stringify(fixtureKey)}`), 'key draft retained and focused');
+    await run('document.getElementById("key-connection-submit").click()');
+    await waitFor(async () => !(await pending()) && !await run(`${dialog}.open`), 'key accepted from notch');
+    assert.equal(await run(`window.limits.get().then(state => state.profiles.some(profile => profile.providerId === "${provider}"))`), true);
+  }
+  await run("window.limits.displayMode('tray')");
+  return cases.map(([provider]) => provider);
+}
 app.whenReady().then(async () => {
   let restored;
   try {
@@ -92,11 +146,33 @@ app.whenReady().then(async () => {
     };
     await begin(); assert.deepEqual(opened, [KEY_URL]); assert.equal((await get()).profiles.length, 1);
     assert.equal(await run('document.getElementById("key-connection-input").type'), 'password');
+    const approval = 'document.querySelector("#key-connection-dialog [data-key=credentialStoragePermissionRequired]")';
+    if (process.platform === 'darwin') {
+      await waitFor(() => run(`Boolean(${approval})`), 'Keychain explanation');
+      assert.match(await run(`${approval}.textContent`), /в зашифрованном виде.*Разрешать всегда/);
+      await submit(key);
+      assert.equal(await run('document.getElementById("key-connection-submit").disabled'), true);
+      assert.equal(storageChecks, 0);
+    }
     await screenshot('connect-ru.png');
     await run('document.getElementById("key-connection-cancel").click()');
     await waitFor(() => run('!document.getElementById("key-connection-dialog").open'), 'cancel');
     assert.equal((await get()).profiles.length, 1);
-    await begin(); await submit('bad');
+    await begin();
+    if (process.platform === 'darwin') {
+      assert.equal(storageChecks, 0, 'closing and reopening the setup must not touch Keychain');
+      denyStorage = true;
+      await run(`${approval}.querySelector('button').click()`);
+      await waitFor(() => run(`!${approval}.lastElementChild.hidden`), 'Keychain access denied');
+      assert.equal(storageChecks, 1);
+      assert.equal((await get()).keychainPermissionRequired, true);
+      denyStorage = false;
+      await run(`${approval}.querySelector('button').click()`);
+      await waitFor(() => run(`!${approval}`), 'Keychain access granted');
+      assert.equal(storageChecks, 2);
+      assert.equal((await get()).keychainPermissionRequired, false);
+    }
+    await submit('bad');
     await waitFor(() => run('!document.querySelector("#key-connection-dialog .notice").hidden'), 'invalid key');
     assert.equal((await get()).profiles.length, 1);
     await screenshot('invalid-key-ru.png');
@@ -189,6 +265,7 @@ app.whenReady().then(async () => {
     await run('window.limitsSettings.open()');
     await begin('zai');
     assert.equal(opened.at(-1), ZAI_KEY_URL);
+    assert.equal(await run(`Boolean(${approval})`), false, 'another provider reuses Keychain approval');
     assert.match(await run('document.getElementById("key-connection-hint").textContent'), /Personal Coding Plan/);
     await submit('no-plan');
     await waitFor(() => run('!document.querySelector("#key-connection-dialog .notice").hidden'), 'no coding plan');
@@ -260,7 +337,8 @@ app.whenReady().then(async () => {
     await run(`window.limits.accountAction('remove', '${claudeId}')`);
     assert.equal(fs.existsSync(path.join(claudeDirectory, 'claude-statusline.cjs')), false);
     assert.equal(fs.existsSync(path.join(claudeDirectory, 'claude-quota.json')), false);
-    const report = { platform: process.platform, realIpc: true, browserLink: true, invalidKeyAndRetry: true, cancellation: true,
+    const notchKeyDialog = notch ? await verifyNotchKeyDialog(panel) : [];
+    const report = { platform: process.platform, realIpc: true, browserLink: true, invalidKeyAndRetry: true, cancellation: true, notchKeyDialog,
       encryptedOsStorage: true, restartPersistence: true, replacement: true, localRemoval: true, monetaryDisplay: true, staleAndZero: true,
       codexPreserved: true, glmCodingPlan: true, kimiCode: true, claudeCode: true, artifacts: root };
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify(report, null, 2));
