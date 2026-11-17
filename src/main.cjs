@@ -188,7 +188,10 @@ function update() {
   genmonPresentation?.update({ style: widgetSettings.linuxTrayStyle, bucket, metricsState: state, stale,
     dark: nativeTheme.shouldUseDarkColors, language: widgetSettings.language });
   if (usesNotch()) trayPresentation?.destroy();
-  else trayPresentation?.update({ mode: widgetSettings.displayMode, linuxTrayStyle: widgetSettings.linuxTrayStyle, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: presentationMenu(), metricsState: state });
+  else {
+    const mode = applePresentation && widgetSettings.displayMode === 'tray' && state.selectedProfileId === null ? 'app' : widgetSettings.displayMode;
+    trayPresentation?.update({ mode, linuxTrayStyle: widgetSettings.linuxTrayStyle, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: presentationMenu(), metricsState: state });
+  }
   for (const kind of ['short', 'weekly']) {
     const value = bucket?.[kind]?.remaining ?? null;
     const label = t(kind === 'short' ? 'shortCompact' : 'weeklyCompact');

@@ -9,10 +9,13 @@ const { Monitor } = require('./monitor.cjs');
 const { contractError } = require('../ai-connects/contracts.cjs');
 
 const nickname = value => typeof value === 'string' ? value.replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 80) : '';
+const removableDefaultRegistryVersion = 2;
+const emptySelection = { providerId: null, profileId: null, account: null, groups: [], buckets: [], status: 'idle',
+  error: null, updatedAt: null, refreshing: false, displaySchema: null };
 class Accounts extends EventEmitter {
-  constructor({ root, createMonitor, initialProfiles, registry = defaultRegistry, controllerContext = () => ({}) }) {
+  constructor({ root, createMonitor, initialProfiles, allowRemoveDefault = false, registry = defaultRegistry, controllerContext = () => ({}) }) {
     super();
-    Object.assign(this, { root, registry, controllerContext });
+    Object.assign(this, { root, registry, controllerContext, allowRemoveDefault });
     this.createMonitor = createMonitor || ((profile, options) => new Monitor(registry.create(profile.providerId, options)));
     this.file = path.join(root, 'accounts.json');
     this.monitors = new Map();
@@ -30,8 +33,13 @@ class Accounts extends EventEmitter {
       if (!profile || typeof profile.id !== 'string' || !/^(default|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.test(profile.id) || seen.has(profile.id)) return false;
       seen.add(profile.id); return true;
     }).map(profile => ({ id: profile.id, nickname: nickname(profile.nickname), providerId: typeof profile.providerId === 'string' ? profile.providerId : 'codex' }));
-    if (!this.profiles.some(profile => profile.id === 'default')) this.profiles.unshift({ id: 'default', nickname: '', providerId: 'codex' });
-    this.selectedProfileId = this.profiles.some(profile => profile.id === saved?.selectedProfileId) ? saved.selectedProfileId : this.profiles[0].id;
+    // Older registries implicitly included the shared Codex profile.
+    const savedProfilesAreComplete = allowRemoveDefault && saved?.version === removableDefaultRegistryVersion && Array.isArray(saved.profiles);
+    if (!savedProfilesAreComplete && !this.profiles.some(profile => profile.id === 'default')) {
+      this.profiles.unshift({ id: 'default', nickname: '', providerId: 'codex' });
+    }
+    this.selectedProfileId = this.profiles.some(profile => profile.id === saved?.selectedProfileId)
+      ? saved.selectedProfileId : this.profiles[0]?.id ?? null;
     this.profiles.forEach(profile => this.attach(profile));
   }
   attach(profile, controller) {
@@ -59,7 +67,7 @@ class Accounts extends EventEmitter {
     for (const profile of profiles) {
       if (profile.nickname && counts.get(profile.displayName.toLocaleLowerCase()) > 1 && profile.account?.email) profile.displayName += ` (${profile.account.email})`;
     }
-    const selected = profiles.find(profile => profile.id === this.selectedProfileId);
+    const selected = profiles.find(profile => profile.id === this.selectedProfileId) || emptySelection;
     const pending = this.keyConnection;
     return { ...selected, profiles, providers: this.registry.list(), selectedProfileId: this.selectedProfileId, loginProfileId: this.loginActive,
       keyConnection: pending ? { id: pending.id, providerId: pending.profile.providerId, profileId: pending.existing ? pending.profile.id : null,
@@ -68,7 +76,7 @@ class Accounts extends EventEmitter {
   publish() { this.emit('state', this.snapshot()); }
   persist() {
     fs.mkdirSync(this.root, { recursive: true });
-    fs.writeFileSync(`${this.file}.tmp`, JSON.stringify({ version: 1, profiles: this.profiles, selectedProfileId: this.selectedProfileId }));
+    fs.writeFileSync(`${this.file}.tmp`, JSON.stringify({ version: this.allowRemoveDefault ? removableDefaultRegistryVersion : 1, profiles: this.profiles, selectedProfileId: this.selectedProfileId }));
     fs.renameSync(`${this.file}.tmp`, this.file);
   }
   async refresh({ reconnect = false } = {}) {
@@ -93,7 +101,11 @@ class Accounts extends EventEmitter {
   add(providerId = 'codex') {
     if (!this.registry.has(providerId)) throw new Error('Unknown provider');
     const profile = { id: randomUUID(), nickname: '', providerId };
-    this.attach(profile); this.profiles.push(profile); this.persist(); this.publish();
+    this.attach(profile);
+    this.profiles.push(profile);
+    this.selectedProfileId ??= profile.id;
+    this.persist();
+    this.publish();
     return profile.id;
   }
   setup(id) {
@@ -127,10 +139,13 @@ class Accounts extends EventEmitter {
       if (this.keyConnection !== pending) throw contractError('loginIncomplete');
       pending.controller.saveCredentials();
       if (!pending.existing) {
+        const previousSelection = this.selectedProfileId;
         this.profiles.push(pending.profile);
+        this.selectedProfileId ??= pending.profile.id;
         try { this.persist(); }
         catch {
           this.profiles = this.profiles.filter(profile => profile.id !== pending.profile.id);
+          this.selectedProfileId = previousSelection;
           await pending.controller.signOut();
           throw contractError('accountActionFailed');
         }
@@ -185,16 +200,25 @@ class Accounts extends EventEmitter {
     return removal.finally(() => this.removing.delete(id));
   }
   async removeProfile(id) {
-    if (id === 'default') throw new Error('The default source cannot be removed');
+    if (id === 'default' && !this.allowRemoveDefault) throw new Error('The default source cannot be removed');
     const monitor = this.monitors.get(id);
     if (!monitor) return;
     if (this.keyConnection?.profile.id === id) this.cancelKeyConnection(this.keyConnection.id);
     await this.cancelLogin(id);
-    if (monitor.state.capabilities?.signOut !== false) await monitor.signOut();
-    monitor.stop(); this.monitors.delete(id);
+    if (id !== 'default' && monitor.state.capabilities?.signOut !== false) await monitor.signOut();
+    const previousProfiles = this.profiles;
+    const previousSelection = this.selectedProfileId;
     this.profiles = this.profiles.filter(profile => profile.id !== id);
-    if (this.selectedProfileId === id) this.selectedProfileId = this.profiles[0].id;
-    this.persist(); this.publish();
+    if (this.selectedProfileId === id) this.selectedProfileId = this.profiles[0]?.id ?? null;
+    try { this.persist({ writeSourcePreferences: id !== 'default' }); }
+    catch (error) {
+      this.profiles = previousProfiles;
+      this.selectedProfileId = previousSelection;
+      throw error;
+    }
+    monitor.stop();
+    this.monitors.delete(id);
+    this.publish();
   }
   stop() {
     if (this.keyConnection) this.cancelKeyConnection(this.keyConnection.id);

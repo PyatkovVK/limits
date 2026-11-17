@@ -5,9 +5,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { Subscriptions } = require('../src/common/ai-connects/codex/subscriptions.cjs');
+const { AppleAccounts } = require('../src/apple_feature/ai-connects/codex/accounts.cjs');
 const { DemoMonitor } = require('../src/common/demo/demo-monitor.cjs');
 
-for (const sourcesName of ['subscriptions.json', 'mac-subscriptions.json']) {
+for (const [sourcesName, Service] of [['subscriptions.json', Subscriptions], ['mac-subscriptions.json', AppleAccounts]]) {
   test(`${sourcesName}: obsolete folder references are ignored without touching external sign-ins`, async t => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-subscriptions-migration-'));
     const home = path.join(root, 'current'), legacyHome = path.join(root, 'old-profile');
@@ -28,7 +29,7 @@ for (const sourcesName of ['subscriptions.json', 'mac-subscriptions.json']) {
       monitor.signOut = async () => { logouts++; };
       return monitor;
     } };
-    const accounts = new Subscriptions(options);
+    const accounts = new Service(options);
     t.after(() => { accounts.stop(); fs.rmSync(root, { recursive: true, force: true }); });
     assert.deepEqual(created.map(profile => profile.id), ['default', connected]);
     assert.equal(created[0].options.env.CODEX_HOME, fs.realpathSync(home));
@@ -37,17 +38,27 @@ for (const sourcesName of ['subscriptions.json', 'mac-subscriptions.json']) {
     assert.equal(accounts.selectedProfileId, 'default');
     assert.throws(() => accounts.selectProfile(legacyId), /Unknown profile/);
     await assert.rejects(accounts.login('default'));
-    await assert.rejects(accounts.remove('default'));
 
     accounts.selectProfile(connected); accounts.setMode('connected');
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, sourcesName), 'utf8')),
       { version: 1, mode: 'connected', selectedProfileId: connected });
     accounts.stop(); created.length = 0;
-    const restored = new Subscriptions(options); t.after(() => restored.stop());
+    const restored = new Service(options); t.after(() => restored.stop());
     assert.equal(restored.selectedProfileId, connected);
     assert.equal(restored.snapshot().displayName, 'Work');
     assert.equal(restored.snapshot().subscriptions.mode, 'connected');
     assert.deepEqual(created.map(profile => profile.id), ['default', connected]);
+    const externalCredentials = path.join(home, 'auth.json');
+    fs.writeFileSync(externalCredentials, 'external fixture credentials');
+    if (Service === AppleAccounts) {
+      await restored.remove('default');
+      const afterRemoval = new Service(options);
+      t.after(() => afterRemoval.stop());
+      assert.equal(afterRemoval.selectedProfileId, connected);
+      assert.deepEqual(afterRemoval.snapshot().subscriptions, { mode: 'connected', active: 0, connected: 1 });
+      assert.equal(afterRemoval.monitors.has('default'), false);
+    } else await assert.rejects(restored.remove('default'));
+    assert.equal(fs.readFileSync(externalCredentials, 'utf8'), 'external fixture credentials');
     assert.equal(logouts, 0);
     assert.equal(fs.readFileSync(credentials, 'utf8'), 'fixture credentials');
   });

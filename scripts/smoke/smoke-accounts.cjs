@@ -4,7 +4,7 @@ const { app, BrowserWindow, ipcMain, shell, Notification } = require('electron')
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { Accounts } = require('../../src/common/core/accounts.cjs');
+const { Subscriptions } = require('../../src/common/ai-connects/codex/subscriptions.cjs');
 const { DemoMonitor } = require('../../src/common/demo/demo-monitor.cjs');
 app.getVersion = () => require('../../package.json').version;
 const artifacts = path.resolve(__dirname, '../../artifacts');
@@ -37,7 +37,9 @@ app.whenReady().then(async () => {
     const base = await run('window.limits.get()');
     const appearance = await run('window.limits.appearance()');
     const work = base.profiles[1].id;
-    accounts = new Accounts({ root: path.join(root, 'accounts'), initialProfiles: base.profiles, createMonitor: profile => new DemoMonitor(profile) });
+    const Service = process.platform === 'darwin'
+      ? require('../../src/apple_feature/ai-connects/codex/accounts.cjs').AppleAccounts : Subscriptions;
+    accounts = new Service({ root: path.join(root, 'accounts'), initialProfiles: base.profiles, createMonitor: profile => new DemoMonitor(profile) });
     const state = () => ({ ...base, ...accounts.snapshot(), demo: false });
     const publish = () => {
       for (const target of [panel, widget]) if (target && !target.isDestroyed()) target.webContents.send('limits:state', state());
@@ -82,8 +84,8 @@ app.whenReady().then(async () => {
     for (const language of ['ru', 'en']) {
       base.language = language; publish();
       await waitFor(() => run(`document.documentElement.lang === '${language}'`), 'language');
-      const button = await run(`(() => { const card = document.querySelector('${workCard}'); const button = card.querySelector('.profile-remove'); return { collapsed: !card.querySelector('details').open, managed: Boolean(button.closest('.profile-edit')), label: button.getAttribute('aria-label'), enabled: !button.disabled, sharedHidden: document.querySelector('[data-profile-id="default"] .profile-remove').hidden }; })()`);
-      assert.equal(button.collapsed && button.managed && button.enabled && button.sharedHidden, true);
+      const button = await run(`(() => { const card = document.querySelector('${workCard}'); const button = card.querySelector('.profile-remove'); return { collapsed: !card.querySelector('details').open, managed: Boolean(button.closest('.profile-edit')), label: button.getAttribute('aria-label'), enabled: !button.disabled, sharedVisible: Boolean(document.querySelector('[data-profile-id="default"] .profile-heading .profile-remove').getClientRects().length) }; })()`);
+      assert.equal(button.collapsed && button.managed && button.enabled && button.sharedVisible === (process.platform === 'darwin'), true);
       assert.equal(button.label, `${language === 'ru' ? 'Отключить' : 'Disconnect'}: Work`);
       await run('document.querySelector(".accounts-section").scrollIntoView({block:"center",behavior:"instant"})');
       await pause(120);
@@ -155,6 +157,15 @@ app.whenReady().then(async () => {
     await run('document.querySelector(".accounts-section").scrollIntoView({block:"end",behavior:"instant"})'); await pause(150);
     assert.equal(await run('(() => { const el = document.querySelector(".settings-content"); return el.scrollWidth <= el.clientWidth + 1; })()'), true);
     fs.writeFileSync(path.join(root, 'accounts-narrow.png'), (await panel.webContents.capturePage()).toPNG());
+    if (process.platform === 'darwin') {
+      await run('document.querySelector(\'[data-profile-id="default"] .profile-heading .profile-remove\').click()');
+      await waitFor(() => run('!document.querySelector(\'[data-profile-id="default"]\')'), 'external Codex removed');
+      assert.equal(accounts.selectedProfileId, extra);
+      await accounts.remove(extra); publish();
+      await waitFor(() => run('!document.getElementById("add-account").disabled && !document.querySelector(".subscription-empty").hidden'), 'add is available with no profiles');
+      await run('window.limitsSettings.dialog.close(); document.getElementById("login").click()');
+      await waitFor(() => run('document.getElementById("subscription-providers").matches(":popover-open")'), 'empty panel opens provider picker');
+    }
     const report = { platform: process.platform, accordion: true, disconnectInManagement: true, localized: true, keyboardDisconnect: true, pendingAndErrors: true, selectedRemovalPersisted: true, sixtySeven: ['short', 'weekly', 'unselected account', ...(widget ? ['Windows widget'] : [])], pollingStable: true, reducedMotion: true, narrowLayout: true, artifacts: root };
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify(report, null, 2));
     console.log('ACCOUNTS_SMOKE_OK', JSON.stringify(report));

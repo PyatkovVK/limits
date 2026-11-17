@@ -34,6 +34,7 @@ function render(next) {
   const language = next.language || 'ru';
   const translate = (lang, key) => window.limitsPlatform?.translate?.(lang, key, next) || window.limitsI18n.t(lang, key);
   const t = key => translate(language, key);
+  const noProfiles = next.selectedProfileId === null;
   const generic = Boolean(next.displaySchema && next.displaySchema.layout !== 'quota-windows');
   window.limitsI18n.apply(language, document, translate);
   window.limitsSettings.render(next, t);
@@ -44,12 +45,12 @@ function render(next) {
   const connection = t(next.demo ? 'demo' : next.status === 'signing-in' ? 'signingIn' : next.status === 'signed-out' ? 'signedOut' : next.status === 'connecting' ? 'connecting' : stale ? 'stale' : 'online');
   $('connection').title = connection;
   $('connection').setAttribute('aria-label', connection);
-  $('account').textContent = next.displayName || next.account?.email || t(next.status === 'signed-out' ? 'connectAccount' : 'account');
+  $('account').textContent = next.displayName || next.account?.email || t(noProfiles ? 'noAccounts' : next.status === 'signed-out' ? 'connectAccount' : 'account');
   $('account').title = [next.account?.email, next.account?.planType].filter(Boolean).join(' · ');
   const messageKey = actionError || next.error || next.widgetError || (next.accountAvailable === false ? 'insufficientBalance' : next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
   window.limitsI18n.notice($('error'), messageKey, language, t);
   const groups = next.groups || next.buckets;
-  document.querySelector('.panel-quotas').hidden = generic;
+  document.querySelector('.panel-quotas').hidden = generic || noProfiles;
   $('provider-metrics').hidden = !generic;
   if (generic) window.limitsMetricElements.render($('provider-metrics'), next);
   $('bucket-row').hidden = groups.length < 2;
@@ -75,10 +76,11 @@ function render(next) {
   $('other').hidden = !bucket?.other?.length;
   $('other').textContent = bucket?.other?.map(item => `${item.duration ?? '?'} ${t('minutes')}: ${item.remaining === null ? t('noData') : `${item.remaining}%`}`).join(' · ') || '';
   $('refresh').disabled = next.refreshing || next.demo;
+  $('connection').hidden = $('updated').hidden = $('refresh').hidden = noProfiles;
   const setup = next.capabilities?.setup;
   $('login').hidden = next.demo || next.readOnly || Boolean(next.account && next.status !== 'signing-in' && !(setup && !next.updatedAt));
   $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly && !setup) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
-  $('login').textContent = t(setup ? 'claudeSetup' : next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
+  $('login').textContent = t(noProfiles ? 'addAccount' : setup ? 'claudeSetup' : next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
   const updatedTime = next.updatedAt ? new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
   $('updated').title = updatedTime ? t('updated') + ' ' + updatedTime : t('waiting');
   $('updated').textContent = updatedTime || '—';
@@ -100,7 +102,14 @@ async function beginLogin(id) {
   actionError = result.connection ? null : result.error || null;
   render(await window.limits.get());
 }
-$('login').addEventListener('click', () => beginLogin());
+$('login').addEventListener('click', () => {
+  if (state?.selectedProfileId !== null) return beginLogin();
+  window.limitsSettings.open();
+  const add = $('add-account');
+  add.scrollIntoView({ block: 'nearest' });
+  add.focus();
+  add.click();
+});
 async function addAccount(providerId) {
   actionError = null;
   try {

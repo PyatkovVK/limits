@@ -19,6 +19,8 @@ On Windows, macOS, and Linux, **Settings → Subscriptions** offers **All**, **C
 - **In Codex / VS Code** tracks the sign-in in the local `CODEX_HOME` inherited by Limits, or `~/.codex` when the variable is unset. Limits starts a fresh Codex App Server on each regular poll to pick up sign-in changes, with forced token refresh disabled. Sign in or out of this profile in Codex or VS Code. Limits monitors one external home and detects sign-ins saved on the same machine.
 - **Connected in Limits** includes accounts added through **+ Add**. Each Codex account gets a separate `CODEX_HOME` at `accounts/<profile-id>/` under Electron's app data directory. Codex manages the credential files there. OAuth tokens stay out of the renderer. Adding an account leaves the external sign-in intact. Disconnecting an added Codex account calls Codex logout and removes the profile from Limits. Other files may remain in the profile directory.
 
+On macOS, removing the external Codex profile from Limits stops monitoring. The Codex and VS Code sign-in and its files are preserved.
+
 ## Local app data
 
 Limits stores its data on this device in Electron's `userData` directory, named **Codex Limits** under the OS-specific app data path. The external Codex home is accessed separately through the Codex App Server.

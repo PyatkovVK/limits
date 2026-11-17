@@ -62,7 +62,10 @@
       try { await addAccount(provider.dataset.provider); }
       finally { adding = false; add.disabled = !canAdd; }
     };
-    window.limitsSettings.dialog.addEventListener('close', () => menu.hidePopover());
+    const settingsDialog = window.limitsSettings.dialog;
+    settingsDialog.addEventListener('close', () => {
+      if (!settingsDialog.open) menu.hidePopover();
+    });
 
     function renderAccounts(next, t, words) {
       const profiles = next.profiles || [];
@@ -113,7 +116,7 @@
           login.onclick = () => beginLogin(profile.id);
           const cancel = element('button', 'profile-action', buttons);
           cancel.onclick = () => accountAction('cancel', profile.id);
-          const directRemove = profile.providerId === 'deepseek';
+          const directRemove = (profile.readOnly && profile.removable) || profile.providerId === 'deepseek';
           const remove = element('button', directRemove ? 'profile-remove profile-remove-icon' : 'profile-remove profile-action', directRemove ? heading : buttons);
           remove.type = 'button';
           if (directRemove) {
@@ -174,7 +177,7 @@
         const removeLabel = `${t('removeAccount')}: ${card.name.textContent}`;
         card.remove.title = removeLabel; card.remove.setAttribute('aria-label', removeLabel);
         if (!card.directRemove) card.remove.textContent = t('removeAccount');
-        card.remove.hidden = profile.id === 'default' || Boolean(profile.readOnly);
+        card.remove.hidden = profile.removable === false;
         card.remove.disabled = next.demo || isRemoving(profile.id);
       }
     }
@@ -190,7 +193,7 @@
         }
         providerSignature = signature;
       }
-      canAdd = !next.demo && !next.loginProfileId && !next.keyConnection && providers.length > 0 && next.profiles?.length > 0;
+      canAdd = !next.demo && !next.loginProfileId && !next.keyConnection && providers.length > 0;
       add.disabled = adding || !canAdd;
       if (add.disabled) menu.hidePopover();
       $('subscriptions-title').textContent = words.title;
