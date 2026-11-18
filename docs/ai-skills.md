@@ -16,6 +16,11 @@ The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, mac
 
 The bundled [macos-architecture](skill-templates/macos-architecture/SKILL.md) skill maps macOS responsibilities to folders, records the platform contracts, and lists the native checks for refactors.
 
+## Git and builds
+
+- Push commits or otherwise update branches and tags on GitHub only when the user explicitly requests sending those changes. Treat requests to build, test, fix, or commit as local unless the user also requests a push.
+- Use the branch the user specifies for builds and verification. Create a temporary branch to run CI only if the user explicitly asks for one. If CI runs only tests for the requested branch, build locally.
+
 ## How agents find the skills
 
 The bundled `focused-pull-requests` skill keeps independent bugs, features and other tasks in separate `limits/<description>` branches and MR/PRs. The existing `npm run setup:skills` script in `package.json` generates `skills/focused-pull-requests/SKILL.md` together with the other defaults.
