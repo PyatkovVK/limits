@@ -116,7 +116,7 @@
           login.onclick = () => beginLogin(profile.id);
           const cancel = element('button', 'profile-action', buttons);
           cancel.onclick = () => accountAction('cancel', profile.id);
-          const directRemove = (profile.readOnly && profile.removable) || profile.providerId === 'deepseek';
+          const directRemove = next.platform === 'darwin' || (profile.readOnly && profile.removable) || profile.providerId === 'deepseek';
           const remove = element('button', directRemove ? 'profile-remove profile-remove-icon' : 'profile-remove profile-action', directRemove ? heading : buttons);
           remove.type = 'button';
           if (directRemove) {
@@ -165,7 +165,7 @@
           card.values[kind].value.textContent = quota?.remaining == null ? '—' : `${quota.remaining}%`;
           card.values[kind].row.classList.toggle('limit-67', quota?.remaining === 67);
         }
-        card.edit.hidden = Boolean(profile.readOnly) || card.directRemove;
+        card.edit.hidden = Boolean(profile.readOnly) || profile.providerId === 'deepseek';
         card.summary.textContent = words.manage;
         card.input.placeholder = t('nickname'); card.input.setAttribute('aria-label', t('nickname'));
         if (document.activeElement !== card.input) card.input.value = profile.nickname;
