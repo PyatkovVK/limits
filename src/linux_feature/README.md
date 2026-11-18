@@ -35,7 +35,7 @@ The feature must not import Windows or Apple implementations. Common modules mus
 
 The details controller composes the shared `createPanelPosition` factory with a `trayAnchor` implementing `read(tray)`, `bounds(tray)` and `clear()`. `TrayAnchor` owns tray-host fallbacks and the activation cache. Resizing consumes the saved anchor without reading the cursor again; display changes invalidate the cache.
 
-The update adapter selects and verifies native packages. `updates/installer.cjs` owns shell-script extraction and process handoff; `LinuxUpdates` inherits the shared package-update contract. Browser launch, session recovery and package tools all use `core/environment.cjs`, independently of each other. Electron objects, process launchers and storage are supplied through parameters.
+The update adapter selects and verifies AppImage packages. `updates/installer.cjs` copies the shell helper and starts the AppImage replacement after exit. `LinuxUpdates` inherits the shared package-update contract and opens the release page for manual DEB updates. Browser launch, session recovery and the AppImage installer each use `core/environment.cjs`. Electron objects, process launchers and storage are supplied through parameters.
 
 Application smoke checks in this feature's `test/smoke/` are included in Linux packages for `--demo --smoke-test`. Full-app launchers live in the repository's `test/smoke/`.
 

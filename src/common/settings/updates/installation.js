@@ -10,7 +10,6 @@
       moveToApplications: 'Переместите Limits в папку «Программы» и перезапустите приложение для обновлений из приложения.',
       installFailed: 'Не удалось установить обновление. Предыдущая версия сохранена. Повторите попытку.',
       installLocation: 'Папка приложения недоступна для обновления. Выберите доступную для записи папку или переустановите Limits.',
-      packageManagerMissing: 'Для установки DEB нужны dpkg и системный запрос прав pkexec. Установите их или используйте AppImage.',
     },
     en: {
       downloading: 'Downloading update', verifying: 'Verifying update…', ready: 'The update is ready to install.',
@@ -21,7 +20,6 @@
       moveToApplications: 'Move Limits to Applications and restart it to enable in-app updates.',
       installFailed: 'Could not install the update. The previous version was preserved. Try again.',
       installLocation: 'The application location cannot be updated. Use a writable directory or reinstall Limits.',
-      packageManagerMissing: 'DEB updates require dpkg and the system authorization tool pkexec. Install them or use AppImage.',
     },
   };
   window.limitsInstallation = {

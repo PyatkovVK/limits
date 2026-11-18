@@ -4,6 +4,7 @@ Only user-visible features and bug fixes are recorded here. Downloadable package
 
 ## 2.0.0
 
+- **Linux DEB updates.** Open the GitHub release page from Settings → Updates to download and install the package manually.
 - **macOS subscriptions.** Disconnect accounts with the trash button beside the subscription name, even when the row is collapsed.
 - **HTTPS certificate security.** Update Electron to block compromised eMudhra intermediate certificates on Windows, macOS and Linux.
 - **Smooth Linux panel opening.** Measure and paint the complete panel while hidden, wait for native window placement, then fade it in at a fixed size and position. Avoid transient page scrollbars and horizontal jumps during opening. Respect reduced-motion preferences and cancel pending openings on a second tray click.

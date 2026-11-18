@@ -67,7 +67,7 @@ class PackageUpdates extends Updates {
         this.installState({ status: 'ready', error: null });
       } catch (error) {
         if (job) await fs.promises.rm(job, { recursive: true, force: true }).catch(() => {});
-        if (!controller.signal.aborted && !this.stopped) this.installState({ status: 'error', error: ['invalidPackage', 'installLocation', 'packageManagerMissing'].includes(error.message) ? error.message : 'downloadFailed' });
+        if (!controller.signal.aborted && !this.stopped) this.installState({ status: 'error', error: ['invalidPackage', 'installLocation'].includes(error.message) ? error.message : 'downloadFailed' });
       }
     }).finally(() => { clearTimeout(timeout); if (this.downloadTask === task) this.downloadTask = null; });
     this.downloadTask = task; return task;
