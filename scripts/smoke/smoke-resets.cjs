@@ -58,7 +58,9 @@ app.whenReady().then(async () => {
       await run('document.getElementById("reset-notifications-info").click()');
       await waitFor(() => run('!document.getElementById("reset-notifications-help").hidden'), 'source disclosure');
       const help = await run('document.getElementById("reset-notifications-help").textContent');
-      assert.ok(help.includes('codex-resets.com')); assert.ok(help.includes('@wong2__'));
+      const site = await run('document.querySelector(".reset-help a").href');
+      assert.equal(site, 'https://codex-resets.com/');
+      assert.ok(help.includes('@wong2__'));
       assert.ok(help.includes(language === 'ru' ? 'Спасибо' : 'Thanks'));
       assert.equal(await run('(() => { const toggle = document.getElementById("reset-notifications-enabled").getBoundingClientRect(); const label = document.querySelector(".reset-toggle").getBoundingClientRect(); return toggle.left >= label.right; })()'), true);
       fs.writeFileSync(path.join(root, `help-${language}.png`), (await panel.webContents.capturePage()).toPNG());
