@@ -30,7 +30,7 @@ function* localReferences(source, extension) {
     for (const [, , target] of source.matchAll(/\b(?:import|export)\s+(?:[^;'"()]*?\s+from\s+)?(['"])([^'"\r\n]+)\1/g)) {
       if (target.startsWith('.')) yield target;
     }
-    for (const [, args] of source.matchAll(/\bpath\.(?:join|resolve)\(\s*__dirname\s*,\s*((?:['"][^'"\r\n]+['"]\s*,?\s*)+)\)/g)) {
+    for (const [, args] of source.matchAll(/\bpath\.(?:join|resolve)\(\s*__dirname\s*,\s*((?:['"][^'"\r\n]+['"]\s*,\s*)*['"][^'"\r\n]+['"])\s*(?:,\s*)?\)/g)) {
       yield path.join(...Array.from(args.matchAll(/(['"])([^'"]+)\1/g), match => match[2]));
     }
   }
@@ -42,6 +42,16 @@ function* localReferences(source, extension) {
     }
   }
 }
+
+test('local path references accept comma-separated strings and an optional trailing comma', () => {
+  const source = `
+    path.join(__dirname, 'assets');
+    path.resolve(__dirname, 'renderer' , "index.html", );
+    path.join(__dirname, 'assets', filename);
+    path.join(__dirname, 'assets' 'logo.png');
+  `;
+  assert.deepEqual([...localReferences(source, '.cjs')], ['assets', path.join('renderer', 'index.html')]);
+});
 
 test('common and platform implementations keep local dependencies within their boundary', () => {
   for (const file of sourceFiles) {
