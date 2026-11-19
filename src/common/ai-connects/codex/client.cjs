@@ -24,6 +24,7 @@ class CodexClient extends EventEmitter {
   async connect() {
     const child = spawn(this.binary, this.args, { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: this.env });
     this.child = child;
+    this.closed = new Promise(resolve => child.once('close', resolve));
     this.generation++;
     // Never forward stderr: it may contain account or authentication details.
     child.stderr.resume();
@@ -91,6 +92,7 @@ class CodexClient extends EventEmitter {
 
   stop(error = new Error('Codex остановлен.')) {
     if (this.child) this.disconnect(error);
+    return this.closed;
   }
 }
 

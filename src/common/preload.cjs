@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('limits', {
   get: () => ipcRenderer.invoke('limits:get'),
+  platformAssets: () => ipcRenderer.invoke('limits:platform-assets'),
   appearance: () => ipcRenderer.invoke('limits:appearance-get'),
   setAppearance: value => ipcRenderer.invoke('limits:appearance-set', value),
   chooseBackground: () => ipcRenderer.invoke('limits:appearance-choose'),
@@ -23,6 +24,8 @@ contextBridge.exposeInMainWorld('limits', {
   submitApiKey: (id, key) => ipcRenderer.invoke('limits:key-submit', id, key),
   cancelApiKey: id => ipcRenderer.invoke('limits:key-cancel', id),
   openKeyBrowser: id => ipcRenderer.invoke('limits:key-browser', id),
+  requestCredentialStorage: () => ipcRenderer.invoke('limits:credential-storage-request'),
+  openCredentialStorage: () => ipcRenderer.invoke('limits:credential-storage-open'),
   accountAction: (action, id, value) => ipcRenderer.invoke('limits:profile-action', action, id, value),
   subscriptionMode: mode => ipcRenderer.invoke('limits:subscriptions-mode', mode),
   select: id => ipcRenderer.invoke('limits:select', id),
@@ -36,10 +39,9 @@ contextBridge.exposeInMainWorld('limits', {
     ipcRenderer.on('limits:open-settings', listener);
     return () => ipcRenderer.removeListener('limits:open-settings', listener);
   },
-  panelSize: height => ipcRenderer.invoke('limits:panel-size', height),
+  panelSize: (height, surface) => ipcRenderer.invoke('limits:panel-size', height, surface),
   hide: () => ipcRenderer.invoke('limits:hide'),
   open: () => ipcRenderer.invoke('limits:open'),
-  toggleDetails: () => ipcRenderer.invoke('limits:toggle-details'),
   quit: () => ipcRenderer.invoke('limits:quit'),
   subscribe: callback => {
     const listener = (_event, state) => callback(state);

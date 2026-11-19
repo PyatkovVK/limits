@@ -9,10 +9,10 @@ const { DeepSeekController } = require('../src/common/ai-connects/deepseek/contr
 const { CredentialStore } = require('../src/common/ai-connects/deepseek/credentials.cjs');
 const { normalizeBalance } = require('../src/common/ai-connects/deepseek/balance.cjs');
 const { ControllerRegistry } = require('../src/common/ai-connects/registry.cjs');
-const { Accounts } = require('../src/common/accounts.cjs');
-const { Monitor } = require('../src/common/monitor.cjs');
+const { Accounts } = require('../src/common/core/accounts.cjs');
+const { Monitor } = require('../src/common/core/monitor.cjs');
 const { MoneyController } = require('./fixtures/money-controller.cjs');
-const { isStale } = require('../src/common/limits.cjs');
+const { isStale } = require('../src/common/core/limits.cjs');
 const { view } = require('../src/common/renderer/metrics.js');
 const sample = () => ({ is_available: true, balance_infos: [{ currency: 'USD', total_balance: '12.3456', granted_balance: '0', topped_up_balance: '12.3456' }] });
 const key = 'sk-deepseek-fixture-secret';

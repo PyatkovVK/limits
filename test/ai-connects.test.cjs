@@ -8,18 +8,18 @@ const { AiController } = require('../src/common/ai-connects/ai-controller.cjs');
 const { ControllerRegistry, registry } = require('../src/common/ai-connects/registry.cjs');
 const { snapshot } = require('../src/common/ai-connects/contracts.cjs');
 const { CodexController } = require('../src/common/ai-connects/codex/controller.cjs');
-const { Monitor } = require('../src/common/monitor.cjs');
-const { Accounts } = require('../src/common/accounts.cjs');
+const { Monitor } = require('../src/common/core/monitor.cjs');
+const { Accounts } = require('../src/common/core/accounts.cjs');
 const { view, format } = require('../src/common/renderer/metrics.js');
-const { isStale } = require('../src/common/limits.cjs');
-const { TrayPresentation } = require('../src/common/tray.cjs');
+const { isStale } = require('../src/common/core/limits.cjs');
+const { TrayPresentation } = require('../src/common/tray/tray.cjs');
 const { MoneyController } = require('./fixtures/money-controller.cjs');
 
 test('the abstract contract rejects incomplete controllers and production registers supported providers', () => {
   assert.throws(() => new AiController(), { code: 'controllerContract' });
   class MissingMethods extends AiController {}
   assert.throws(() => new MissingMethods(), { code: 'controllerContract' });
-  assert.deepEqual([...registry.providers.keys()], ['codex', 'deepseek']);
+  assert.deepEqual([...registry.providers.keys()], ['codex', 'deepseek', 'zai', 'claude', 'kimi']);
 });
 test('a monetary controller uses the shared scheduler and schema, retaining zero, units and stale samples', async t => {
   const controller = new MoneyController({ profileId: 'money-profile' }); const monitor = new Monitor(controller);

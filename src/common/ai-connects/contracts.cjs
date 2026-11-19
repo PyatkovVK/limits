@@ -3,7 +3,11 @@ const text = value => typeof value === 'string' ? value.replace(/[\x00-\x1f\x7f]
 const number = value => typeof value === 'number' && Number.isFinite(value) ? value : null;
 const time = value => number(value) !== null && value > 0 && value < 8640000000000000 ? value : null;
 const captions = value => ({ ru: text(value?.ru) || '', en: text(value?.en) || '' });
-const safeCodes = new Set(['disconnected', 'refreshFailed', 'loginIncomplete', 'providerUnavailable', 'unsupported', 'loginBusy', 'loginUnavailable', 'accountActionFailed', 'controllerContract', 'invalidApiKey', 'credentialStorageUnavailable', 'balanceRefreshFailed', 'browserOpenFailed']);
+const safeCodes = new Set([
+  'disconnected', 'refreshFailed', 'loginIncomplete', 'providerUnavailable', 'unsupported', 'loginBusy', 'loginUnavailable',
+  'accountActionFailed', 'controllerContract', 'invalidApiKey', 'credentialStorageUnavailable', 'credentialStoragePermissionRequired', 'balanceRefreshFailed',
+  'quotaRefreshFailed', 'codingPlanRequired', 'browserOpenFailed', 'claudeWaitingForUsage', 'claudeUsageReadFailed', 'kimiQuotaRefreshFailed'
+]);
 function contractError(code = 'controllerContract') { return Object.assign(new Error(code), { code }); }
 function diagnostic(info) {
   return { stage: ['connect', 'access', 'refresh', 'signIn', 'signOut', 'disconnect'].includes(info?.stage) ? info.stage : 'refresh',
@@ -37,6 +41,7 @@ function snapshot(raw = {}) {
     selectedId: text(raw.selectedId), updatedAt: time(raw.updatedAt), refreshing: Boolean(raw.refreshing),
     status: ['connecting', 'ready', 'signed-out', 'signing-in', 'unsupported', 'error'].includes(raw.status) ? raw.status : 'connecting',
     error: safeCodes.has(raw.error) ? raw.error : raw.error ? 'refreshFailed' : null,
-    capabilities: { signIn: raw.capabilities?.signIn === true, cancelSignIn: raw.capabilities?.cancelSignIn === true, signOut: raw.capabilities?.signOut === true, apiKey: raw.capabilities?.apiKey === true }, displaySchema };
+    capabilities: { signIn: raw.capabilities?.signIn === true, cancelSignIn: raw.capabilities?.cancelSignIn === true,
+      signOut: raw.capabilities?.signOut === true, apiKey: raw.capabilities?.apiKey === true, setup: raw.capabilities?.setup === true }, displaySchema };
 }
 module.exports = { snapshot, contractError, diagnostic };

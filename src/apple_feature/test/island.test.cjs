@@ -1,8 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fitIndicators } = require('../renderer/island.js');
-const { isNotchMode, displayModes, notify, offerUpdate } = require('../presentation.cjs');
+const { fitIndicators } = require('../view-panel/island.js');
+const { isNotchMode, displayModes, notify, offerUpdate } = require('../panel/presentation.cjs');
 
 test('both original presentations remain available and the side panel requires a physical notch', () => {
   assert.deepEqual(displayModes(false), ['tray']);

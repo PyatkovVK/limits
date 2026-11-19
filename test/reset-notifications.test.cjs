@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { ResetNotifications, parseStatus, CHECK_INTERVAL, STATUS_API, LINKS } = require('../src/common/reset-notifications.cjs');
-const { words, eventText } = require('../src/common/renderer/reset-strings.js');
+const { ResetNotifications, parseStatus, CHECK_INTERVAL, STATUS_API, LINKS } = require('../src/common/ai-connects/codex/reset-notifications.cjs');
+const { words, eventText } = require('../src/common/settings/resets/strings.js');
 const NOW = Date.UTC(2026, 9, 18, 12);
 const iso = delta => new Date(NOW + delta).toISOString();
 const scheduled = (overrides = {}) => ({ id: 'announced-reset', status: 'scheduled', reset_type: 'regular', announced_at: iso(-60000), scheduled_for: iso(3600000), ...overrides });
@@ -248,7 +248,9 @@ test('notification language distinguishes a forecast from a confirmed announceme
     assert.ok(eventText(future.scheduled, language).includes(t.scheduled));
     assert.ok(eventText(future.watch, language).includes(t.forecastHint));
     assert.ok(eventText(future.watch, language).includes('80%'));
-    assert.ok(t.description.includes('codex-resets.com')); assert.ok(t.description.includes(language === 'ru' ? 'каждый час' : 'every hour'));
+    const integrationIntro = language === 'ru' ? 'Интеграция с codex-resets.com' : 'Integration with codex-resets.com';
+    assert.equal(t.description.split('. ', 1)[0], integrationIntro);
+    assert.ok(t.description.includes(language === 'ru' ? 'каждый час' : 'every hour'));
     assert.equal(eventText({ ...future.watch, chance: null }, language).includes('null'), false);
   }
 });

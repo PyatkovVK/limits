@@ -1,6 +1,6 @@
 # Contributing to Limits
 
-[English README](README.md) · [README на русском](README.ru.md) · [Development guide](docs/development.md)
+[README](README.md) · [Development guide](docs/development.md)
 
 Thanks for helping improve Limits. Bug reports, translations, documentation, and testing on different desktop environments are useful contributions. Issues and pull requests may be written in English or Russian.
 
@@ -28,10 +28,10 @@ AI contributors should start with [local AI skills](docs/ai-skills.md) and follo
 
 ## Validate your change
 
-- **Behavior changes:** run `npm test`. Add or adjust tests for meaningful behavior, especially usage calculations, account isolation, and platform regressions.
-- **UI changes:** run `npm run smoke` on the affected OS, inspect the result, and attach a demo screenshot. For Windows onboarding, use `npm run smoke:onboarding` where relevant.
+- **Behavior changes:** run the [test suite](docs/development.md#checks) for the code you changed. Use `npm run test:common` for shared changes and the matching platform command for platform changes. Add or adjust tests for meaningful behavior, especially usage calculations, account isolation, and platform regressions.
+- **UI changes:** run `npm run demo` on the affected OS, inspect the result, and attach a demo screenshot.
 - **Packaging changes:** build on the target OS with an explicit platform/architecture command, such as `npm run build:win:x64`, `npm run build:mac:arm64`, `npm run build:mac:x64`, or `npm run build:linux:x64`, and check the generated package. See the [build commands and CI routing](docs/development.md#build-packages).
-- **Documentation changes:** check links, image paths, commands, and consistency between `README.md` and `README.ru.md`. App builds are not necessary for text-only edits.
+- **Documentation changes:** check links, image paths, and commands. App builds are not necessary for text-only edits.
 
 Live checks require sign-in and should only be used when demo mode cannot verify the change. Do not include real account details in PR attachments.
 
@@ -41,7 +41,7 @@ Create a separate `limits/<description>` branch and MR/PR for each independent b
 
 Push your branch to your fork and choose **Compare & pull request** on GitHub. Choose the appropriate base branch as described above. Fill in the PR template with the problem, resulting behavior, validation, and related issue.
 
-Keep English and Russian README content aligned when changing user-facing documentation. Keep concrete Limits release numbers in [CHANGELOG.md](CHANGELOG.md) only, unless the user explicitly requests a specific occurrence elsewhere. Describe current behavior without release numbers in README files, other documentation, requirements, comments and skill examples; use placeholders for release branches and tags. Follow the [versionless-documentation skill](docs/skill-templates/versionless-documentation/SKILL.md).
+Keep concrete Limits release numbers in [CHANGELOG.md](CHANGELOG.md) only, unless the user explicitly requests a specific occurrence elsewhere. Describe current behavior without release numbers in README files, other documentation, requirements, comments and skill examples; use placeholders for release branches and tags. Follow the [versionless-documentation skill](docs/skill-templates/versionless-documentation/SKILL.md).
 
 Record release-worthy application behavior directly in its target version section of the changelog in the same change; do not use an `Unreleased` placeholder. Keep internal agent instructions and repository-only AI tooling out of product feature lists and every version section of the changelog. Avoid including generated packages, `node_modules`, local credentials, or unrelated formatting changes.
 

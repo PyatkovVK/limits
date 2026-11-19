@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Limits</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../renderer/metrics.css">
+  <script src="../renderer/i18n.js" defer></script>
+  <script src="../renderer/countdown.js" defer></script>
+  <script src="../renderer/metrics.js" defer></script>
+  <script src="../renderer/metric-elements.js" defer></script>
+  <link rel="stylesheet" href="../renderer/appearance.css">
+  <link rel="stylesheet" href="../renderer/sixty-seven.css">
+  <script src="../renderer/appearance.js" defer></script>
+  <link rel="stylesheet" href="../renderer/key-connection.css">
+  <script src="../renderer/key-connection.js" defer></script>
+  <link rel="stylesheet" href="../settings/common/style.css">
+  <script src="../settings/common/group.js" defer></script>
+  <script src="../settings/general/group.js" defer></script>
+  <script src="../settings/common/dialog.js" defer></script>
+  <link rel="stylesheet" href="../settings/subscriptions/style.css">
+  <script src="../settings/subscriptions/group.js" defer></script>
+  <script src="renderer.js" defer></script>
+  <script src="size.js" defer></script>
+  <link rel="stylesheet" href="../settings/background/style.css">
+  <script src="../settings/background/group.js" defer></script>
+  <link rel="stylesheet" href="../settings/resets/style.css">
+  <script src="../settings/resets/strings.js" defer></script>
+  <script src="../settings/resets/group.js" defer></script>
+  <link rel="stylesheet" href="../settings/updates/style.css">
+  <script src="../settings/updates/installation.js" defer></script>
+  <script src="../settings/updates/group.js" defer></script>
+</head>
+<body>
+  <header class="titlebar"><div class="brand">Limits</div><button id="hide" data-i18n-aria="close" data-i18n-title="close"></button></header>
+  <main>
+    <div id="demo" class="notice" data-i18n="demoNotice" hidden></div>
+    <div id="error" class="notice warning" role="status" hidden></div>
+    <div id="bucket-row" hidden><label for="bucket" data-i18n="bucket"></label><select id="bucket"></select></div>
+    <div class="panel-quotas">
+      <section class="quota-card short">
+        <div class="quota-meta"><div class="period"><span data-i18n="shortPeriod"></span> <time id="short-reset">—</time></div><span class="quota-amount"><span id="short-value" class="remaining-value">—</span><span id="short-unit" hidden>%</span></span></div>
+        <progress id="short-bar" max="100" value="0" data-i18n-aria="short"></progress>
+      </section>
+      <section class="quota-card weekly">
+        <div class="quota-meta"><div class="period"><span data-i18n="weeklyPeriod"></span> <time id="weekly-reset" hidden></time></div><span class="quota-amount"><span id="weekly-value" class="remaining-value">—</span><span id="weekly-unit" hidden>%</span></span></div>
+        <progress id="weekly-bar" max="100" value="0" data-i18n-aria="weekly"></progress>
+      </section>
+    </div>
+    <div id="other" class="other" hidden></div>
+    <section id="provider-metrics" class="provider-metrics" hidden></section>
+    <button id="login" class="login-button" hidden></button>
+    <footer>
+      <span id="account">Подключаем аккаунт Codex…</span>
+      <span class="live-dot" id="connection" role="img"></span><time id="updated"></time>
+      <button id="refresh" class="refresh-button" data-i18n="refresh"></button>
+    </footer>
+    <section class="accounts-section settings-group" aria-labelledby="subscriptions-title">
+      <div class="accounts-heading">
+        <h3 id="subscriptions-title"></h3>
+        <button id="add-account" class="subscription-button" type="button" popovertarget="subscription-providers" data-i18n="addAccount" disabled></button>
+        <div id="subscription-providers" popover role="group" aria-labelledby="add-account"></div>
+      </div>
+      <div class="settings-group-card">
+        <div class="subscription-controls settings-item">
+          <label id="subscription-source"></label>
+          <span class="settings-item-select"><select></select></span>
+        </div>
+        <div id="accounts"></div>
+        <p class="subscription-empty" hidden></p>
+      </div>
+      <p class="subscription-error settings-item-error" role="status" hidden></p>
+    </section>
+  </main>
+  <dialog id="claude-setup" class="key-connection" aria-labelledby="claude-setup-title">
+    <h2 id="claude-setup-title" data-i18n="claudeSetup"></h2>
+    <p class="key-connection-hint" id="claude-setup-hint" data-i18n="claudeSetupHint"></p>
+    <textarea id="claude-settings" rows="5" wrap="off" readonly spellcheck="false" aria-describedby="claude-setup-hint" data-i18n-aria="claudeSettings"></textarea>
+    <div class="key-connection-actions"><button id="claude-setup-close" type="button" class="refresh-button" data-i18n="closeDialog"></button></div>
+  </dialog>
+</body>
+</html>

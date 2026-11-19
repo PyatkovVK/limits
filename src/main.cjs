@@ -1,0 +1,785 @@
+'use strict';
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, screen, nativeImage, nativeTheme, powerMonitor, Notification, dialog, safeStorage, clipboard } = require('electron');
+const path = require('node:path');
+const fs = require('node:fs');
+const { CODEX_POLL_INTERVAL_MINUTES } = require('./common/core/polling-defaults.cjs');
+const { Accounts } = require('./common/core/accounts.cjs');
+const { AppearanceStore } = require('./common/core/appearance.cjs');
+const { Updates } = require('./common/updates/updates.cjs');
+const { ResetNotifications } = require('./common/ai-connects/codex/reset-notifications.cjs');
+const { eventText: resetEventText, words: resetWords } = require('./common/settings/resets/strings.js');
+let updates;
+let resetNotifications;
+const resetToasts = new Set();
+let appearance;
+let stopSessionWatch;
+const { selectedBucket, isStale } = require('./common/core/limits.cjs');
+const { TrayPresentation } = require('./common/tray/tray.cjs');
+const { t: translate } = require('./common/renderer/i18n.js');
+const { startupState, changePreference } = require('./common/core/preferences.cjs');
+const { welcomeMode, markWelcomeShown } = require('./common/welcome/once.cjs');
+const { openWelcome } = require('./common/welcome/window.cjs');
+
+const cleanDemo = process.platform === 'win32' && app.isPackaged && require('../package.json').limitsDemo === true;
+const demo = process.argv.includes('--demo') || (cleanDemo && process.argv.includes('--sample-data'));
+const smoke = process.argv.includes('--smoke-test');
+const linuxGenmon = process.platform === 'linux' ? require('./linux_feature/panel/genmon.cjs') : null;
+const linuxPanelActivation = Boolean(linuxGenmon && process.argv.includes(linuxGenmon.activationFlag));
+const xfcePanelAvailable = linuxGenmon?.genmonAvailable(process.env) || false;
+const linuxPreferences = process.platform === 'linux' ? require('./linux_feature/core/preferences.cjs') : null;
+const taskbarSupported = process.platform === 'win32' && !process.argv.includes('--smoke-tray-only');
+const windowsWidgetStyle = process.platform === 'win32' ? require('./windows_feature/settings/widget/styles.js') : null;
+const artifactRoot = path.join(app.isPackaged ? (process.env.PORTABLE_EXECUTABLE_DIR || process.cwd()) : path.join(__dirname, '..'), 'artifacts');
+if (smoke && !process.argv.includes('--smoke-gpu')) app.disableHardwareAcceleration();
+if (smoke) app.setPath('userData', path.join(artifactRoot, 'smoke-profile'));
+// The demo's portable launcher deletes its extraction directory on exit.
+else if (cleanDemo) app.setPath('userData', fs.mkdtempSync(path.join(path.dirname(process.execPath), 'profile-')));
+else if (demo) app.setPath('userData', path.join(app.getPath('appData'), 'Codex Limits Demo'));
+// Keep the existing settings and Windows upgrade identity across the rename.
+else app.setPath('userData', path.join(app.getPath('appData'), 'Codex Limits'));
+app.setName('Limits');
+app.setAppUserModelId(cleanDemo ? 'dev.codexlimits.desktop.demo' : 'dev.codexlimits.desktop');
+const singleInstance = app.requestSingleInstanceLock({ linuxPanelActivation });
+if (!singleInstance) app.quit();
+
+let window, windowsPanel, macPanel, linuxPanel, appleNotch, widget, widgetHost, placement, probe, taskbarMetrics, taskbarUnavailable = false, monitor, trayPresentation, quitting = false, tick, saveTimer;
+let welcomePending = false, welcomeWindow;
+let genmonPresentation;
+let widgetSettings = { visible: true, width: 280, xRatio: null, language: 'ru', layoutVersion: 1, displayMode: taskbarSupported ? 'widget' : 'tray', linuxTrayStyle: 'classic', widgetResetDisplay: 'clock' };
+const t = key => (process.platform === 'darwin' ? require('./apple_feature/renderer/i18n.js').t(widgetSettings.language, key) : null) || translate(widgetSettings.language, key, process.platform);
+let state = { account: null, buckets: [], status: 'connecting', error: null, updatedAt: null, selectedId: 'codex', refreshing: false, interval: CODEX_POLL_INTERVAL_MINUTES * 60, demo };
+let notified = new Set();
+const applePresentation = process.platform === 'darwin' ? require('./apple_feature/panel/presentation.cjs') : null;
+const appleKeychain = process.platform === 'darwin' ? require('./apple_feature/ai-connects/keychain.cjs') : null;
+const keychainAccess = appleKeychain && !demo ? new appleKeychain.KeychainAccess(app.getPath('userData'), safeStorage) : null;
+const usesNotch = () => applePresentation?.isNotchMode(widgetSettings.displayMode);
+// Platform capabilities injected into common modules, keeping common free of *_feature imports.
+const codexPlatformFinders = process.platform === 'linux' ? { linux: require('./linux_feature/ai-connects/codex/path.cjs').findLinuxCodex } : process.platform === 'darwin' ? { darwin: require('./apple_feature/ai-connects/codex/path.cjs').findMacCodex } : {};
+const platformApi = {
+  linuxStartup: process.platform === 'linux' ? require('./linux_feature/core/startup.cjs') : undefined,
+  appleStartup: process.platform === 'darwin' ? require('./apple_feature/core/startup.cjs') : undefined,
+  changeTrayStyle: linuxPreferences && ((value, context) => linuxPreferences.changeTrayStyle(value, context, xfcePanelAvailable)),
+  widgetStyles: windowsWidgetStyle?.styles,
+  presentation: applePresentation,
+};
+
+const trayIcon = process.platform === 'win32' ? require('./windows_feature/tray/tray-icon.cjs').icon
+  : process.platform === 'darwin' ? require('./apple_feature/tray/tray-icon.cjs').icon
+  : process.platform === 'linux' ? require('./linux_feature/tray/tray-icon.cjs').icon : null;
+
+function getTrayBounds() {
+  return trayPresentation?.entries.flatMap(({ tray }) => {
+    try {
+      const bounds = tray.getBounds();
+      return bounds?.width > 0 && bounds.height > 0 ? [bounds] : [];
+    } catch { return []; }
+  }) || [];
+}
+// Renderer assets injected into the shared view-panel (paths are relative to src/common/view-panel/index.html).
+const platformAssets = {
+  darwin: {
+    styles: ['../../apple_feature/view-panel/style.css'],
+    scripts: ['../../apple_feature/renderer/i18n.js', '../../apple_feature/view-panel/keychain.js', '../../apple_feature/view-panel/island.js', '../../apple_feature/view-panel/surface.js', '../../apple_feature/view-panel/notch.js'],
+  },
+  win32: {
+    styles: ['../../windows_feature/view-panel/style.css'],
+    scripts: ['../../windows_feature/renderer/i18n.js', '../../windows_feature/renderer/reset-clock.js', '../../windows_feature/settings/widget/styles.js', '../../windows_feature/settings/widget/group.js', '../../windows_feature/view-panel/provider-picker.js'],
+  },
+  linux: {
+    styles: ['../../linux_feature/view-panel/style.css'],
+    scripts: ['../../linux_feature/settings/general/styles.js', '../../linux_feature/settings/general/group.js'],
+  },
+};
+
+function showPanel(anchor) {
+  if (welcomePending) {
+    if (welcomeWindow?.isVisible()) welcomeWindow.focus();
+    return;
+  }
+  if (!window || window.isDestroyed()) return;
+  if (usesNotch()) return appleNotch?.expand();
+  if (macPanel) return macPanel.show(anchor);
+  if (linuxPanel) return linuxPanel.show(anchor);
+  if (windowsPanel) return windowsPanel.show(anchor);
+  const bounds = process.platform === 'linux' ? null : anchor?.getBounds?.() || (widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds());
+  const display = bounds?.width ? screen.getDisplayMatching(bounds) : screen.getPrimaryDisplay();
+  const area = display.workArea;
+  const [width, height] = window.getSize();
+  const x = Math.max(area.x, Math.min(area.x + area.width - width, bounds?.width ? bounds.x + bounds.width / 2 - width / 2 : area.x + area.width - width - 16));
+  const y = Math.max(area.y, Math.min(area.y + area.height - height, bounds?.width && bounds.y < area.y + area.height / 2 ? area.y + 8 : area.y + area.height - height - 8));
+  window.setPosition(Math.round(x), Math.round(y));
+  window.show(); window.focus();
+}
+
+const displayModes = () => taskbarSupported ? ['widget', 'tray'] : applePresentation ? applePresentation.displayModes(appleNotch?.available) : ['tray'];
+function publicState() { return { ...state, platform: process.platform, dark: nativeTheme.shouldUseDarkColors, reducedTransparency: nativeTheme.prefersReducedTransparency, reducedMotion: nativeTheme.prefersReducedMotion, language: widgetSettings.language, displayMode: widgetSettings.displayMode, displayModes: displayModes(), appleNotch: appleNotch?.snapshot() || null, stale: isStale(state), widgetError: taskbarUnavailable && widgetSettings.displayMode === 'widget' ? 'taskbarMissing' : null,
+  ...(keychainAccess && { keychainPermissionRequired: !keychainAccess.granted }),
+  updates: updates?.snapshot(),
+  resetNotifications: resetNotifications?.snapshot(),
+  preferences: { width: widgetSettings.width, visible: widgetSettings.visible, widgetSupported: taskbarSupported, linuxTrayStyle: widgetSettings.linuxTrayStyle, widgetResetDisplay: widgetSettings.widgetResetDisplay,
+    ...(linuxPreferences && { xfcePanelAvailable }),
+    ...(taskbarSupported ? { widgetStyle: windowsWidgetStyle.normalize(widgetSettings.widgetStyle) } : {}),
+    ...(applePresentation && { islandHoverStyle: widgetSettings.islandHoverStyle || 'minimal' }),
+    startup: startupState({ app, platform: process.platform, demo: demo || cleanDemo, smoke, platformApi }) } }; }
+function persistWidgetSettings() {
+  const target = path.join(app.getPath('userData'), 'widget-settings.json');
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, JSON.stringify(widgetSettings));
+}
+function saveWidgetSettings() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persistWidgetSettings, 200);
+}
+function placeWidget() {
+  const before = widget && !widget.isDestroyed() ? widget.getBounds() : null;
+  placement?.apply(taskbarMetrics, { ...widgetSettings, visible: widgetSettings.visible && widgetSettings.displayMode === 'widget' });
+  if (!before || !windowsPanel || widgetSettings.displayMode !== 'widget' || !widget || widget.isDestroyed()) return;
+  const after = widget.getBounds();
+  if (['x', 'y', 'width', 'height'].some(key => before[key] !== after[key])) windowsPanel.follow(widget);
+}
+function resetWidget() { widgetSettings.xRatio = null; widgetSettings.visible = true; saveWidgetSettings(); placeWidget(); update(); }
+function setLanguage(language) {
+  if (!['ru', 'en'].includes(language)) return publicState();
+  widgetSettings.language = language;
+  saveWidgetSettings(); update();
+  return publicState();
+}
+function setDisplayMode(mode) {
+  if (linuxPreferences && !['widget', 'tray'].includes(mode)) {
+    platformApi.changeTrayStyle(mode, { settings: widgetSettings, save: saveWidgetSettings, update });
+    return publicState();
+  }
+  if (!['widget', 'tray'].includes(mode) && !applePresentation?.isNotchMode(mode)) return publicState();
+  if (mode === 'widget' && !taskbarSupported) mode = 'tray';
+  if (!displayModes().includes(mode)) return publicState();
+  const previous = widgetSettings.displayMode;
+  widgetSettings.displayMode = mode;
+  if (mode === 'widget') widgetSettings.visible = true;
+  if (usesNotch()) {
+    window.hide();
+    void appleNotch.enable(mode).then(() => {
+      if (!quitting && widgetSettings.displayMode === mode) appleNotch.expand();
+    }).catch(error => { console.error('Apple notch:', error.message); if (!quitting && widgetSettings.displayMode === mode) setDisplayMode('tray'); });
+  } else appleNotch?.disable();
+  saveWidgetSettings(); placeWidget(); update();
+  if (applePresentation?.isNotchMode(previous) && mode === 'tray') void showPanel();
+  return publicState();
+}
+async function showSettings() {
+  await showPanel();
+  const target = usesNotch() ? appleNotch?.window : window;
+  if (target && !target.isDestroyed()) target.webContents.send('limits:open-settings');
+}
+
+function presentationMenu() {
+  return [
+      { label: t('details'), click: showPanel },
+      { label: t('settings'), click: showSettings },
+      ...(genmonPresentation ? [{
+        label: widgetSettings.language === 'ru' ? 'Скопировать команду для Genmon' : 'Copy Genmon command',
+        click: () => clipboard.writeText(genmonPresentation.command),
+      }] : []),
+      { label: t('refresh'), enabled: !demo && (process.platform === 'linux' || !state.refreshing), click: () => void monitor?.refresh() },
+      { type: 'separator' },
+      { label: t('quit'), click: () => app.quit() }
+    ];
+}
+function update() {
+  if (quitting || !window || window.isDestroyed()) return;
+  const bucket = selectedBucket(state);
+  const stale = isStale(state);
+  genmonPresentation?.update({ style: widgetSettings.linuxTrayStyle, bucket, metricsState: state, stale,
+    dark: nativeTheme.shouldUseDarkColors, language: widgetSettings.language });
+  if (usesNotch()) trayPresentation?.destroy();
+  else {
+    const mode = applePresentation && widgetSettings.displayMode === 'tray' && state.selectedProfileId === null ? 'app' : widgetSettings.displayMode;
+    trayPresentation?.update({ mode, linuxTrayStyle: widgetSettings.linuxTrayStyle, bucket, stale, dark: nativeTheme.shouldUseDarkColors, account: state.account, displayName: state.displayName, language: widgetSettings.language, demo, menu: presentationMenu(), metricsState: state });
+  }
+  for (const kind of ['short', 'weekly']) {
+    const value = bucket?.[kind]?.remaining ?? null;
+    const label = t(kind === 'short' ? 'shortCompact' : 'weeklyCompact');
+    if (!demo && !smoke && !stale && value !== null && value <= 10) {
+      const key = `${state.selectedProfileId}:${bucket.id}:${kind}:${bucket[kind].resetsAt}`;
+      if (!notified.has(key)) {
+        const notification = { title: t('lowTitle').replace('{provider}', state.providerId === 'codex' ? 'Codex' : bucket.name), body: `${label}: ${value}%.` };
+        const delivered = applePresentation?.notify(widgetSettings.displayMode, appleNotch, notification);
+        if (delivered === false) continue;
+        if (delivered == null && Notification.isSupported()) new Notification(notification).show();
+        notified.add(key);
+        if (notified.size > 100) notified = new Set([key]);
+      }
+    }
+  }
+  for (const target of [window, widget]) if (target && !target.isDestroyed()) target.webContents.send('limits:state', publicState());
+  appleNotch?.update();
+}
+
+function trusted(event) { return [window, widget, appleNotch?.window].some(target => target && event.sender === target.webContents && event.senderFrame === target.webContents.mainFrame); }
+function handle(channel, fn) { ipcMain.handle(channel, (event, ...args) => { if (!trusted(event)) throw new Error('Unauthorized'); return fn(...args); }); }
+
+function showResetNotification(event) {
+  if (quitting) return false;
+  const message = { title: 'Limits · Codex Resets', body: `${resetEventText(event, widgetSettings.language)}\n${(resetWords[widgetSettings.language] || resetWords.en).source}codex-resets.com` };
+  const delivered = applePresentation?.notify(widgetSettings.displayMode, appleNotch, { ...message, action: 'resets' });
+  if (delivered != null) return delivered;
+  if (!Notification.isSupported()) return false;
+  const notification = new Notification(message);
+  // Retain native objects so click/failure events survive garbage collection.
+  resetToasts.add(notification);
+  while (resetToasts.size > 8) resetToasts.delete(resetToasts.values().next().value);
+  notification.once('click', () => { void resetNotifications.openLink('site'); });
+  notification.once('close', () => resetToasts.delete(notification));
+  notification.once('failed', () => { resetToasts.delete(notification); resetNotifications.deliveryFailed(event.key); });
+  notification.show();
+  return true;
+}
+
+const webPreferences = { preload: path.join(__dirname, 'common', 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true };
+function restrictWindow(target) {
+  target.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  target.webContents.on('will-navigate', event => event.preventDefault());
+  target.webContents.on('will-attach-webview', event => event.preventDefault());
+}
+function nativeHandleId(target) {
+  const handle = target.getNativeWindowHandle();
+  return handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
+}
+async function captureSmokePanel() {
+  // Focus tests deliberately dismiss the panel. Make it paintable for capture.
+  if (!window.isVisible()) window.showInactive();
+  return (await window.webContents.capturePage()).toPNG();
+}
+async function createWidget() {
+  const { TaskbarWidget } = require('./windows_feature/widget/host.cjs');
+  widgetHost = new TaskbarWidget({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, getSettings: () => widgetSettings, resourcesPath: app.isPackaged ? process.resourcesPath : null, onMove: bounds => {
+    if (!taskbarMetrics?.bar) return;
+    widgetSettings.xRatio = (bounds.x - taskbarMetrics.bar.x) / taskbarMetrics.bar.width;
+    saveWidgetSettings(); placeWidget();
+  }, getMenu: () => [
+    { label: t('details'), click: showPanel },
+    { label: t('settings'), click: showSettings },
+    { label: t('refresh'), enabled: !demo, click: () => void monitor?.refresh() },
+    { type: 'separator' },
+    { label: t('quit'), click: () => app.quit() }
+  ] });
+  widgetHost.on('window', (created, createdPlacement) => { widget = created; placement = createdPlacement; });
+  widgetHost.on('click', () => showPanel());
+  widgetHost.on('probe', createdProbe => { probe = createdProbe; });
+  widgetHost.on('failure', error => console.error(error.message));
+  widgetHost.on('ready', update);
+  widgetHost.on('metrics', metrics => {
+    // Smoke windows must remain inspectable even if another foreground app is fullscreen.
+    // The native detector is checked separately against our own test windows below.
+    if (smoke) metrics = { ...metrics, fullscreen: false };
+    const availabilityChanged = taskbarUnavailable !== !metrics.available;
+    taskbarUnavailable = !metrics.available;
+    if (metrics.available) taskbarMetrics = {
+      ...metrics,
+      bar: screen.screenToDipRect(null, metrics.bar),
+      tray: metrics.tray ? screen.screenToDipRect(null, metrics.tray) : null,
+      monitor: metrics.monitor ? screen.screenToDipRect(null, metrics.monitor) : null,
+      occupied: Array.isArray(metrics.occupied) ? metrics.occupied.map(rect => screen.screenToDipRect(null, rect)) : null,
+    };
+    placeWidget();
+    if (availabilityChanged) update();
+  });
+  await widgetHost.start();
+}
+
+async function setup() {
+  const profileRoot = app.getPath('userData');
+  const demoWelcome = cleanDemo ? 'install' : demo && ['install', 'update'].find(mode => process.argv.includes('--welcome-' + mode));
+  const introMode = demoWelcome || (!demo && !smoke && !process.argv.includes('--smoke-tray-only')
+    && welcomeMode(profileRoot, app.getVersion()));
+  welcomePending = Boolean(introMode);
+  widgetSettings.language = app.getLocale().startsWith('ru') ? 'ru' : 'en';
+  try {
+    const saved = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget-settings.json'), 'utf8'));
+    const width = saved.layoutVersion !== 1 && saved.width === 320 ? 280 : saved.width;
+    widgetSettings = { visible: saved.visible !== false, width: [240, 280, 320, 400].includes(width) ? width : 280, xRatio: Number.isFinite(saved.xRatio) ? saved.xRatio : null, language: ['ru', 'en'].includes(saved.language) ? saved.language : widgetSettings.language, layoutVersion: 1, displayMode: (process.platform === 'darwin' && ['notch', 'island'].includes(saved.displayMode)) || displayModes().includes(saved.displayMode) ? saved.displayMode : displayModes()[0] };
+    if (linuxPreferences) widgetSettings.linuxTrayStyle = linuxPreferences.trayStyle(saved.linuxTrayStyle, xfcePanelAvailable);
+    if (applePresentation?.islandHoverStyles.includes(saved.islandHoverStyle)) widgetSettings.islandHoverStyle = saved.islandHoverStyle;
+    widgetSettings.widgetResetDisplay = ['hidden', 'countdown', 'clock'].includes(saved.widgetResetDisplay) ? saved.widgetResetDisplay : 'clock';
+    if (taskbarSupported) widgetSettings.widgetStyle = windowsWidgetStyle.normalize(saved.widgetStyle);
+  } catch { /* Defaults on first launch. */ }
+  if ((process.platform !== 'darwin' && !displayModes().includes(widgetSettings.displayMode)) || smoke) widgetSettings.displayMode = displayModes()[0];
+  if (xfcePanelAvailable) {
+    const activate = linuxGenmon.activationCommand({ executable: process.execPath, appPath: path.resolve(__dirname, '..'),
+      packaged: app.isPackaged, appImage: process.env.APPIMAGE, demo });
+    genmonPresentation = linuxGenmon.createGenmonPresentation({ root: profileRoot, activate });
+  }
+  if (process.platform === 'darwin') app.dock.hide();
+  appearance = new AppearanceStore(app.getPath('userData'));
+  const UpdateService = process.platform === 'darwin' ? require('./apple_feature/updates/updates.cjs').AppleUpdates : process.platform === 'win32' ? require('./windows_feature/updates/updates.cjs').WindowsUpdates : process.platform === 'linux' ? require('./linux_feature/updates/updates.cjs').LinuxUpdates : Updates;
+  updates = new UpdateService({ app, currentVersion: app.getVersion(), root: app.getPath('userData'), demo: demo || cleanDemo || smoke || process.argv.includes('--smoke-tray-only'), openExternal: url => shell.openExternal(url) });
+  resetNotifications = new ResetNotifications({ root: app.getPath('userData'), demo: demo || cleanDemo || smoke || process.argv.includes('--smoke-tray-only'),
+    notify: showResetNotification, openExternal: url => shell.openExternal(url) });
+  window = new BrowserWindow({ width: 400, height: Math.min(590, screen.getPrimaryDisplay().workArea.height - 16), resizable: false, frame: false, show: false, skipTaskbar: true, transparent: true, backgroundColor: '#00000000', ...(process.platform === 'darwin' ? require('./apple_feature/panel/panel.cjs').panelOptions() : {}), autoHideMenuBar: true, webPreferences });
+  restrictWindow(window);
+  if (process.platform === 'win32') windowsPanel = require('./windows_feature/panel/panel.cjs').createPanelController({
+    window, screen, ipcMain, getWidgetHost: () => widgetHost, root: app.getPath('userData'),
+    resourcesPath: app.isPackaged ? process.resourcesPath : null,
+    reducedMotion: () => nativeTheme.prefersReducedMotion,
+    getAnchorBounds: () => widget?.isVisible() ? widget.getBounds() : trayPresentation?.bounds(),
+  });
+  window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
+  const appIcon = nativeImage.createFromPath(path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'app.ico' : 'app.png')).resize({ width: 16, height: 16 });
+  trayPresentation = new TrayPresentation({ Tray, Menu, nativeImage, quotaIcon: trayIcon || (() => appIcon), appIcon,
+    onClick: tray => linuxPanel && !welcomePending ? linuxPanel.toggle(tray) : showPanel(tray) });
+  if (process.platform === 'darwin') macPanel = require('./apple_feature/panel/panel.cjs').createPanelController({ window, screen, root: profileRoot, reducedMotion: () => nativeTheme.prefersReducedMotion, getTrayBounds });
+  if (process.platform === 'linux') linuxPanel = require('./linux_feature/panel/panel.cjs').createPanelController({ window, screen, root: app.getPath('userData') });
+  nativeTheme.on('updated', update);
+  handle('limits:get', publicState);
+  handle('limits:updates-check', () => updates.check());
+  handle('limits:updates-open', () => updates.openRelease());
+  handle('limits:updates-dismiss', version => updates.dismiss(version));
+  handle('limits:updates-demo', scenario => updates.setDemoScenario(scenario));
+  handle('limits:reset-notifications-set', value => resetNotifications.setEnabled(value));
+  handle('limits:reset-notifications-open', kind => resetNotifications.openLink(kind));
+  handle('limits:reset-notifications-demo', scenario => resetNotifications.setDemoScenario(scenario));
+  const appearanceResult = action => {
+    try {
+      action();
+      const next = appearance.state();
+      for (const target of [window, widget, appleNotch?.window]) if (target && !target.isDestroyed()) target.webContents.send('limits:appearance-state', next);
+      return next;
+    } catch (error) { return { ...appearance.state(), error: ['imageTooLarge', 'invalidImage'].includes(error.message) ? error.message : 'appearanceFailed' }; }
+  };
+  handle('limits:appearance-get', () => appearance.state());
+  handle('limits:appearance-image', () => appearance.imageData());
+  handle('limits:appearance-set', value => appearanceResult(() => appearance.set(value)));
+  handle('limits:appearance-choose', async () => {
+    const parent = usesNotch() ? appleNotch?.window : window;
+    const choose = () => dialog.showOpenDialog(parent, { properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }] });
+    const result = usesNotch() ? await appleNotch.withModal(choose) : windowsPanel ? await windowsPanel.withModal(choose) : await choose();
+    if (result.canceled || !result.filePaths.length) return appearance.state();
+    return appearanceResult(() => appearance.importImage(result.filePaths[0], nativeImage));
+  });
+  handle('limits:refresh', async () => { await monitor?.refresh(); return publicState(); });
+  handle('limits:open', showPanel);
+  handle('limits:select', id => { if (typeof id === 'string') monitor?.select(id); });
+  handle('limits:language', setLanguage);
+  handle('limits:display-mode', setDisplayMode);
+  handle('limits:notification-dismiss', id => appleNotch?.dismissNotification(id) || false);
+  handle('limits:notification-open', async id => {
+    const action = appleNotch?.activateNotification(id);
+    if (action === 'resets') return resetNotifications.openLink('site');
+    if (action === 'updates') return showPanel();
+  });
+  handle('limits:preference', (key, value) => {
+    const changed = changePreference(key, value, { app, settings: widgetSettings, platform: process.platform,
+      taskbarSupported, demo: demo || cleanDemo, smoke, resetPosition: resetWidget, save: saveWidgetSettings, update, place: placeWidget, platformApi });
+    return { ...publicState(), preferenceError: changed ? null : 'unavailable' };
+  });
+  ipcMain.handle('limits:panel-size', (event, height, surface) => {
+    if (!trusted(event)) throw new Error('Unauthorized');
+    if (event.sender === appleNotch?.window?.webContents) return appleNotch.resize(height, surface);
+    if (event.sender !== window.webContents) return false;
+    return (windowsPanel || macPanel || linuxPanel)?.resize(height) || false;
+  });
+  handle('limits:hide', () => usesNotch() ? appleNotch?.collapse() : window.hide());
+  handle('limits:quit', () => app.quit());
+  async function openLogin(id) {
+    if (!monitor || demo) return { error: 'loginUnavailable' };
+    let profileId = id === undefined ? monitor.selectedProfileId : id;
+    let attempt;
+    try {
+      const profile = monitor.snapshot().profiles.find(item => item.id === profileId);
+      if (profile?.capabilities.setup) {
+        try { return { setup: monitor.setup(profileId) }; }
+        catch { return { error: 'accountActionFailed' }; }
+      }
+      if (profile?.capabilities.apiKey) return await openKeyConnection(profile.providerId, profileId);
+      if (monitor.isExternal?.(profileId)) {
+        if (monitor.loginActive) return { error: 'loginBusy' };
+        profileId = monitor.add(); monitor.selectProfile(profileId);
+      }
+      const authUrl = await monitor.login(profileId);
+      if (!authUrl) return {}; // Cancelled or completed while the start request was pending.
+      attempt = monitor.loginAttempt;
+      if (usesNotch()) await appleNotch?.beforeBrowserLogin();
+      if (monitor.loginAttempt !== attempt || attempt?.cancelled) return {};
+      const url = new URL(authUrl);
+      if (!monitor.isSignInUrlAllowed(profileId, url.href)) throw new Error('Unexpected login URL');
+      if (process.platform === 'linux') await require('./linux_feature/core/browser.cjs').openBrowser(url.href);
+      else await shell.openExternal(url.href);
+      return {};
+    } catch (error) {
+      if (attempt) await monitor.cancelLogin(profileId, attempt).catch(() => {});
+      return { error: error.code === 'loginBusy' ? 'loginBusy' : 'loginFailed' };
+    }
+  }
+  async function openCredentials(id) {
+    const url = monitor?.credentialsUrl(id);
+    if (!url || demo) return { error: 'loginUnavailable' };
+    try {
+      if (usesNotch() && appleNotch?.phase === 'expanded') appleNotch.collapse();
+      if (monitor.credentialsUrl(id) !== url) return {};
+      if (process.platform === 'linux') await require('./linux_feature/core/browser.cjs').openBrowser(url);
+      else await shell.openExternal(url);
+      return {};
+    } catch { return { error: 'browserOpenFailed' }; }
+  }
+  async function openKeyConnection(providerId, profileId) {
+    const connection = monitor.beginKeyConnection(providerId, profileId);
+    return { connection, ...await openCredentials(connection.id) };
+  }
+  handle('limits:login', openLogin);
+  handle('limits:profile-add', async providerId => {
+    if (!monitor || demo) return { error: 'loginUnavailable' };
+    if (monitor.loginActive || monitor.keyConnection) return { error: 'loginBusy' };
+    try {
+      if (monitor.registry.list().find(provider => provider.id === providerId)?.authentication === 'api-key') return await openKeyConnection(providerId);
+      const id = monitor.add(providerId);
+      const profile = monitor.snapshot().profiles.find(item => item.id === id);
+      if (profile?.capabilities.setup) {
+        void monitor.refresh();
+        return { setup: monitor.setup(id) };
+      }
+      if (profile?.capabilities?.signIn === false) { void monitor.refresh(); return {}; }
+      return await openLogin(id);
+    } catch { return { error: 'accountActionFailed' }; }
+  });
+  handle('limits:key-submit', async (id, key) => {
+    if (!monitor || demo || typeof id !== 'string') return { error: 'loginUnavailable' };
+    try {
+      keychainAccess?.check();
+      return { profileId: await monitor.submitKeyConnection(id, key) };
+    } catch (error) { return { error: ['invalidApiKey', 'credentialStorageUnavailable', 'credentialStoragePermissionRequired', 'balanceRefreshFailed', 'quotaRefreshFailed', 'kimiQuotaRefreshFailed', 'codingPlanRequired', 'loginBusy', 'loginIncomplete'].includes(error.code) ? error.code : 'accountActionFailed' }; }
+  });
+  handle('limits:key-cancel', id => { if (typeof id === 'string') monitor?.cancelKeyConnection(id); return {}; });
+  handle('limits:key-browser', id => typeof id === 'string' ? openCredentials(id) : { error: 'loginUnavailable' });
+  if (appleKeychain) handle('limits:credential-storage-open', appleKeychain.openKeychain);
+  if (keychainAccess) handle('limits:credential-storage-request', async () => {
+    if (keychainAccess.granted) return true;
+    const request = () => keychainAccess.request();
+    const granted = usesNotch() && appleNotch ? await appleNotch.withModal(request) : request();
+    if (!granted) return false;
+    update();
+    if (state.profiles?.some(profile => profile.error === 'credentialStoragePermissionRequired')) void monitor.refresh();
+    return true;
+  });
+  handle('limits:profile-action', async (action, id, value) => {
+    if (!monitor || typeof id !== 'string') return { error: 'accountActionFailed' };
+    try {
+      if (action === 'select') monitor.selectProfile(id);
+      else if (action === 'rename' && typeof value === 'string') monitor.rename(id, value);
+      else if (action === 'remove' && !demo) await monitor.remove(id);
+      else if (action === 'cancel' && !demo) await monitor.cancelLogin(id);
+      else return { error: 'accountActionFailed' };
+      return {};
+    } catch { return { error: 'accountActionFailed' }; }
+  });
+  handle('limits:subscriptions-mode', mode => {
+    if (!monitor?.setMode) return { error: 'accountActionFailed' };
+    try { monitor.setMode(mode); return {}; } catch { return { error: 'accountActionFailed' }; }
+  });
+  handle('limits:platform-assets', () => platformAssets[process.platform] || { styles: [], scripts: [] });
+  await window.loadFile(path.join(__dirname, 'common', 'view-panel', 'index.html'));
+  await window.webContents.executeJavaScript('window.limitsViewPanelReady');
+  if (process.platform === 'darwin') {
+    const { AppleNotch } = require('./apple_feature/notch/controller.cjs');
+    appleNotch = new AppleNotch({ BrowserWindow, screen, Menu, webPreferences, restrictWindow, resourcesPath: app.isPackaged ? process.resourcesPath : null, getState: publicState, getMenu: presentationMenu, onChange: update, onUnavailable: () => setDisplayMode('tray') });
+    await appleNotch.discover();
+    if (appleNotch.available) await appleNotch.prepare();
+    if (!displayModes().includes(widgetSettings.displayMode)) widgetSettings.displayMode = 'tray';
+    if (usesNotch()) {
+      try { await appleNotch.enable(widgetSettings.displayMode); }
+      catch (error) { console.error('Apple notch:', error.message); widgetSettings.displayMode = 'tray'; }
+    }
+  }
+  if (taskbarSupported) await createWidget();
+  try {
+      const root = app.getPath('userData');
+      const AccountService = process.platform === 'darwin' ? require('./apple_feature/ai-connects/codex/accounts.cjs').AppleAccounts : require('./common/ai-connects/codex/subscriptions.cjs').Subscriptions;
+      if (demo) {
+        const { DemoMonitor } = require('./common/demo/demo-monitor.cjs');
+        monitor = new AccountService({ root, demo: true, initialProfiles: [{ id: 'default', nickname: 'Personal' }, { id: '00000000-0000-4000-8000-000000000001', nickname: 'Work' }], createMonitor: profile => new DemoMonitor(profile) });
+      } else {
+        monitor = new AccountService({ root, isolateDefault: cleanDemo, controllerContext: () => ({ safeStorage, checkCredentialAccess: keychainAccess && (() => keychainAccess.check()), resourcesPath: app.isPackaged ? process.resourcesPath : null,
+          preserveStartupSample: process.platform === 'linux', codexPlatformFinders }) });
+      }
+      if (smoke) monitor.on('diagnostic', info => console.log('SMOKE_RPC', JSON.stringify(info)));
+      monitor.on('state', next => { state = { ...next, demo }; update(); });
+      if (process.platform === 'win32' && !demo && !smoke) require('./windows_feature/ai-connects/codex/sign-in-prompt.cjs').offerSignIn(monitor, showPanel);
+      state = { ...monitor.snapshot(), demo };
+      void monitor.refresh();
+  } catch { state = { ...state, status: 'error', error: 'codexMissing' }; }
+  update();
+  tick = setInterval(update, 15000);
+  if (process.platform === 'linux') {
+    stopSessionWatch = require('./linux_feature/core/session.cjs').watchSession({ powerMonitor,
+      refresh: () => { void monitor?.refresh({ reconnect: true }); void updates.resume(); void resetNotifications.resume(); }
+    });
+  } else if (process.platform === 'darwin') {
+    stopSessionWatch = require('./apple_feature/core/session.cjs').watchSession({ powerMonitor,
+      refresh: () => { void monitor?.refresh({ reconnect: true }); void updates.resume(); void resetNotifications.resume(); }
+    });
+  } else powerMonitor.on('resume', () => { void monitor?.refresh(); void updates.resume(); void resetNotifications.resume(); });
+  const openedAtLogin = process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin;
+  if (introMode) {
+    try {
+      const display = process.platform === 'win32' ? require('./windows_feature/welcome/display.cjs')
+        : process.platform === 'darwin' ? require('./apple_feature/welcome/display.cjs')
+        : process.platform === 'linux' ? require('./linux_feature/welcome/display.cjs') : null;
+      const placement = display && await display.placement({
+        screen, getTrayBounds,
+        widget: widget?.isVisible() ? widget.getBounds() : null, taskbar: taskbarMetrics?.bar,
+        getNotchAnchor: () => usesNotch() ? appleNotch?.compactBounds() : null,
+      });
+      if (placement && !quitting) await openWelcome({
+        BrowserWindow, ipcMain, placement, nativeTheme, restrictWindow, display,
+        mode: introMode, language: widgetSettings.language,
+        claim: () => Boolean(demoWelcome) || markWelcomeShown(profileRoot),
+        onCreate: target => { welcomeWindow = target; },
+        onClose: presented => {
+          welcomeWindow = undefined;
+          welcomePending = false;
+          if (presented && !quitting) void showPanel();
+        },
+      });
+    } catch (error) {
+      console.error('Welcome:', error.message);
+    }
+    if (!welcomeWindow) {
+      welcomePending = false;
+      if (!quitting) await showPanel();
+    }
+  } else if (smoke || (taskbarSupported ? !taskbarMetrics?.available : !process.argv.includes('--hidden') && !openedAtLogin)) await showPanel();
+  updates.on('state', update);
+  updates.on('offer', offer => {
+    if (quitting) return;
+    if (!applePresentation?.offerUpdate(widgetSettings.displayMode, appleNotch, offer, t)) void Promise.resolve(showPanel()).catch(() => {});
+  });
+  void updates.start();
+  resetNotifications.on('state', update);
+  resetNotifications.on('notification', event => {
+    if (demo && widgetSettings.displayMode === 'island') showResetNotification(event);
+  });
+  void resetNotifications.start();
+  if (smoke && !taskbarSupported) {
+    try {
+      await monitor?.refresh();
+      await window.webContents.executeJavaScript('window.renderReady');
+      await window.webContents.executeJavaScript('window.limits.get().then(render)');
+      const report = await window.webContents.executeJavaScript(`({ values: [...document.querySelectorAll('.remaining-value')].map(el => el.textContent), isolated: typeof require === 'undefined', mode: document.getElementById('display-mode').value })`);
+      if (!report.isolated || report.mode !== (process.platform === 'linux' ? widgetSettings.linuxTrayStyle : 'tray') || trayPresentation.entries.length !== 2 || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready')) throw new Error('Tray-only startup failed');
+      const firstPlacement = macPanel?.snapshot();
+      if (firstPlacement && (firstPlacement.fallback || !require('./apple_feature/panel/panel.cjs').isMenuBarAnchor(firstPlacement.anchor, firstPlacement.display) || !window.isVisible() || window.getBounds().y !== firstPlacement.bounds.y)) throw new Error('Mac first launch did not open below a menu-bar indicator');
+      for (const entry of trayPresentation.entries) {
+        window.hide(); entry.tray.emit('click');
+        for (let tries = 0; !window.isVisible() && tries < 100; tries++) await new Promise(resolve => setTimeout(resolve, 10));
+        if (!window.isVisible()) throw new Error('Tray click did not open the panel');
+      }
+      if (setDisplayMode('widget').displayMode !== 'tray' || widget) throw new Error('Widget was enabled in tray-only mode');
+      if (demo) {
+        monitor.selectProfile(state.profiles[1].id);
+        await window.webContents.executeJavaScript('window.limits.get().then(render)');
+        const values = await window.webContents.executeJavaScript(`['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent)`);
+        if (values.join(',') !== '38,81') throw new Error('Tray-only account switching failed');
+        monitor.selectProfile('default');
+      }
+      fs.mkdirSync(artifactRoot, { recursive: true });
+      const mac = process.platform === 'darwin' ? { ...await require('./apple_feature/test/smoke/panel.cjs').verifyMacPanel({ window, trayPresentation, artifactRoot, demo }), firstPlacement, apple: await require('./apple_feature/test/smoke/notch.cjs').verifyAppleNotch({ appleNotch, window, trayPresentation, setDisplayMode, artifactRoot, demo, monitor, showResetNotification }) } : null;
+      const linux = process.platform === 'linux' ? await require('./linux_feature/test/smoke/tray.cjs').verifyTrayStyles({ window, trayPresentation, artifactRoot, settingsPath: path.join(app.getPath('userData'), 'widget-settings.json') }) : null;
+      fs.writeFileSync(path.join(artifactRoot, 'tray-only-smoke.json'), JSON.stringify({ ...report, icons: 2, accountSwitch: demo, taskbarStarted: false, ...(mac ? { mac } : {}), ...(linux ? { linux } : {}) }, null, 2));
+      console.log('SMOKE_TRAY_OK', JSON.stringify(report)); app.quit();
+    } catch (error) { console.error('SMOKE_FAILED', error.message); app.exit(1); }
+    return;
+  }
+  if (smoke) {
+    try {
+      const { widgetBounds } = require('./windows_feature/taskbar/widget-bounds.cjs');
+      const { taskbarHelperPath } = require('./windows_feature/taskbar/helper.cjs');
+      const helperPath = taskbarHelperPath(app.isPackaged ? process.resourcesPath : null);
+      const originalMode = widgetSettings.displayMode;
+      const originalVisibility = widgetSettings.visible;
+      setDisplayMode('widget');
+      if (monitor) {
+        await monitor.refresh();
+        while (monitor.inflight) await monitor.inflight;
+      }
+      await window.webContents.executeJavaScript('window.renderReady');
+      await window.webContents.executeJavaScript('window.limits.get().then(render)');
+      await widget.webContents.executeJavaScript('window.renderReady');
+      await widget.webContents.executeJavaScript('window.limits.get().then(render)');
+      const report = await window.webContents.executeJavaScript(`({ title: document.title, values: [...document.querySelectorAll('.remaining-value')].map(el => el.textContent), errorHidden: document.querySelector('#error').hidden, cards: document.querySelectorAll('.quota-card').length, isolated: typeof require === 'undefined' })`);
+      if (report.title !== app.getName() || (demo ? report.values.join(',') !== '72,46' : state.status !== 'ready') || !report.errorHidden || report.cards !== 2 || !report.isolated) throw new Error(JSON.stringify({ ...report, status: state.status, auth: state.account?.type || null }));
+      const widgetReport = await widget.webContents.executeJavaScript(`({ values: ['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent), accountVisible: !!document.getElementById('widget-account').textContent, bars: document.querySelectorAll('progress').length, isolated: typeof require === 'undefined', overflow: document.body.scrollWidth > innerWidth })`);
+      if (!taskbarMetrics?.available || widgetReport.bars !== 2 || !widgetReport.accountVisible || !widgetReport.isolated || widgetReport.overflow || widgetReport.values.join(',') !== report.values.join(',')) throw new Error(JSON.stringify({ widgetReport, geometryAvailable: taskbarMetrics?.available }));
+      const dir = artifactRoot;
+      const name = demo ? 'panel' : 'panel-live';
+      fs.mkdirSync(dir, { recursive: true });
+      const originalLanguage = widgetSettings.language;
+      const languages = [];
+      for (const language of ['ru', 'en']) {
+        await window.webContents.executeJavaScript(`window.limits.language('${language}').then(render)`);
+        await widget.webContents.executeJavaScript('window.limits.get().then(render)');
+        const labels = await window.webContents.executeJavaScript(`({ language: document.documentElement.lang, short: document.querySelector('.short [data-i18n="shortPeriod"]').textContent, reset: document.getElementById('short-reset').textContent, refresh: document.getElementById('refresh').textContent, clean: !/До сброса|Осталось|каждые 30|Resets in|Remaining|every 30/.test(document.body.textContent) })`);
+        if (labels.language !== language || labels.short !== translate(language, 'shortPeriod') || labels.refresh !== translate(language, 'refresh') || !labels.clean) throw new Error(JSON.stringify(labels));
+        const reset = await widget.webContents.executeJavaScript(`document.getElementById('short-reset').textContent`);
+        const expectedClock = await widget.webContents.executeJavaScript(`window.limits.get().then(s => window.limitsWindowsResetClock.format(s.buckets.find(b => b.id === s.selectedId).short.resetsAt, s.language))`);
+        if (reset !== labels.reset || reset !== expectedClock) throw new Error('Short reset clock is missing or inconsistent.');
+        const weekly = await widget.webContents.executeJavaScript(`({ label: document.querySelector('[data-i18n="weeklyCompact"]').textContent, reset: document.getElementById('weekly-reset').textContent })`);
+        const expectedWeekly = await widget.webContents.executeJavaScript(`window.limits.get().then(s => window.limitsWindowsResetClock.format(s.buckets.find(b => b.id === s.selectedId).weekly.resetsAt, s.language))`);
+        if (weekly.label !== (language === 'ru' ? '7д' : '7d') || weekly.reset !== expectedWeekly) throw new Error('Weekly reset clock is missing or inconsistent.');
+        // Exercise the automatic compact sizes independently of live taskbar space.
+        for (const width of [200, 210, 220, 240, 280, 320, 400]) {
+          widgetSettings.width = width; placeWidget();
+          widget.setSize(width, widget.getBounds().height);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          const layout = await widget.webContents.executeJavaScript(`({ language: document.documentElement.lang, overflow: document.body.scrollWidth > innerWidth || document.body.scrollHeight > innerHeight, barWidths: [...document.querySelectorAll('progress')].map(el => el.getBoundingClientRect().width) })`);
+          if (layout.language !== language || layout.overflow || layout.barWidths.some(width => width < 20)) throw new Error(JSON.stringify(layout));
+          if (width === 200) fs.writeFileSync(path.join(dir, `${name}-taskbar-compact-${language}.png`), (await widget.webContents.capturePage()).toPNG());
+        }
+        widgetSettings.width = 280; placeWidget();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        fs.writeFileSync(path.join(dir, `${name}-${language}.png`), await captureSmokePanel());
+        fs.writeFileSync(path.join(dir, `${name}-taskbar-${language}.png`), (await widget.webContents.capturePage()).toPNG());
+        languages.push(labels);
+      }
+      setLanguage(originalLanguage);
+      // Check the actual native fullscreen detector against a normal maximized window.
+      const { spawnSync } = require('node:child_process');
+      const testWindow = new BrowserWindow({ width: 400, height: 300, show: false, webPreferences: { sandbox: true } });
+      showPanel();
+      testWindow.show(); testWindow.maximize();
+      await new Promise(resolve => setTimeout(resolve, 400));
+      if (!testWindow.isMaximized()) throw new Error('Simulated window did not maximize.');
+      if (window.isVisible()) throw new Error('Outside window focus did not dismiss details.');
+      const result = spawnSync(helperPath, ['--test-window-mode', String(process.pid), nativeHandleId(testWindow)], { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+      testWindow.destroy();
+      const maximized = JSON.parse(result.stdout.trim());
+      if (!maximized.available || maximized.fullscreen) throw new Error('Native probe classified a maximized window as fullscreen.');
+      const fullscreenTest = new BrowserWindow({ ...screen.getDisplayMatching(taskbarMetrics.bar).bounds, frame: false, show: false, focusable: false });
+      fullscreenTest.showInactive();
+      fullscreenTest.setFullScreen(true);
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const fullscreenResult = spawnSync(helperPath, ['--test-window-mode', String(process.pid), nativeHandleId(fullscreenTest)], { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+      fullscreenTest.destroy();
+      if (!JSON.parse(fullscreenResult.stdout.trim()).fullscreen) throw new Error('Native probe missed a borderless fullscreen window.');
+      showPanel();
+      // Exercise Windows' owner ordering with our own simulated taskbar, without late repairs.
+      const simulatedTaskbar = new BrowserWindow({ width: 300, height: 40, show: false, focusable: false, frame: false, alwaysOnTop: true });
+      simulatedTaskbar.showInactive();
+      probe.stop();
+      const zorder = await new Promise((resolve, reject) => {
+        require('node:child_process').execFile(helperPath, ['--test-ownership', String(process.pid), nativeHandleId(widget), nativeHandleId(simulatedTaskbar)], { windowsHide: true, timeout: 5000 }, (error, stdout) => {
+          if (error) { reject(new Error('Native ownership ordering changed visibility, bounds or focus: ' + stdout.trim())); return; }
+          try { resolve(JSON.parse(stdout.trim())); } catch (error) { reject(error); }
+        });
+      });
+      simulatedTaskbar.destroy();
+      await probe.start();
+      // Simulate repeated native taskbar observations, including Windows' clamped height.
+      const beforePlacement = { ...placement.changes };
+      for (let i = 0; i < 50; i++) placeWidget();
+      if (JSON.stringify(beforePlacement) !== JSON.stringify(placement.changes)) throw new Error('Repeated metrics changed the widget window.');
+      const retiredWidget = widget;
+      const simulatedOwner = new BrowserWindow({ width: 300, height: 40, show: false, focusable: false, frame: false, alwaysOnTop: true });
+      simulatedOwner.showInactive();
+      probe.stop();
+      await new Promise((resolve, reject) => {
+        require('node:child_process').execFile(helperPath, ['--test-owner-destroy', String(process.pid), nativeHandleId(widget), nativeHandleId(simulatedOwner)], { windowsHide: true, timeout: 5000 }, error => error ? reject(error) : resolve());
+      });
+      simulatedOwner.destroy();
+      const recoveryDeadline = Date.now() + 5000;
+      while (Date.now() < recoveryDeadline && (widget === retiredWidget || !widget?.isVisible() || !taskbarMetrics?.attached)) await new Promise(resolve => setTimeout(resolve, 50));
+      const recovered = retiredWidget.isDestroyed() && widget && widget !== retiredWidget && widget.isVisible() && taskbarMetrics?.attached;
+      if (!recovered) throw new Error('Widget did not recover after its native owner was destroyed.');
+      await widget.webContents.executeJavaScript('window.renderReady');
+      const recoveredValues = await widget.webContents.executeJavaScript(`['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent)`);
+      if (recoveredValues.join(',') !== report.values.join(',')) throw new Error('Recreated widget lost its account quotas.');
+      const displayModes = [];
+      for (const language of ['ru', 'en']) {
+        setLanguage(language);
+        await window.webContents.executeJavaScript(`window.limits.displayMode('tray').then(render)`);
+        if (widget.isVisible() || trayPresentation.entries.length !== 2) throw new Error('Tray mode did not replace the widget with two icons.');
+        const currentTrays = trayPresentation.entries.map(entry => entry.tray);
+        update();
+        if (currentTrays.some((tray, index) => trayPresentation.entries[index].tray !== tray)) throw new Error('Polling recreated tray icons.');
+        for (const entry of trayPresentation.entries) {
+          if (!entry.tooltip.includes(state.account.email) || !entry.tooltip.includes(translate(language, entry.kind))) throw new Error('Quota tray tooltip is incomplete.');
+          if (entry.image.isEmpty() || entry.image.getSize().width !== 16) throw new Error('Quota tray icon is missing.');
+          fs.writeFileSync(path.join(dir, `${name}-tray-${entry.kind}-${language}.png`), entry.image.toPNG());
+          window.hide();
+          entry.tray.emit('click');
+          if (!window.isVisible()) throw new Error('Clicking a quota tray icon did not open the panel.');
+        }
+        await window.webContents.executeJavaScript('window.limits.get().then(render)');
+        const displayLabel = await window.webContents.executeJavaScript(`document.getElementById('display-mode').selectedOptions[0].textContent`);
+        if (displayLabel !== translate(language, 'trayMode')) throw new Error('Display mode selection was not translated.');
+        fs.writeFileSync(path.join(dir, `${name}-tray-${language}.png`), await captureSmokePanel());
+        persistWidgetSettings();
+        if (JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'widget-settings.json'), 'utf8')).displayMode !== 'tray') throw new Error('Tray mode was not saved.');
+        await window.webContents.executeJavaScript(`window.limits.displayMode('widget').then(render)`);
+        if (!widget.isVisible() || trayPresentation.entries.length !== 1) throw new Error('Switching back did not restore the taskbar widget.');
+        displayModes.push({ language, trayIcons: currentTrays.length, clickOpensPanel: true, saved: true, widgetRestored: true });
+      }
+      setLanguage(originalLanguage);
+      const accountChecks = { profiles: state.profiles.length };
+      if (demo) {
+        const work = state.profiles[1].id;
+        await window.webContents.executeJavaScript(`window.limits.accountAction('select', '${work}').then(() => window.limits.get()).then(render)`);
+        await widget.webContents.executeJavaScript('window.limits.get().then(render)');
+        const workValues = await widget.webContents.executeJavaScript(`['short-value', 'weekly-value'].map(id => document.getElementById(id).textContent)`);
+        if (workValues.join(',') !== '38,81') throw new Error('Switching account did not update the widget.');
+        setDisplayMode('tray');
+        if (!trayPresentation.entries.every(entry => entry.tooltip.includes('work@example.com'))) throw new Error('Tray did not switch accounts.');
+        await window.webContents.executeJavaScript(`window.limits.accountAction('rename', 'default', 'Sam').then(() => window.limits.accountAction('rename', '${work}', 'Sam')).then(() => window.limits.get()).then(render)`);
+        await widget.webContents.executeJavaScript('window.limits.get().then(render)');
+        const names = await window.webContents.executeJavaScript(`[...document.querySelectorAll('.profile-name')].map(el => el.textContent)`);
+        if (names.join('|') !== 'Sam (demo@example.com)|Sam (work@example.com)') throw new Error('Duplicate nicknames were not disambiguated.');
+        accountChecks.switched = true; accountChecks.names = names;
+        fs.writeFileSync(path.join(dir, 'panel-multiple-accounts.png'), await captureSmokePanel());
+        await window.webContents.executeJavaScript(`window.limits.accountAction('rename', 'default', 'Personal').then(() => window.limits.accountAction('rename', '${work}', 'Work')).then(() => window.limits.accountAction('select', 'default')).then(() => window.limits.get()).then(render)`);
+        setDisplayMode('widget');
+      }
+      if (process.argv.includes('--smoke-stability')) {
+        const until = Date.now() + 65000;
+        while (Date.now() < until) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (widgetSettings.displayMode === 'widget' && widgetBounds(taskbarMetrics, widgetSettings) && !widget.isVisible()) throw new Error('Taskbar widget disappeared.');
+        }
+      }
+      setDisplayMode(originalMode);
+      widgetSettings.visible = originalVisibility; placeWidget();
+      const completedReport = { ...report, widget: widgetReport, languages, displayModes, accountChecks, maximizedFullscreen: maximized.fullscreen, zorder, recovered, placementChanges: placement.changes, bounds: widget.getBounds(), taskbar: taskbarMetrics.bar };
+      fs.writeFileSync(path.join(dir, `${name}-smoke.json`), JSON.stringify(completedReport, null, 2));
+      console.log('SMOKE_OK', JSON.stringify(completedReport));
+      app.quit();
+    } catch (error) { console.error('SMOKE_FAILED', error.message); app.exit(1); }
+  }
+}
+
+if (singleInstance) {
+  app.on('second-instance', (_event, _argv, _cwd, data) => {
+    if (data?.linuxPanelActivation && linuxPanel && !welcomePending) return linuxPanel.toggle({});
+    return showPanel();
+  });
+  app.on('activate', () => showPanel());
+  app.whenReady().then(setup).catch(error => { console.error(error.message); app.exit(1); });
+}
+app.on('window-all-closed', () => {});
+let accountsStopped, waitingForAccounts = false;
+app.on('before-quit', () => {
+  if (quitting) return;
+  quitting = true;
+  stopSessionWatch?.(); updates?.stop(); resetNotifications?.stop();
+  for (const notification of resetToasts) notification.close();
+  resetToasts.clear(); macPanel?.cancel(); linuxPanel?.dispose(); appleNotch?.destroy();
+  genmonPresentation?.clear();
+  clearInterval(tick); clearTimeout(saveTimer);
+  if (window) persistWidgetSettings();
+  widgetHost?.stop(); accountsStopped = monitor?.stop(); trayPresentation?.destroy();
+});
+if (cleanDemo) app.on('will-quit', event => {
+  // Let app-servers close the directories in the isolated profile before NSIS removes it.
+  if (!accountsStopped) return;
+  event.preventDefault();
+  if (waitingForAccounts) return;
+  waitingForAccounts = true;
+  const timer = setTimeout(() => app.exit(0), 2000);
+  const finish = () => { clearTimeout(timer); app.exit(0); };
+  accountsStopped.then(finish, finish);
+});

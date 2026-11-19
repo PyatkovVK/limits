@@ -3,9 +3,18 @@
   const strings = {
     ru: {
       connectApiKey: 'Подключить API-ключ', replaceApiKey: 'Заменить API-ключ',
-      invalidApiKey: 'Ключ не принят. Проверьте API-ключ DeepSeek и попробуйте ещё раз.',
+      invalidApiKey: 'Ключ не принят. Проверьте API-ключ и попробуйте ещё раз.',
       credentialStorageUnavailable: 'Защищённое хранилище ключей недоступно. Ключ не сохранён; проверьте хранилище ОС.',
       balanceRefreshFailed: 'Не удалось получить баланс DeepSeek. Проверьте соединение и повторите попытку.',
+      quotaRefreshFailed: 'Не удалось получить квоты GLM Coding Plan. Проверьте соединение и повторите попытку.',
+      kimiQuotaRefreshFailed: 'Не удалось получить квоты Kimi Code. Проверьте подключение и подписку Kimi Code.',
+      claudeWaitingForUsage: 'Ожидаем квоты из Claude Code. Настройте строку состояния и дождитесь ответа Claude в терминале.',
+      claudeUsageReadFailed: 'Не удалось прочитать квоты Claude Code. Дождитесь следующего ответа Claude и обновите данные.',
+      claudeSetup: 'Настроить Claude Code',
+      claudeSetupHint: 'Скопируйте поле statusLine в ~/.claude/settings.json, сохранив остальные поля. Для скрипта нужен Node.js. Квоты появятся после ответа Claude в терминале.',
+      claudeSettings: 'Настройки строки состояния Claude Code',
+      closeDialog: 'Закрыть',
+      codingPlanRequired: 'Для этого ключа недоступен GLM Coding Plan. Проверьте подписку и ключ в кабинете Z.ai.',
       insufficientBalance: 'Недостаточно средств для API-вызовов. Пополните баланс DeepSeek.',
       browserOpenFailed: 'Не удалось открыть браузер. Нажмите «Открыть кабинет» ещё раз.',
       providerUnavailable: 'Контроллер этого сервиса недоступен.',
@@ -17,19 +26,20 @@
       accountsHint: 'В виджете — выбранный аккаунт. При добавлении выберите нужный аккаунт в браузере. Имя можно задать здесь.',
       loginBusy: 'Завершите или отмените текущий вход перед подключением другого аккаунта.',
       accountActionFailed: 'Не удалось изменить аккаунт. Попробуйте ещё раз.',
-      short: 'Пятичасовой лимит', weekly: 'Недельный лимит', shortCompact: '5 ч', weeklyCompact: 'Неделя',
+      shortPeriod: '5 часов', weeklyPeriod: '7 дней',
+      short: 'Пятичасовой лимит', weekly: 'Недельный лимит', shortCompact: '5 ч', weeklyCompact: 'Неделя', weeklyDays: '7 д',
       connecting: 'Подключение', online: 'В сети', stale: 'Нет свежих данных', demo: 'ДЕМО',
       signingIn: 'Вход в браузере', signedOut: 'Нужен вход', account: 'Аккаунт Codex',
       connectAccount: 'Подключите аккаунт ChatGPT', login: 'Войти через ChatGPT ↗', switchAccount: 'Сменить аккаунт ↗',
+      noAccounts: 'Нет подключённых аккаунтов',
       finishLogin: 'Завершите вход в браузере', refresh: 'Обновить', details: 'Открыть подробности',
       close: 'Закрыть подробности', drag: 'Перетащите аккаунт, чтобы передвинуть блок',
-      footnote: 'Перетащите аккаунт, чтобы передвинуть блок на панели задач.',
       demoNotice: 'Демо · показаны примерные данные', bucket: 'Лимит', language: 'Язык',
       showWidget: 'Показывать блок на панели задач', resetPosition: 'Вернуть блок к системному трею',
       width: 'Ширина блока', startup: 'Запускать при входе в Windows', quit: 'Выйти из приложения',
-      displayMode: 'Отображение', widgetMode: 'Виджет на панели задач', trayMode: 'Два значка в трее',
-      trayFootnote: 'Наведите на значок для подробностей. Нажмите, чтобы открыть лимиты.', resetsAt: 'Сброс',
-      tooltip: 'Limits · панель задач', lowTitle: 'Codex: лимит заканчивается',
+      displayMode: 'Отображение', widgetMode: 'Виджет', trayMode: 'Трей',
+      resetsAt: 'Сброс',
+      tooltip: 'Limits · панель задач', lowTitle: '{provider}: лимит заканчивается',
       unsupported: 'Лимиты подписки доступны при входе через ChatGPT. Сейчас используется другой способ авторизации.',
       noLimits: 'Сервис пока не вернул данные о лимитах.', cached: 'Показаны последние полученные данные. Ожидаем обновление.',
       waiting: 'Ожидаем данные', updated: 'Обновлено в', noData: 'нет данных', minutes: 'мин',
@@ -44,9 +54,18 @@
     },
     en: {
       connectApiKey: 'Connect API key', replaceApiKey: 'Replace API key',
-      invalidApiKey: 'The key was rejected. Check your DeepSeek API key and try again.',
+      invalidApiKey: 'The key was rejected. Check your API key and try again.',
       credentialStorageUnavailable: 'Secure key storage is unavailable. The key was not saved; check your OS credential storage.',
       balanceRefreshFailed: 'Could not read your DeepSeek balance. Check your connection and try again.',
+      quotaRefreshFailed: 'Could not read your GLM Coding Plan quotas. Check your connection and try again.',
+      kimiQuotaRefreshFailed: 'Could not read your Kimi Code quotas. Check your connection and Kimi Code membership.',
+      claudeWaitingForUsage: 'Waiting for Claude Code quotas. Set up the status line and wait for a Claude reply in your terminal.',
+      claudeUsageReadFailed: 'Could not read Claude Code quotas. Wait for the next Claude reply and refresh.',
+      claudeSetup: 'Set up Claude Code',
+      claudeSetupHint: 'Copy the statusLine field into ~/.claude/settings.json and keep the other fields. The script requires Node.js. Quotas appear after Claude replies in your terminal.',
+      claudeSettings: 'Claude Code status line settings',
+      closeDialog: 'Close',
+      codingPlanRequired: 'GLM Coding Plan is unavailable for this key. Check your subscription and key in Z.ai.',
       insufficientBalance: 'Insufficient funds for API calls. Top up your DeepSeek balance.',
       browserOpenFailed: 'Could not open the browser. Choose Open platform to try again.',
       providerUnavailable: 'The controller for this service is unavailable.',
@@ -58,19 +77,20 @@
       accountsHint: 'The widget shows the selected account. Choose the right account in your browser when adding one. Set its name here.',
       loginBusy: 'Complete or cancel the current sign-in before connecting another account.',
       accountActionFailed: 'Could not update the account. Try again.',
-      short: 'Five-hour limit', weekly: 'Weekly limit', shortCompact: '5 h', weeklyCompact: 'Week',
+      shortPeriod: '5 hours', weeklyPeriod: '7 days',
+      short: 'Five-hour limit', weekly: 'Weekly limit', shortCompact: '5 h', weeklyCompact: 'Week', weeklyDays: '7 d',
       connecting: 'Connecting', online: 'Online', stale: 'Data is out of date', demo: 'DEMO',
       signingIn: 'Signing in via browser', signedOut: 'Sign-in required', account: 'Codex account',
       connectAccount: 'Connect your ChatGPT account', login: 'Sign in with ChatGPT ↗', switchAccount: 'Switch account ↗',
+      noAccounts: 'No connected accounts',
       finishLogin: 'Complete sign-in in your browser', refresh: 'Refresh', details: 'Open details',
       close: 'Close details', drag: 'Drag the account to move the widget',
-      footnote: 'Drag the account to move the widget along the taskbar.',
       demoNotice: 'Demo · sample data', bucket: 'Limit', language: 'Language',
       showWidget: 'Show widget on taskbar', resetPosition: 'Move widget back beside the tray',
       width: 'Widget width', startup: 'Launch at Windows sign-in', quit: 'Quit application',
-      displayMode: 'Display', widgetMode: 'Taskbar widget', trayMode: 'Two tray icons',
-      trayFootnote: 'Hover over an icon for details. Click to open your limits.', resetsAt: 'Resets at',
-      tooltip: 'Limits · taskbar', lowTitle: 'Codex: limit running low',
+      displayMode: 'Display', widgetMode: 'Widget', trayMode: 'System tray',
+      resetsAt: 'Resets at',
+      tooltip: 'Limits · taskbar', lowTitle: '{provider}: limit running low',
       unsupported: 'Subscription limits require ChatGPT sign-in. Codex currently uses another authentication method.',
       noLimits: 'The service has not returned limit data yet.', cached: 'Showing the last received data. Waiting for an update.',
       waiting: 'Waiting for data', updated: 'Updated at', noData: 'no data', minutes: 'min',
@@ -106,10 +126,14 @@
   };
   const api = {
     languages: Object.keys(strings),
-    t(language, key, platform) {
-      if (platform === 'linux' && key === 'widgetMode') return language === 'en' ? 'Desktop widget' : 'Виджет на рабочем столе';
-      if (platform === 'linux' && key === 'footnote') return language === 'en' ? 'Drag the account label to move the widget. Click the bars for details.' : 'Перетащите название аккаунта для перемещения. Нажмите на полоски для подробностей.';
+    t(language, key) {
       return (connectionStrings[language] || connectionStrings.ru)[key] || (strings[language] || strings.ru)[key] || key;
+    },
+    notice(container, key, language, translate = key => api.t(language, key)) {
+      if (root.limitsPlatformNotice?.render(container, key, language)) return;
+      const message = key ? translate(key) : '';
+      container.hidden = !message;
+      if (container.childElementCount || container.textContent !== message) container.textContent = message;
     },
     apply(language, doc, translate = api.t) {
       doc.documentElement.lang = language;

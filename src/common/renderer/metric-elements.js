@@ -2,10 +2,11 @@
 (function (root) {
   const rowsByContainer = new WeakMap();
   const statesByContainer = new WeakMap();
-  function render(container, state, { compact = false, profile = false } = {}) {
+  function render(container, state, { compact = false, profile = false, primaryOnly = false } = {}) {
     statesByContainer.set(container, state);
     const view = root.limitsMetrics.view(state);
-    const ordered = compact ? [view.primary, ...view.metrics.filter(metric => metric.id !== view.primary?.id)].filter(Boolean).slice(0, 2) : view.metrics;
+    const ordered = primaryOnly ? [view.primary].filter(Boolean)
+      : compact ? [view.primary, ...view.metrics.filter(metric => metric.id !== view.primary?.id)].filter(Boolean).slice(0, 2) : view.metrics;
     let rows = rowsByContainer.get(container);
     if (!rows) { rows = new Map(); rowsByContainer.set(container, rows); }
     for (const [id, row] of rows) if (!ordered.some(metric => metric.id === id)) { row.node.remove(); rows.delete(id); }
@@ -51,10 +52,12 @@
   function countdowns(container, state) {
     container = container.querySelector('.metric-compact') || container;
     state = state || statesByContainer.get(container) || {};
+    const timer = root.limitsPlatform?.resetClock || root.limitsCountdown;
     for (const row of rowsByContainer.get(container)?.values() || []) {
       if (row.metric.resetsAt === null) continue;
-      const timer = state.platform === 'win32' && root.limitsWindowsResetClock ? root.limitsWindowsResetClock : root.limitsCountdown;
-      timer?.render(row.reset, row.metric.resetsAt / 1000, state.language || 'ru');
+      if (timer?.renderWidget && container.classList.contains('metric-compact')) {
+        timer.renderWidget(row.reset, row.metric.resetsAt / 1000, state.language || 'ru', state.preferences?.widgetResetDisplay || 'clock', row.metric.slot === 'weekly');
+      } else timer?.render(row.reset, row.metric.resetsAt / 1000, state.language || 'ru');
     }
   }
   function compact(container, state) {

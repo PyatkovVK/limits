@@ -1,13 +1,12 @@
 #import <AppKit/AppKit.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <ApplicationServices/ApplicationServices.h>
+#import <string.h>
 #import <unistd.h>
 
 // Read geometry only, and never request Accessibility or screen-recording access.
-static NSArray<NSValue *> *applicationMenuRects(void) {
-    if (!AXIsProcessTrusted()) return nil;
-    pid_t pid = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
-    if (pid <= 0) return nil;
+static NSArray<NSValue *> *applicationMenuRects(pid_t pid) {
+    if (pid <= 0 || !AXIsProcessTrusted()) return nil;
     AXUIElementRef app = AXUIElementCreateApplication(pid);
     AXUIElementSetMessagingTimeout(app, 0.1);
     CFTypeRef menu = NULL, children = NULL;
@@ -45,8 +44,20 @@ static void excludeRect(CGRect rect, CGRect bar, CGFloat center, CGFloat *left, 
     else { *left = center; *right = center; }
 }
 
-// A temporary empty status item gives us a real layout boundary even when macOS
-// exposes the entire menu bar as one Window Server window. It never takes focus.
+static NSString *menuBarContext(void) {
+    NSWorkspace *workspace = NSWorkspace.sharedWorkspace;
+    NSMutableArray<NSNumber *> *pids = [NSMutableArray array];
+    for (NSRunningApplication *app in workspace.runningApplications) {
+        pid_t pid = app.processIdentifier;
+        if (pid > 0 && pid != getpid() && pid != getppid() && app.activationPolicy != NSApplicationActivationPolicyProhibited) {
+            [pids addObject:@(pid)];
+        }
+    }
+    [pids sortUsingSelector:@selector(compare:)];
+    return [pids componentsJoinedByString:@","];
+}
+
+// Used only after a layout change when window metadata has no status-item bounds.
 static NSDictionary *statusItemBoundary(void) {
     [NSApplication.sharedApplication setActivationPolicy:NSApplicationActivationPolicyAccessory];
     NSStatusItem *item = [NSStatusBar.systemStatusBar statusItemWithLength:1];
@@ -71,12 +82,16 @@ static NSDictionary *statusItemBoundary(void) {
     return result;
 }
 
-int main(void) {
+int main(int argc, char **argv) {
     @autoreleasepool {
         NSMutableArray *result = [NSMutableArray array];
-        NSArray *menus = applicationMenuRects();
-        NSDictionary *boundary = statusItemBoundary();
+        NSString *context = menuBarContext();
+        NSWorkspace *workspace = NSWorkspace.sharedWorkspace;
+        NSRunningApplication *owner = workspace.menuBarOwningApplication ?: workspace.frontmostApplication;
+        pid_t foreground = owner.processIdentifier;
+        NSArray *menus = applicationMenuRects(foreground);
         NSArray *windows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID));
+        NSDictionary *boundary = argc == 2 && strcmp(argv[1], "--measure-status-items") == 0 ? statusItemBoundary() : nil;
         for (NSScreen *screen in NSScreen.screens) {
             NSNumber *displayID = screen.deviceDescription[@"NSScreenNumber"];
             CGFloat top = 0, width = 0, x = 0;
@@ -124,6 +139,7 @@ int main(void) {
                 }
             }
             [result addObject:@{ @"id": displayID, @"top": @(top), @"notchX": @(x), @"notchWidth": @(width),
+                @"menuBarContext": context, @"menuBarForeground": @(foreground),
                 @"menuBarLeft": leftKnown ? @(left) : NSNull.null,
                 @"menuBarRight": rightKnown ? @(right) : NSNull.null }];
         }

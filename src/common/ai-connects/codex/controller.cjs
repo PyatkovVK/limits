@@ -4,7 +4,7 @@ const { snapshot } = require('../contracts.cjs');
 const { CodexClient } = require('./client.cjs');
 const { findCodex } = require('./path.cjs');
 const { normalizeLimits, groupsFromBuckets, displaySchema } = require('./limits.cjs');
-const { CODEX_POLL_INTERVAL_MINUTES } = require('../../polling-defaults.cjs');
+const { CODEX_POLL_INTERVAL_MINUTES } = require('../../core/polling-defaults.cjs');
 
 class CodexController extends AiController {
   constructor(client, { readOnly = false, refreshCredentials = !readOnly, reloadOnPoll = readOnly, preserveStartupSample = false, profileId = 'default' } = {}) {
@@ -229,12 +229,12 @@ class CodexController extends AiController {
     this.client.off('disconnected', this.disconnectedListener);
     this.listening = false;
     if (this.loginAttempt) { this.loginAttempt.cancelled = true; this.finishLogin(this.loginAttempt); }
-    this.client.stop();
+    return this.client.stop();
   }
 }
 
 function createController(options = {}) {
-  const client = options.client || new CodexClient(options.binary || findCodex({ resourcesPath: options.resourcesPath }), options);
+  const client = options.client || new CodexClient(options.binary || findCodex({ resourcesPath: options.resourcesPath, platformFinders: options.codexPlatformFinders }), options);
   return new CodexController(client, options);
 }
 module.exports = { CodexController, createController };

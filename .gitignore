@@ -9,10 +9,10 @@ node_modules/
 /CLAUDE.md
 
 # Generated assets, builds and release artifacts
-/assets/app.ico
-/assets/app.png
+/assets/
 release/
 build/
+!/scripts/build/
 artifacts/
 dist/
 out/
@@ -40,3 +40,5 @@ coverage/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+**/.obsidian/

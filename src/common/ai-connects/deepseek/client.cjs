@@ -1,12 +1,9 @@
 'use strict';
 const { contractError } = require('../contracts.cjs');
+const { apiKey } = require('../api-key-credentials.cjs');
 
 const BALANCE_URL = 'https://api.deepseek.com/user/balance';
 const KEY_URL = 'https://platform.deepseek.com/api_keys';
-function apiKey(value) {
-  if (typeof value !== 'string' || !value.trim() || value.length > 8192 || /[\x00-\x20\x7f]/.test(value.trim())) throw contractError('invalidApiKey');
-  return value.trim();
-}
 class DeepSeekClient {
   constructor({ fetch = globalThis.fetch, timeoutMs = 15000 } = {}) { Object.assign(this, { fetch, timeoutMs }); }
   async balance(key, signal) {

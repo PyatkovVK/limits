@@ -4,11 +4,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { Accounts } = require('../src/common/accounts.cjs');
-const { Monitor: SharedMonitor } = require('../src/common/monitor.cjs');
+const { Accounts } = require('../src/common/core/accounts.cjs');
+const { Monitor: SharedMonitor } = require('../src/common/core/monitor.cjs');
 const { CodexController } = require('../src/common/ai-connects/codex/controller.cjs');
 const Monitor = function (client, options) { return new SharedMonitor(new CodexController(client, options)); };
-const { CodexClient } = require('../src/common/codex-client.cjs');
+const { CodexClient } = require('../src/common/ai-connects/codex/client.cjs');
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const turn = () => new Promise(resolve => setImmediate(resolve));
 class Client extends EventEmitter {

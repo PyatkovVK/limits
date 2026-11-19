@@ -30,6 +30,6 @@ Make the smallest focused change that satisfies the request. Preserve existing b
 
 ## Validate on the available host
 
-Run the shared tests for behavior changes. Exercise the affected UI on the native target when available. For packaging changes, choose the platform/architecture script in `package.json`: Windows `build:win:x64`, macOS `build:mac:arm64` or `build:mac:x64`, Linux `build:linux:x64` or `build:linux:arm64`.
+Run `npm run test:win`, `npm run test:mac`, or `npm run test:linux` for the platform you changed. Run `npm run test:common` when changing shared code. Exercise the affected UI on the native target when available. For packaging changes, choose the platform/architecture script in `package.json`: Windows `build:win:x64`, macOS `build:mac:arm64` or `build:mac:x64`, Linux `build:linux:x64` or `build:linux:arm64`.
 
 Cross-platform intent does not imply that native tests ran on every OS. State which native checks were performed and which remain for the target machine or CI.

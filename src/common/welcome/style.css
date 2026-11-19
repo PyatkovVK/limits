@@ -1,0 +1,123 @@
+html { color-scheme: light dark; }
+#limits-tour-review {
+  margin:0;
+  color: light-dark(#24263b,#f4f3ff);
+  font: 14px/1.5 'Segoe UI',system-ui,sans-serif;
+  --lt-window: light-dark(#fdfdff,#191a24);
+  --lt-line: light-dark(#dadbe9,#3c3e51);
+  --lt-muted: light-dark(#5a5e74,#bbbed6);
+  --lt-accent: light-dark(#593cbd,#beadff);
+  --lt-button: light-dark(#5a3dc3,#c2b0ff);
+  --lt-button-hover: light-dark(#6346cb,#d0c1ff);
+  --lt-button-ink: light-dark(#fff,#23183d);
+  --lt-control: light-dark(#f3effa,transparent);
+  --lt-control-hover: light-dark(#fff,#2e2b40);
+}
+#limits-tour-review *, #limits-tour-review *::before, #limits-tour-review *::after { box-sizing: border-box; }
+#limits-tour-review [hidden] { display: none !important; }
+#limits-tour-review button {
+  border:1px solid transparent; border-radius:9px; background:transparent; color:inherit; padding:8px 12px; font:inherit;
+  transition:background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+#limits-tour-review button:hover { background-color:var(--lt-control-hover); }
+#limits-tour-review button:focus-visible { outline:2px solid var(--lt-accent); outline-offset:2px; }
+#limits-tour-review .lt-window {
+  min-height:100vh; background:var(--lt-window); border:1px solid var(--lt-line); border-radius:22px;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+#limits-tour-review .lt-titlebar { display:flex; align-items:center; gap:7px; padding:13px 19px 12px; font-weight:650; -webkit-app-region:drag; }
+#limits-tour-review .lt-hero {
+  --lt-shot-height:168px;
+  position:relative; isolation:isolate; display:flex; flex-direction:column; justify-content:center; overflow:hidden;
+  min-height:222px; margin:0 12px; padding:10px 16px; border-radius:14px;
+  background:radial-gradient(ellipse at 18% 12%,light-dark(#c0ebe8,#224346),transparent 58%),
+    radial-gradient(ellipse at 80% 55%,light-dark(#d6c6fc,#483667),transparent 68%),
+    linear-gradient(135deg,light-dark(#e1edf8,#232e40),light-dark(#eee8fb,#302743));
+}
+#limits-tour-review .lt-hero::before {
+  content:''; position:absolute; top:50%; left:50%; width:82%; height:57%; z-index:-1; border-radius:50%;
+  transform:translate(-50%,-50%) rotate(-14deg); border:1px solid light-dark(#fff8,#cdb8ff2c);
+  box-shadow:0 0 0 21px light-dark(#fff3,#cdb8ff12),0 0 0 42px light-dark(#fff2,#cdb8ff09);
+}
+#limits-tour-review .lt-image-area {
+  display:flex; flex:none; justify-content:center; align-items:center;
+  min-width:0; height:calc(var(--lt-shot-height) + 16px);
+}
+#limits-tour-review #lt-shot {
+  display:block; min-width:0; width:auto; max-width:min(100%,340px); height:auto; max-height:var(--lt-shot-height);
+  object-fit:contain; border-radius:8px; filter:drop-shadow(0 7px 12px #17102c42);
+}
+#limits-tour-review #lt-shot[data-size="strip"] { border-radius:4px; max-width:min(100%,300px); }
+#limits-tour-review #lt-shot[data-size="icons"] { border-radius:0; width:92px; image-rendering:pixelated; }
+#limits-tour-review #lt-shot[data-size="logo"] { border-radius:22%; width:48px; }
+#limits-tour-review .lt-settings, #limits-tour-review .lt-providers { list-style:none; margin:0; padding:0; }
+#limits-tour-review .lt-settings { display:grid; gap:6px; width:min(100%,290px); }
+#limits-tour-review .lt-settings li {
+  display:flex; align-items:center; gap:8px; padding:7px 10px; color:light-dark(#24263b,#f4f3ff);
+  border:1px solid var(--lt-line); border-radius:10px; background:light-dark(#fafaff,#212333);
+  box-shadow:0 7px 20px #2d21521a; font-size:12px;
+}
+#limits-tour-review .lt-settings-icon {
+  display:grid; place-items:center; flex:none; width:23px; height:23px;
+  border-radius:6px; background:light-dark(#ebedf7,#303247); font-weight:650;
+}
+#limits-tour-review .lt-settings-mint { color:light-dark(#008773,#75e1ca); }
+#limits-tour-review .lt-settings-violet { color:var(--lt-accent); }
+#limits-tour-review .lt-settings-coral { color:light-dark(#983f25,#ffae93); }
+#limits-tour-review .lt-settings-arrow { margin-left:auto; color:var(--lt-muted); }
+#limits-tour-review .lt-providers {
+  display:flex; flex-wrap:wrap; justify-content:center; gap:10px 12px; width:min(100%,344px);
+}
+#limits-tour-review .lt-providers li {
+  display:flex; flex-direction:column; align-items:center; gap:4px; flex:0 0 86px;
+  font-size:12px; font-weight:600; line-height:1.2; text-align:center;
+}
+#limits-tour-review .lt-logo {
+  display:grid; place-items:center; width:42px; height:42px;
+  border-radius:11px; background:#fff; box-shadow:0 5px 12px #17102c25;
+}
+#limits-tour-review .lt-logo img { display:block; object-fit:contain; }
+#limits-tour-review :is(.lt-settings,.lt-providers).lt-enter li {
+  animation:lt-enter 420ms var(--lt-delay) cubic-bezier(.22,1,.36,1) both;
+}
+#limits-tour-review :is(.lt-settings,.lt-providers) li:nth-child(1) { --lt-delay:0ms; }
+#limits-tour-review :is(.lt-settings,.lt-providers) li:nth-child(2) { --lt-delay:65ms; }
+#limits-tour-review :is(.lt-settings,.lt-providers) li:nth-child(3) { --lt-delay:130ms; }
+#limits-tour-review :is(.lt-settings,.lt-providers) li:nth-child(4) { --lt-delay:195ms; }
+#limits-tour-review .lt-providers li:nth-child(5) { --lt-delay:260ms; }
+#limits-tour-review .lt-variants {
+  display:flex; flex:none; flex-wrap:wrap; justify-content:center; align-items:center; gap:5px; padding:2px 0 0;
+  color:light-dark(#282240,#f4efff);
+}
+#limits-tour-review .lt-variants button { font-size:12px; line-height:1.3; padding:5px 9px; background:light-dark(#eee9f6,#282137); border-color:light-dark(#e0d6f3,#625373); }
+#limits-tour-review .lt-variants button:hover { background-color:light-dark(#fbf8ff,#3a2e4e); border-color:light-dark(#d1c2e9,#78638d); }
+#limits-tour-review .lt-variants button[aria-pressed="true"] { background-color:var(--lt-button); color:var(--lt-button-ink); border-color:transparent; }
+#limits-tour-review .lt-copy { padding:17px 22px 15px; text-align:center; min-height:106px; }
+#limits-tour-review .lt-copy h2 { margin:0; font:650 clamp(22px,4vw,28px)/1.13 'Segoe UI',system-ui,sans-serif; letter-spacing:-.045em; color:inherit; text-wrap:balance; }
+#limits-tour-review .lt-copy p { margin:8px auto 0; max-width:370px; color:var(--lt-muted); text-wrap:pretty; }
+#limits-tour-review .lt-footer { margin-top:auto; padding:1px 16px 15px; }
+#limits-tour-review .lt-actions { display:flex; align-items:center; justify-content:flex-end; gap:6px; }
+#limits-tour-review [data-action="skip"] { margin-right:auto; color:var(--lt-muted); }
+#limits-tour-review [data-action="back"] { border-color:var(--lt-line); background-color:var(--lt-control); }
+#limits-tour-review [data-action="back"]:hover { background-color:var(--lt-control-hover); }
+#limits-tour-review [data-action="next"] { background:var(--lt-button); color:var(--lt-button-ink); font-weight:650; }
+#limits-tour-review [data-action="next"]:hover,
+#limits-tour-review .lt-variants button[aria-pressed="true"]:hover { background-color:var(--lt-button-hover); }
+#limits-tour-review .lt-next-arrow { margin-left:8px; }
+#limits-tour-review .lt-progress { display:flex; justify-content:center; gap:5px; padding-bottom:13px; }
+#limits-tour-review .lt-progress span { width:7px; height:5px; border-radius:9px; background:var(--lt-line); transition:width 220ms,background-color 220ms; }
+#limits-tour-review .lt-progress .lt-current { width:20px; background:var(--lt-accent); }
+#limits-tour-review #lt-shot.lt-enter { animation:lt-enter 450ms cubic-bezier(.22,1,.36,1) both; }
+@keyframes lt-enter { from { opacity:0; transform:translateY(5px) scale(.98); } to { opacity:1; transform:none; } }
+@media (max-width:420px) {
+  #limits-tour-review .lt-copy { padding-inline:12px; }
+  #limits-tour-review .lt-hero { --lt-shot-height:148px; margin-inline:8px; padding-inline:12px; }
+  #limits-tour-review .lt-settings li { padding-block:4px; }
+  #limits-tour-review .lt-providers { gap:9px 6px; }
+  #limits-tour-review .lt-providers li { flex-basis:76px; }
+  #limits-tour-review .lt-footer { padding-inline:9px; }
+  #limits-tour-review .lt-actions button { padding-inline:9px; }
+}
+@media (pointer:coarse) { #limits-tour-review button { min-width:44px; min-height:44px; } }
+@media (prefers-reduced-motion:reduce) { #limits-tour-review *, #limits-tour-review *::before { animation:none !important; transition:none !important; } }
+#limits-tour-review[data-reduced-motion] *, #limits-tour-review[data-reduced-motion] *::before { animation:none !important; transition:none !important; }

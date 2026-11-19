@@ -2,26 +2,32 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { panelPosition, createPanelController } = require('../panel.cjs');
+const { panelPosition, createPanelController } = require('../panel/panel.cjs');
 
 const area = { x: 0, y: 0, width: 1920, height: 1032 };
 const bounds = { x: 800, y: 1032, width: 280, height: 34 };
-function controller(root) {
+function controller(root, ipcMain, getWidgetHost) {
   const window = Object.assign(new EventEmitter(), {
     destroyed: false, visible: false, position: [0, 0], moves: 0, shows: 0, focuses: 0,
     isDestroyed() { return this.destroyed; },
     isVisible() { return this.visible; },
     size: [440, 590],
     minimum: [440, 590], maximum: [440, 590],
+    getNativeWindowHandle() { return Buffer.alloc(8); },
+    setOpacity() {},
     getSize() { return this.size; },
+    getBounds() { return { x: this.position[0], y: this.position[1], width: this.size[0], height: this.size[1] }; },
     setMinimumSize(width, height) { this.minimum = [width, height]; },
     setMaximumSize(width, height) { this.maximum = [width, height]; },
-    setSize(width, height) { this.size = [width, Math.max(this.minimum[1], Math.min(this.maximum[1], height))]; },
+    setBounds({ x, y, width, height }) {
+      this.size = [width, Math.max(this.minimum[1], Math.min(this.maximum[1], height))];
+      if (x !== this.position[0] || y !== this.position[1]) { this.position = [x, y]; this.moves++; }
+    },
     getPosition() { return this.position; },
-    setPosition(x, y) { this.position = [x, y]; this.moves++; },
     show() { this.visible = true; this.shows++; },
     focus() { this.focuses++; },
     hide() { this.visible = false; },
+    webContents: { mainFrame: {}, session: { registerPreloadScript: () => 'windows-preload' } },
   });
   const widget = {
     destroyed: false, visible: true, bounds: { ...bounds },
@@ -29,10 +35,36 @@ function controller(root) {
     isVisible() { return this.visible; },
     getBounds() { return this.bounds; },
   };
-  const screen = { getDisplayMatching: () => ({ workArea: area }), getPrimaryDisplay: () => ({ workArea: area }) };
-  const panel = createPanelController({ window, screen, getAnchorBounds: () => widget.bounds, root });
+  const screen = { getDisplayMatching: () => ({ workArea: area }), getPrimaryDisplay: () => ({ workArea: area }),
+    getCursorScreenPoint: () => ({ x: 810, y: 1040 }) };
+  const panel = createPanelController({ window, screen, getAnchorBounds: () => widget.bounds, root, ipcMain, getWidgetHost, reducedMotion: () => true });
   return { window, widget, screen, panel };
 }
+
+test('creating the Windows panel registers its IPC handlers', () => {
+  const handlers = new Map();
+  controller(undefined, { handle: (channel, handler) => handlers.set(channel, handler) });
+  assert.equal(typeof handlers.get('limits:windows-panel-size'), 'function');
+  assert.equal(typeof handlers.get('limits:widget-drag'), 'function');
+});
+
+test('the renderer drives gestures only when the taskbar widget is floating', () => {
+  const handlers = new Map(), gestures = [];
+  const webContents = { mainFrame: {} };
+  const host = {
+    window: { webContents, isDestroyed: () => false },
+    placement: { metrics: { parented: true } },
+    drag(phase, point) { gestures.push({ phase, point }); return true; },
+  };
+  controller(undefined, { handle: (channel, handler) => handlers.set(channel, handler) }, () => host);
+  const drag = handlers.get('limits:widget-drag');
+  const event = { sender: webContents, senderFrame: webContents.mainFrame };
+  assert.equal(drag(event, 'start'), false);
+  assert.deepEqual(gestures, []);
+  host.placement.metrics.parented = false;
+  assert.equal(drag(event, 'start'), true);
+  assert.deepEqual(gestures, [{ phase: 'start', point: { x: 810, y: 1040 } }]);
+});
 
 test('open Windows details follow the widget without showing or focusing again', () => {
   const { window, widget, panel } = controller();

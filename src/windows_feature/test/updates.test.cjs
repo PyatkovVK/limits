@@ -4,7 +4,7 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
 const { createHash } = require('node:crypto');
 const { EventEmitter } = require('node:events');
 const { spawnSync } = require('node:child_process');
-const { WindowsUpdates } = require('../updates.cjs');
+const { WindowsUpdates } = require('../updates/updates.cjs');
 const release = { version: '1.5.0', tag: 'v1.5', url: 'https://github.com/PyatkovVK/limits/releases/tag/v1.5' };
 function fixture(t, { portable = false, tampered = false, invalidSignature = false, duplicate = false } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-win-update-'));
@@ -91,7 +91,7 @@ test('Windows PowerShell helper verifies PE metadata, replaces portable EXE and 
   native.publish({ status: 'available', release }); await native.openRelease();
   assert.equal(native.installation.status, 'ready', JSON.stringify(native.installation)); native.stop();
   const target = path.join(root, 'Portable app with spaces.exe');
-  const helper = path.resolve(__dirname, '../install-update.ps1');
+  const helper = path.resolve(__dirname, '../updates/install-update.ps1');
   const hash = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
   const runHelper = file => {
     fs.copyFileSync(old, target);

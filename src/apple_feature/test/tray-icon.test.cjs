@@ -1,13 +1,14 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { menuBitmap, png } = require('../menu-image.cjs');
+const { menuBitmap } = require('../tray/bitmap.cjs');
+const { png } = require('../tray/tray-icon.cjs');
 
 test('Mac indicators have separate period labels and Retina representations', () => {
   assert.equal(menuBitmap({ remaining: 72 }).label, '5h 72%');
   assert.equal(menuBitmap({ kind: 'weekly', remaining: 46 }).label, '7d 46%');
   for (const size of [16, 32, 48]) {
-    const data = png({ remaining: 100, size });
+    const data = png({ kind: 'weekly', remaining: 100, size });
     assert.equal(data.readUInt32BE(16), 64 * size / 16);
     assert.equal(data.readUInt32BE(20), 18 * size / 16);
   }

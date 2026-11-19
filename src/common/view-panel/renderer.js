@@ -1,0 +1,169 @@
+'use strict';
+const $ = id => document.getElementById(id);
+let state = null;
+let actionError = null;
+const removingProfiles = new Set();
+async function accountAction(action, id, value) {
+  if (action === 'remove' && removingProfiles.has(id)) return;
+  if (action === 'remove') removingProfiles.add(id);
+  actionError = null;
+  try {
+    const result = await window.limits.accountAction(action, id, value);
+    actionError = result.error || null;
+  } catch { actionError = 'accountActionFailed'; }
+  finally { if (action === 'remove') removingProfiles.delete(id); }
+  render(await window.limits.get());
+}
+function renderCountdown() {
+  if (!state) return;
+  window.limitsMetricElements?.countdowns($('provider-metrics'), state);
+  const timer = window.limitsPlatform?.resetClock || window.limitsCountdown;
+  const bucket = state.buckets.find(item => item.id === state.selectedId) || state.buckets[0];
+  timer.render($('short-reset'), bucket?.short?.resetsAt, state.language || 'ru');
+  const weeklyReset = $('weekly-reset');
+  weeklyReset.hidden = !(state.capabilities?.apiKey || state.capabilities?.setup) || bucket?.weekly?.resetsAt == null;
+  if (!weeklyReset.hidden) timer.render(weeklyReset, bucket.weekly.resetsAt, state.language || 'ru', Date.now(), { compactDays: true });
+}
+
+function render(next) {
+  state = next;
+  document.body.dataset.platform = next.platform || '';
+  document.body.dataset.theme = next.dark ? 'dark' : 'light';
+  document.body.classList.toggle('reduced-transparency', Boolean(next.reducedTransparency));
+  document.body.classList.toggle('reduced-motion', Boolean(next.reducedMotion));
+  const language = next.language || 'ru';
+  const translate = (lang, key) => window.limitsPlatform?.translate?.(lang, key, next) || window.limitsI18n.t(lang, key);
+  const t = key => translate(language, key);
+  const noProfiles = next.selectedProfileId === null;
+  const generic = Boolean(next.displaySchema && next.displaySchema.layout !== 'quota-windows');
+  window.limitsI18n.apply(language, document, translate);
+  window.limitsSettings.render(next, t);
+  const stale = next.stale || !next.updatedAt || Date.now() - next.updatedAt > (next.staleAfterMs || 90000);
+  const bucket = next.buckets.find(item => item.id === next.selectedId) || next.buckets[0];
+  document.body.classList.toggle('stale', Boolean(stale));
+  $('demo').hidden = !next.demo;
+  const connection = t(next.demo ? 'demo' : next.status === 'signing-in' ? 'signingIn' : next.status === 'signed-out' ? 'signedOut' : next.status === 'connecting' ? 'connecting' : stale ? 'stale' : 'online');
+  $('connection').title = connection;
+  $('connection').setAttribute('aria-label', connection);
+  $('account').textContent = next.displayName || next.account?.email || t(noProfiles ? 'noAccounts' : next.status === 'signed-out' ? 'connectAccount' : 'account');
+  $('account').title = [next.account?.email, next.account?.planType].filter(Boolean).join(' · ');
+  const profileError = next.error === 'credentialStoragePermissionRequired' && next.keychainPermissionRequired === false ? null : next.error;
+  const messageKey = actionError || profileError || next.widgetError || (next.accountAvailable === false ? 'insufficientBalance' : next.status === 'unsupported' ? generic ? 'genericUnsupported' : 'unsupported' : next.status === 'ready' && !(next.groups?.length || bucket) ? 'noLimits' : stale && next.updatedAt ? 'cached' : null);
+  window.limitsI18n.notice($('error'), messageKey, language, t);
+  const groups = next.groups || next.buckets;
+  document.querySelector('.panel-quotas').hidden = generic || noProfiles;
+  $('provider-metrics').hidden = !generic;
+  if (generic) window.limitsMetricElements.render($('provider-metrics'), next);
+  $('bucket-row').hidden = groups.length < 2;
+  const signature = JSON.stringify(groups.map(item => [item.id, item.name]));
+  if ($('bucket').dataset.signature !== signature) {
+    $('bucket').replaceChildren(...groups.map(item => {
+      const option = document.createElement('option'); option.value = item.id; option.textContent = item.name; return option;
+    }));
+    $('bucket').dataset.signature = signature;
+  }
+  if (groups.length) $('bucket').value = window.limitsMetrics.view(next).group?.id || bucket?.id;
+  for (const kind of ['short', 'weekly']) {
+    const value = bucket?.[kind];
+    const remaining = value?.remaining ?? null;
+    $(`${kind}-value`).textContent = remaining === null ? '—' : String(remaining);
+    $(`${kind}-unit`).hidden = remaining === null;
+    $(`${kind}-bar`).value = remaining ?? 0;
+    const card = $(`${kind}-bar`).closest('.quota-card');
+    card.classList.toggle('low', remaining !== null && remaining <= 10);
+    card.classList.toggle('caution', remaining !== null && remaining > 10 && remaining <= 25);
+    card.classList.toggle('limit-67', remaining === 67);
+  }
+  $('other').hidden = !bucket?.other?.length;
+  $('other').textContent = bucket?.other?.map(item => `${item.duration ?? '?'} ${t('minutes')}: ${item.remaining === null ? t('noData') : `${item.remaining}%`}`).join(' · ') || '';
+  $('refresh').disabled = next.refreshing || next.demo;
+  $('connection').hidden = $('updated').hidden = $('refresh').hidden = noProfiles;
+  const setup = next.capabilities?.setup;
+  $('login').hidden = next.demo || next.readOnly || Boolean(next.account && next.status !== 'signing-in' && !(setup && !next.updatedAt));
+  $('login').disabled = (next.capabilities?.signIn === false && !next.capabilities?.apiKey && !next.readOnly && !setup) || next.demo || next.status === 'signing-in' || next.refreshing || Boolean(next.loginProfileId || next.keyConnection);
+  $('login').textContent = t(noProfiles ? 'addAccount' : setup ? 'claudeSetup' : next.capabilities?.apiKey ? next.account ? 'replaceApiKey' : 'connectApiKey' : next.status === 'signing-in' ? 'finishLogin' : next.account ? 'switchAccount' : generic ? 'genericLogin' : 'login');
+  const updatedTime = next.updatedAt ? new Date(next.updatedAt).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+  $('updated').title = updatedTime ? t('updated') + ' ' + updatedTime : t('waiting');
+  $('updated').textContent = updatedTime || '—';
+  $('updated').dateTime = next.updatedAt ? new Date(next.updatedAt).toISOString() : '';
+  $('updated').setAttribute('aria-label', $('updated').title);
+  $('refresh').title = [t('refresh'), connection, $('updated').title].join(' · ');
+  renderSubscriptions(next, t, actionError);
+  renderCountdown();
+  window.limitsPlatform?.render?.(next);
+  window.limitsKeyConnection.render(next);
+}
+
+$('hide').addEventListener('click', () => window.limits.hide());
+$('refresh').addEventListener('click', async () => { actionError = null; render(await window.limits.refresh()); });
+async function beginLogin(id) {
+  actionError = null; $('login').disabled = true;
+  const result = await window.limits.login(id);
+  window.limitsKeyConnection?.open(result);
+  if (result.setup) showClaudeSetup(result.setup);
+  actionError = result.connection ? null : result.error || null;
+  render(await window.limits.get());
+}
+$('login').addEventListener('click', () => {
+  if (state?.selectedProfileId !== null) return beginLogin();
+  window.limitsSettings.open();
+  const add = $('add-account');
+  add.scrollIntoView({ block: 'nearest' });
+  add.focus();
+  add.click();
+});
+async function addAccount(providerId) {
+  actionError = null;
+  try {
+    const result = await window.limits.addAccount(providerId);
+    window.limitsKeyConnection?.open(result);
+    if (result.setup) showClaudeSetup(result.setup);
+    actionError = result.connection ? null : result.error || null;
+  } catch { actionError = 'accountActionFailed'; }
+  render(await window.limits.get());
+}
+function showClaudeSetup(settings) {
+  const dialog = $('claude-setup');
+  const input = $('claude-settings');
+  input.value = settings;
+  if (!dialog.open) dialog.showModal();
+  input.focus();
+  input.select();
+  input.scrollTop = 0;
+  input.scrollLeft = 0;
+}
+$('claude-setup-close').onclick = () => $('claude-setup').close();
+$('claude-setup').addEventListener('keydown', event => { if (event.key === 'Escape') event.stopPropagation(); });
+async function loadPlatformAssets() {
+  let assets;
+  try { assets = await window.limits.platformAssets(); }
+  catch { assets = { styles: [], scripts: [] }; }
+  const links = (assets.styles || []).map(href => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    return link;
+  });
+  const scripts = (assets.scripts || []).map(src => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    return script;
+  });
+  const elements = [...links, ...scripts];
+  const ready = elements.map(element => new Promise(resolve => {
+    element.addEventListener('load', resolve, { once: true });
+    element.addEventListener('error', resolve, { once: true });
+  }));
+  document.head.append(...elements);
+  await Promise.all(ready);
+}
+
+let renderSubscriptions;
+function start() {
+  renderSubscriptions = window.limitsSubscriptions({ accountAction, beginLogin, addAccount, isRemoving: id => removingProfiles.has(id) });
+  $('bucket').addEventListener('change', () => window.limits.select($('bucket').value));
+  window.limits.subscribe(render);
+  setInterval(renderCountdown, 1000);
+}
+window.renderReady = loadPlatformAssets().then(start).then(() => window.limits.get()).then(render);

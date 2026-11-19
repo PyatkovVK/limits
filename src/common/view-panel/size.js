@@ -1,0 +1,59 @@
+'use strict';
+
+window.limitsViewPanelReady = window.renderReady.then(async () => {
+  await document.fonts.ready;
+  const main = document.querySelector('main');
+  const titlebar = document.querySelector('.titlebar');
+  const dialog = document.getElementById('settings-dialog');
+  const keyDialog = window.limitsKeyConnection.dialog;
+  const settings = dialog.querySelector('.settings-content');
+  function wrap(parent, className) {
+    const content = document.createElement('div');
+    content.className = className;
+    content.append(...parent.childNodes);
+    parent.append(content);
+    return content;
+  }
+  const content = wrap(main, 'panel-content');
+  const settingsContent = wrap(settings, 'panel-settings-content');
+  const verticalEdges = node => {
+    const style = getComputedStyle(node);
+    return ['paddingTop', 'paddingBottom', 'borderTopWidth', 'borderBottomWidth'].reduce((sum, key) => sum + (parseFloat(style[key]) || 0), 0);
+  };
+  function measure() {
+    // Intrinsic content height can shrink and ignores notch opening transforms.
+    const height = titlebar.offsetHeight + content.offsetHeight + verticalEdges(main) + verticalEdges(document.body);
+    const inset = parseFloat(getComputedStyle(dialog).getPropertyValue('--settings-inset')) || 14;
+    const modalHeight = dialog.open ? dialog.querySelector('.settings-header').offsetHeight + settingsContent.offsetHeight + verticalEdges(settings) + verticalEdges(dialog) + 2 * inset : 0;
+    // The notch only accepts input within the rendered panel.
+    const keyStyle = getComputedStyle(keyDialog);
+    const keyInset = parseFloat(keyStyle.getPropertyValue('--key-connection-inset')) || 0;
+    const keyHeight = keyDialog.open && keyInset ? keyDialog.scrollHeight + parseFloat(keyStyle.borderTopWidth) + parseFloat(keyStyle.borderBottomWidth) + 2 * keyInset : 0;
+    return Math.ceil(Math.max(height, modalHeight, keyHeight));
+  }
+  let lastHeight, frame = null;
+  async function report() {
+    frame = null;
+    const height = measure();
+    if (height === lastHeight) return;
+    lastHeight = height;
+    await window.limits.panelSize(height);
+  }
+  function schedule() {
+    if (frame === null) frame = requestAnimationFrame(() => void report());
+  }
+  const mutations = new MutationObserver(schedule);
+  mutations.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
+  const sizes = new ResizeObserver(schedule);
+  for (const node of [content, titlebar, settingsContent]) sizes.observe(node);
+  document.addEventListener('toggle', schedule, true);
+  dialog.addEventListener('close', schedule);
+  keyDialog.addEventListener('close', schedule);
+  window.addEventListener('resize', schedule);
+  window.addEventListener('pagehide', () => {
+    mutations.disconnect(); sizes.disconnect();
+    if (frame !== null) cancelAnimationFrame(frame);
+  }, { once: true });
+  window.limitsViewPanel = { measure, report };
+  await report();
+});

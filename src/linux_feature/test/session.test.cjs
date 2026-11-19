@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { PassThrough } = require('node:stream');
-const { watchSession, screenSaverName } = require('../session.cjs');
+const { watchSession, screenSaverName } = require('../core/session.cjs');
 
 function setup(t, extra = {}) {
   const powerMonitor = new EventEmitter();

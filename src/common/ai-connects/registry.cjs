@@ -1,4 +1,5 @@
 'use strict';
+const path = require('node:path');
 const { AiController } = require('./ai-controller.cjs');
 const { contractError } = require('./contracts.cjs');
 
@@ -38,5 +39,17 @@ const registry = new ControllerRegistry().register('codex', {
   name: 'DeepSeek', authentication: 'api-key',
   create: options => new (require('./deepseek/controller.cjs').DeepSeekController)(options),
   connectionOptions: context => require('./deepseek/credentials.cjs').connectionOptions(context)
+}).register('zai', {
+  name: 'GLM Coding Plan (Z.ai)', authentication: 'api-key',
+  create: options => new (require('./zai/controller.cjs').ZaiController)(options),
+  connectionOptions: context => require('./api-key-credentials.cjs').keyConnectionOptions(context, 'zai')
+}).register('claude', {
+  name: 'Claude Code',
+  create: options => new (require('./claude/controller.cjs').ClaudeController)(options),
+  connectionOptions: ({ root, profile }) => ({ directory: path.join(root, 'accounts', profile.id) })
+}).register('kimi', {
+  name: 'Kimi Code', authentication: 'api-key',
+  create: options => new (require('./kimi/controller.cjs').KimiController)(options),
+  connectionOptions: context => require('./api-key-credentials.cjs').keyConnectionOptions(context, 'kimi')
 });
 module.exports = { ControllerRegistry, registry };

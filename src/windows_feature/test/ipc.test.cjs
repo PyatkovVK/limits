@@ -3,8 +3,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const path = require('node:path');
-const { installWindowsBridge } = require('../ipc.cjs');
-const windowsI18n = require('../i18n.js');
+const { installWindowsBridge } = require('../ipc/main.cjs');
+const windowsI18n = require('../renderer/i18n.js');
 
 function fixture() {
   const handlers = new Map(), registered = [], removed = [];
@@ -20,7 +20,7 @@ function fixture() {
   installWindowsBridge({ window, getWidgetHost: () => host,
     screen: { getCursorScreenPoint: () => ({ x: 300, y: 1040 }) },
     ipcMain: { handle: (channel, fn) => handlers.set(channel, fn), removeHandler: channel => handlers.delete(channel) },
-    panel: { resize(height) { sizes.push(height); return true; } },
+    resizePanel(height) { sizes.push(height); return true; },
   });
   const eventFor = target => ({ sender: target.webContents, senderFrame: target.webContents.mainFrame });
   return { window, host, widgetWindow, handlers, registered, removed, moves, sizes, eventFor };
@@ -44,7 +44,7 @@ test('Windows IPC accepts only the details frame for sizing and the current widg
 
 test('the Windows feature owns preload registration and releases its IPC on close', () => {
   const f = fixture();
-  assert.deepEqual(f.registered, [{ type: 'frame', filePath: path.resolve(__dirname, '../preload.cjs') }]);
+  assert.deepEqual(f.registered, [{ type: 'frame', filePath: path.resolve(__dirname, '../ipc/preload.cjs') }]);
   f.window.emit('closed');
   assert.equal(f.handlers.size, 0);
   assert.deepEqual(f.removed, ['windows-preload']);

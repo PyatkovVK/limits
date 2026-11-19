@@ -3,11 +3,18 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { startupState, changePreference } = require('../src/common/preferences.cjs');
+const { startupState, changePreference } = require('../src/common/core/preferences.cjs');
+const platformApi = {
+  linuxStartup: require('../src/linux_feature/core/startup.cjs'),
+  appleStartup: require('../src/apple_feature/core/startup.cjs'),
+  changeTrayStyle: require('../src/linux_feature/core/preferences.cjs').changeTrayStyle,
+  widgetStyles: require('../src/windows_feature/settings/widget/styles.js').styles,
+  presentation: require('../src/apple_feature/panel/presentation.cjs'),
+};
 function context(platform = 'win32', home) {
   return { platform, env: {}, app: { isPackaged: true, getPath: () => home, getLoginItemSettings: () => ({ openAtLogin: false }), setLoginItemSettings(value) { this.saved = value; } },
     settings: { width: 280, visible: true }, taskbarSupported: platform === 'win32', saves: 0,
-    save() { this.saves++; }, update() {}, place() {}, resetPosition() {} };
+    save() { this.saves++; }, update() {}, place() {}, resetPosition() {}, platformApi };
 }
 test('startup availability is limited to installed Windows/macOS builds and never changes it in demo or portable builds', t => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'limits-startup-'));
@@ -39,4 +46,20 @@ test('widget settings reject unsupported platforms, unknown keys and invalid wid
   for (const [key, input] of [['width', '400'], ['width', 999], ['visible', 1], ['unknown', true]]) assert.equal(changePreference(key, input, value), false);
   assert.equal(value.saves, 2);
   for (const platform of ['darwin', 'linux']) assert.equal(changePreference('width', 320, context(platform)), false);
+});
+test('both notch modes accept and save the same hover preference', () => {
+  const value = context('darwin');
+  value.save = () => value.saves++;
+  for (const mode of ['island', 'notch']) {
+    value.settings.displayMode = mode;
+    for (const style of ['informative', 'minimal']) {
+      assert.equal(changePreference('islandHoverStyle', style, value), true);
+      assert.equal(value.settings.islandHoverStyle, style);
+    }
+  }
+  assert.equal(changePreference('islandHoverStyle', 'unknown', value), false);
+  assert.equal(changePreference('islandHoverStyle', 'informative', { ...value, platform: 'linux' }), false);
+  value.settings.displayMode = 'tray';
+  assert.equal(changePreference('islandHoverStyle', 'informative', value), false);
+  assert.equal(value.saves, 4);
 });

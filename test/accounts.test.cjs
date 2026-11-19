@@ -4,10 +4,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { Accounts } = require('../src/common/accounts.cjs');
+const { Accounts } = require('../src/common/core/accounts.cjs');
 const { clientOptions } = require('../src/common/ai-connects/codex/options.cjs');
 
-function fixture(t) {
+function fixture(t, { allowRemoveDefault = false } = {}) {
   const parent = path.resolve(__dirname, '../artifacts');
   fs.mkdirSync(parent, { recursive: true });
   const root = fs.mkdtempSync(path.join(parent, 'accounts-test-'));
@@ -32,7 +32,7 @@ function fixture(t) {
     clients.set(profile.id, monitor);
     return monitor;
   }
-  return { root, createMonitor, clients, accounts: new Accounts({ root, createMonitor }) };
+  return { root, createMonitor, clients, accounts: new Accounts({ root, createMonitor, allowRemoveDefault }) };
 }
 function connect(monitor, email, remaining) {
   monitor.state = { ...monitor.state, status: 'ready', account: { type: 'chatgpt', email, planType: 'plus' }, updatedAt: Date.now(), buckets: [{ id: 'codex', short: { remaining }, weekly: { remaining: remaining + 1 } }] };
@@ -95,6 +95,33 @@ test('removing a private selected profile logs out only it and returns widget to
   assert.equal(clients.get('default').lastRequest, undefined);
   assert.equal(accounts.selectedProfileId, 'default');
   await assert.rejects(accounts.remove('default'));
+});
+test('removing the shared Codex profile preserves its sign-in and an empty registry survives restart', async t => {
+  const { accounts, clients, root, createMonitor } = fixture(t, { allowRemoveDefault: true });
+  const shared = clients.get('default');
+  const work = accounts.add();
+  const persist = accounts.persist;
+  accounts.persist = () => { throw new Error('Save failed'); };
+  await assert.rejects(accounts.remove('default'), /Save failed/);
+  assert.equal(accounts.selectedProfileId, 'default');
+  assert.equal(shared.stopped, undefined);
+  accounts.persist = persist;
+  await accounts.remove('default');
+  assert.equal(shared.lastRequest, undefined);
+  assert.equal(shared.stopped, true);
+  assert.equal(accounts.selectedProfileId, work);
+  assert.deepEqual(accounts.snapshot().profiles.map(profile => profile.id), [work]);
+  await accounts.remove(work);
+  const restored = new Accounts({ root, createMonitor, allowRemoveDefault: true });
+  assert.equal(restored.selectedProfileId, null);
+  const state = await restored.refresh({ reconnect: true });
+  assert.deepEqual(state.profiles, []);
+  assert.deepEqual(state.buckets, []);
+  assert.equal(state.status, 'idle');
+  assert.equal(restored.monitors.size, 0);
+  const added = restored.add();
+  assert.equal(restored.selectedProfileId, added);
+  assert.deepEqual(new Accounts({ root, createMonitor, allowRemoveDefault: true }).snapshot().profiles.map(profile => profile.id), [added]);
 });
 test('corrupt registry IDs cannot escape the account directory', t => {
   const { root, createMonitor } = fixture(t);

@@ -27,23 +27,6 @@
   pointer-events: none;
   animation: sixty-seven-glow 2400ms ease-out both;
 }
-.quota-card.limit-67::after {
-  content: '✦ SIX SEVEN ✦';
-  position: absolute;
-  right: 55px;
-  top: 8px;
-  padding: 3px 7px;
-  border: 1px solid #bca3ff66;
-  border-radius: 20px;
-  background: #211d35;
-  color: #e1d8ff;
-  font-size: 8px;
-  line-height: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  pointer-events: none;
-  animation: sixty-seven-badge 3200ms ease-out both;
-}
 body[data-background="light"] .limit-67 { --spark-a: #176d62; --spark-b: #7750ad; --spark-c: #a83970; }
 @keyframes sixty-seven-pop {
   0%, 100% { transform: scale(1) rotate(0); }
@@ -54,17 +37,11 @@ body[data-background="light"] .limit-67 { --spark-a: #176d62; --spark-b: #7750ad
   0%, 100% { opacity: 0; }
   20%, 60% { opacity: 1; }
 }
-@keyframes sixty-seven-badge {
-  0% { opacity: 0; transform: translateY(5px) scale(.85); }
-  15%, 75% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-5px) scale(.95); }
-}
 body.reduced-motion .limit-67 :is(.remaining-value, .profile-value, .percentage),
-body.reduced-motion .quota-card.limit-67::before,
-body.reduced-motion .quota-card.limit-67::after { animation: none; }
+body.reduced-motion .quota-card.limit-67::before { animation: none; }
 body.reduced-motion .quota-card.limit-67::before { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .limit-67 :is(.remaining-value, .profile-value, .percentage),
-  .quota-card.limit-67::before, .quota-card.limit-67::after { animation: none; }
+  .quota-card.limit-67::before { animation: none; }
   .quota-card.limit-67::before { display: none; }
 }

@@ -4,187 +4,145 @@
 
 <h1 align="center">Limits</h1>
 
-<p align="center"><strong>Keep your Codex limits in sight.</strong><br>
-Remaining usage, reset timers, and multiple accounts — right in your taskbar, menu bar, or system tray.</p>
+<p align="center">See your AI usage limits, reset times, and API balances in your taskbar, menu bar, or system tray.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-555" alt="Windows, macOS, and Linux">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
+  <a href="https://github.com/PyatkovVK/limits/releases/latest"><strong>Download</strong></a> ·
+  <a href="#display-by-platform">Display by platform</a> ·
+  <a href="#build-from-source">Build from source</a> ·
+  <a href="#help">Help</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/PyatkovVK/limits/releases"><strong>Download from Releases</strong></a> ·
-  <a href="#screenshots">Screenshots</a> ·
-  <a href="https://github.com/PyatkovVK/limits/issues/new/choose">Report a bug</a> ·
-  <a href="README.ru.md">Русский</a>
-</p>
-
-**Limits** is a desktop app for monitoring **Codex usage limits included in your ChatGPT subscription**. Check your remaining five-hour and weekly allowances before starting your next task, without opening Codex.
-
-<p align="center">
-  <img src="docs/screenshots/windows-accounts.png" width="440" alt="Windows account panel with demo accounts and remaining usage">
+  <img src="docs/screenshots/windows/readme-panel.png" width="400" alt="Limits on Windows with a custom blue background and separate five-hour and weekly quota cards">
   <br><br>
-  <img src="docs/screenshots/windows-widget.png" width="280" alt="Windows taskbar widget with demo usage and a reset timer">
+  <img src="docs/screenshots/windows/widget-rows.png" width="280" alt="Windows taskbar widget in Rows style with quota reset times">
 </p>
-
-*Windows and macOS screenshots use demo data. The macOS desktop background and menu bar are recreated for publication.*
 
 ## Features
 
-- **Two usage windows:** remaining five-hour and weekly allowances, with reset information.
-- **Multiple accounts:** subscriptions connected in Limits and current local Codex / VS Code profiles, with separate usage data, local names, filters, and a selected account for your compact indicators.
-- **DeepSeek balance:** connect an API key from Settings → Subscriptions, then monitor total, granted and topped-up funds in USD or CNY with independent refreshes.
-- **Automatic refresh:** polling about one minute after each completed request, refresh after waking from sleep, and a manual refresh button.
-- **Clear status:** low allowances are highlighted; unavailable values show a dash, and stale data is dimmed.
-- **Platform-specific controls:** Windows taskbar widget or tray icons, macOS menu bar or compatible MacBook notch, and Linux tray icons or a compact desktop widget.
-- **Application updates:** offers new versions, downloads on request, verifies packages, and installs with restart in supported installed builds on Windows, macOS, and Linux.
-- **Launch at login:** enable autostart in Settings for supported installed builds on each platform.
-- **English and Russian UI:** language and display preferences persist across launches.
+- **Usage at a glance.** See how much quota you have left and when it resets. Limits refreshes in the background.
+- **Multiple subscriptions.** Keep work and personal profiles together, give them local names, and choose which one appears in the compact display.
+- **Customizable display.** Pick a layout, background, and the reset-time format supported by your platform.
+
+## Supported integrations
+
+Open **Settings → Subscriptions → + Add** and select a service. Availability depends on your installed version. [Release notes](CHANGELOG.md)
+
+| Service | What Limits shows | How to connect |
+| --- | --- | --- |
+| OpenAI Codex | Five-hour and weekly ChatGPT subscription quotas | Sign in with ChatGPT or use your existing local Codex / VS Code sign-in |
+| Claude Code | Five-hour and weekly quotas, when reported | Follow the in-app instructions to add the Claude Code status line |
+| GLM Coding Plan (Z.ai) | Five-hour and weekly quotas | Paste a Personal Coding Plan API key |
+| Kimi Code | Five-hour quota and weekly quota where available | Paste a Kimi Code API key |
+| DeepSeek | API balance, including granted and topped-up funds | Paste a DeepSeek API key |
+
+## Privacy
+
+Your profiles, settings, and saved credentials stay on your computer. Limits encrypts saved API keys and has no cloud storage or telemetry. Limits does not share your data with unrelated third parties. Sign-in and usage requests go directly to the connected provider. Claude Code quotas are read from a local file, and GitHub update checks are anonymous. [Data storage and privacy](docs/privacy.md)
 
 ## Download and install
 
-1. Open [GitHub Releases](https://github.com/PyatkovVK/limits/releases) and expand **Assets** for the release you want.
-2. Download a package for your OS and processor using the table below.
-3. Launch Limits. If you are not already signed in to Codex, choose **Sign in with ChatGPT** and complete sign-in in your browser.
+Open the [latest GitHub release](https://github.com/PyatkovVK/limits/releases/latest) and choose a file under **Assets**. Release packages include the Codex connection component.
 
-Ready-to-use packages include Electron and do not require Node.js.
+| Platform | Download and open |
+| --- | --- |
+| Windows x64 | Run `Limits-Setup-*.exe` to install or `Limits-*-portable.exe` to run directly. |
+| macOS | Choose the `arm64` DMG for Apple Silicon or the `x64` DMG for Intel. Open it and drag Limits to **Applications**. |
+| Linux x64 | Mark the `.AppImage` as executable and run it, or install the `.deb` on a compatible distribution. |
 
-| System | Choose in Assets | Codex requirement |
-| --- | --- | --- |
-| Windows 10 / 11, x64 | `Limits-Setup-*.exe` to install; `Limits-*-portable.exe` without installation | Connection component included |
-| macOS, Apple Silicon | `Limits-*-arm64.dmg` or `Limits-*-arm64.zip` | Connection component included |
-| macOS, Intel | `Limits-*-x64.dmg` or `Limits-*-x64.zip` | Connection component included |
-| Linux, x64 | `Limits-*-x86_64.AppImage` or `Limits-*-amd64.deb` | Connection component included |
+### First-launch warnings
 
-**Windows:** run the per-user installer or launch the portable EXE. No separate Codex installation is needed. Tray icons may initially appear under the arrow near the clock; drag them into the visible area if desired.
+I maintain Limits independently and haven't bothered with the paperwork for Apple Developer ID or a Windows code-signing certificate.
 
-**macOS:** open the DMG and drag Limits into **Applications**, or extract the ZIP and move the app there. If macOS says the developer cannot be verified, follow the [first-launch guide](#macos-first-launch) below. The connection component is included; Codex does not need to be installed or kept open.
+- **Windows** may show a SmartScreen warning about an unrecognized app or publisher when you open an unsigned build. [Microsoft SmartScreen documentation](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/)
+- **macOS** may block a build distributed without Apple notarization. If you trust the download, try opening Limits once, then go to **System Settings → Privacy & Security → Open Anyway** and confirm. [Apple's first-launch instructions](https://support.apple.com/en-us/102445)
 
-**Linux:** make the downloaded AppImage executable in your file manager's permissions and open it. Alternatively, install the DEB on a compatible distribution. The connection component is included; a separate Codex installation is not required. Source builds can use an installed CLI; see [configuration](docs/development.md#configuration).
+## Build from source
 
-**Platform notes:** Linux Mint 22.2 Zara, XFCE 4.18, X11, x64 is the tested Linux environment. Other desktops need testing; tray behavior varies. Linux autostart is not implemented.
+Install Git and Node.js 22.12 or newer with npm. Run the instructions for the OS you want to build on. The packages land in `release/`.
 
-<a id="macos-first-launch"></a>
+### Windows
 
-### macOS: allow the first launch
+On Windows x64, install .NET Framework 4.x if the C# compiler is missing. In PowerShell, run the following to build an installer and a portable EXE.
 
-I maintain Limits independently and currently cannot afford the [Apple Developer Program membership](https://developer.apple.com/programs/) ($99 per year). The current macOS downloads are not signed with a Developer ID certificate or notarized by Apple, so macOS may block the first launch with an unidentified-developer warning.
+```powershell
+git clone https://github.com/PyatkovVK/limits.git
+cd limits
+npm.cmd install
+npm.cmd run build:win:x64
+```
 
-If you downloaded Limits from this project's [GitHub Releases](https://github.com/PyatkovVK/limits/releases) and trust the app, allow it through System Settings:
+### macOS
 
-1. Open **Limits** from **Applications**. If macOS blocks it, dismiss the warning with **Done** or **Cancel**, keeping the app.
-2. Open **Apple menu → System Settings → Privacy & Security**.
-3. Scroll down to **Security**. Find the message about Limits being blocked and click **Open Anyway**. This option appears after an attempt to open the app.
-4. Authenticate if macOS asks, then click **Open** in the confirmation dialog.
+Install Xcode Command Line Tools with `xcode-select --install` if needed. In Terminal, build a DMG and ZIP for your Mac's architecture.
 
-macOS remembers this exception for the app, so subsequent launches can use a normal double-click. See [Apple's first-launch instructions](https://support.apple.com/en-us/102445).
+```sh
+git clone https://github.com/PyatkovVK/limits.git
+cd limits
+npm install
+npm run build:mac
+```
 
-## Screenshots
+To select an architecture explicitly, use `npm run build:mac:arm64` for Apple Silicon or `npm run build:mac:x64` for Intel.
 
-### macOS — menu bar and notch
+### Linux
 
-![Limits in the macOS menu bar with a light details panel](docs/screenshots/apple-menu-bar-light.png)
+On Linux x64, open a terminal and build the AppImage and DEB.
 
-Two indicators, **5h** and **7d**, show remaining usage, with a reset timer beside **5h**. The panel supports light and dark themes, Retina, and native background blur. On a MacBook with a physical notch, hover for a compact view or click for the full panel. After installing the app, enable **Settings → Launch at macOS login** to start in the background at login. This also works with local ad hoc signed builds; disabling the option removes the startup entry.
+```sh
+git clone https://github.com/PyatkovVK/limits.git
+cd limits
+npm install
+npm run build:linux:x64
+```
 
-**Settings → Display → Notch side panel** adds a third mode: a black panel with curved joins into the notch and persistent **5h** / **7d** values on either side. Low-allowance warnings, enabled Codex Resets alerts, and update announcements expand inside this panel. Messages queue, dismiss automatically after ten seconds when the pointer is away, and can be closed with × or Esc. Both notch modes require a physical MacBook notch.
+On an ARM64 Linux machine, use `npm run build:linux:arm64`.
 
-The side panel fits the free space between neighbouring menu-bar items and shortens its labels when space is limited. Only confirmed lack of space switches it to a compact notch with limits shown below the camera on hover. Unavailable menu metadata does not hide the side values, and a temporary probe failure keeps the last measured layout. The collapsed panel and hover preview always share the same width and side edges. The collapsed notch stays black; a selected background appears inside the expanded details panel. Areas outside the notch chrome remain transparent and pass clicks through. This does not request additional macOS permissions.
+## Display by platform
 
-The side panel adapts to additional metrics. Values that do not fit move into a **+N** control, which opens the complete list in the scrollable details panel.
+### Windows
 
-<details>
-<summary>Dark theme and MacBook notch</summary>
+Keep Limits in a draggable taskbar widget or switch to icons in the system tray.
 
-![Dark macOS details panel](docs/screenshots/apple-menu-bar-dark.png)
+<img src="docs/screenshots/windows/widget-cells.png" width="280" alt="Windows taskbar widget with the five-hour and weekly quotas side by side in Cells layout">
 
-![Compact usage view on notch hover](docs/screenshots/apple-notch-hover.png)
+### macOS
 
-![Expanded MacBook notch panel](docs/screenshots/apple-notch-expanded.png)
+Use menu bar indicators or display quotas around the notch on compatible MacBooks. Click the notch to open the full panel.
 
-The notch mode uses the compatible MacBook screen, including when an external display is attached. It is hidden on Macs without a physical notch. Esc or loss of focus collapses the panel. Reduced motion and transparency settings are respected.
+<img src="docs/screenshots/macos/apple-notch-side-wide.png" width="540" alt="Collapsed MacBook notch with quotas on either side">
 
-</details>
+<img src="docs/screenshots/macos/apple-notch-expanded.png" width="540" alt="Expanded MacBook notch panel with five-hour and weekly quotas">
 
-### Linux — system tray
+### Linux
 
-![Five-hour and weekly usage indicators in the Linux system tray](docs/screenshots/linux-tray.jpg)
+Choose Classic, Digits, or Rings in the system tray. On XFCE, Genmon adds a wide Line or Shelf to the panel. Click an indicator to open the details panel. See the [Linux display setup](src/linux_feature/README.md).
 
-The turquoise **5h** and purple **7d** indicators show remaining usage with numbers and short bars. Tooltips expose account details and reset information where supported by the desktop environment. The details panel adapts to its contents and scrolls for long account lists.
+<img src="src/linux_feature/welcome/images/icons.png" width="52" alt="Classic five-hour and weekly quota icons in the Linux system tray">
 
-Enable **Settings → Launch at login** to start an installed DEB or AppImage automatically, using your saved tray/widget mode without opening details.
+<img src="docs/screenshots/linux/content-height.png" width="528" alt="Linux details panel showing both Codex quotas">
 
-In **Settings → Display**, Linux offers three choices in order: classic percentage tray icons, quota-period labels with remaining-usage bars, and the desktop widget. Classic remains the default, and your selection is saved. Clicking either quota icon or the widget’s bars again closes details. In widget mode, the Limits tray icon hides or restores the widget.
+## Customize the display
 
-### Windows — taskbar or tray
+- Under **Settings → Background**, choose the default background, a solid color, or a local PNG or JPEG. Switch between **Standard** and **Two columns** where supported.
+- On Windows, **Panel settings** lets you change the widget width, choose **Classic**, **Rows**, or **Cells**, and show reset times as dates, countdowns, or hide them.
+- Under **Settings → Subscriptions**, choose **Use in panel** to pick the profile whose quotas or balance appear in the compact display.
 
-If the details panel is open, it follows the widget as you drag it along the taskbar and stays within the screen. Moving the widget keeps a dismissed panel closed.
+## Updates
 
-The widget and account panel are shown above. Switch between a taskbar widget and two tray icons in **Settings**. Drag any part of the widget, including labels, bars and percentages, to move it; a regular click on the limits opens details. Choose **240 / 280 / 320 / 400 px** widths in **Settings → Windows widget**. Drag the details title bar to keep a preferred position across openings and restarts. The details panel fits its content and resizes when Settings opens or closes. Reset labels show the local clock time and include the date for other days; hover for the full date. The widget hides for full-screen apps and recovers after the taskbar restarts. At **10% or less**, a Windows notification appears once per usage window. Autostart is available for the installed version.
+When Limits finds a new stable release, it shows an update message. On supported builds, choose **Download update**, then **Install and restart** after verification. You can also check manually under **Settings → Updates → Check**. [Update details](docs/in-app-updates.md)
 
-When the area beside the tray is crowded, the widget automatically shrinks to fit, down to 200 px, or moves to a free area on the left without covering taskbar buttons. If neither side has room, it stays visible just above the taskbar. The preferred width and taskbar placement return when more space becomes available.
+## Help
 
-![Compact Windows taskbar widget at 200 px with demo data](docs/screenshots/windows-widget-compact.png)
+- **Getting started.** Click the widget, menu bar indicator, or tray icon to open the panel. Go to **Settings → Subscriptions** to connect a service or check its status.
+- **Found a bug?** Include your OS, Limits version, and steps to reproduce. Crop or hide account details in screenshots. [Report a bug](https://github.com/PyatkovVK/limits/issues/new/choose)
+- **Working on Limits?** See the [development guide](docs/development.md) for demo mode, testing, and connection diagnostics. [Contributing guide](CONTRIBUTING.md)
 
-## Everyday use
-
-- Click the widget or an indicator to open details, view accounts, and refresh usage.
-- Add an account from **Accounts**, complete browser sign-in, give it a local name, and select it for the compact display.
-- Open **Settings** to change the language, display mode, account settings, widget size, or supported autostart options. The tray menu also opens Settings.
-- Closing the details panel keeps Limits running. Choose **Quit application** to exit; quit the old version before launching an update.
-- Drag the details title bar to keep a custom position across openings and restarts. The panel stays inside the available screen after monitor changes.
-
-On Linux, select **Widget** in Settings for a compact floating window with two quota bars. Drag its account label to move it and click the bars to toggle details. Width, visibility, and position persist; placement is controlled by the compositor on Wayland. Tray mode remains available.
-
-## Application updates
-
-Limits checks stable releases on GitHub in the background at startup and every six hours. After waking, it checks if the scheduled time has passed. Open **Settings → Updates → Check for updates** for a manual check, the installed version and the last check result.
-
-When a new version is found, choose **Download update** in the offer or Settings to start downloading. **Later** postpones the offer without downloading. After verification, choose **Install and restart** when convenient.
-
-**macOS:** installed copies in `/Applications` or `~/Applications` download the matching Apple Silicon or Intel ZIP on request from stable GitHub Releases published by Actions. Limits verifies the published SHA-256 checksum, app identity, version, architecture and code signature before offering **Install and restart**. Installation preserves the previous app if replacement or launching fails. The app folder must be writable by your user; move the app out of the DMG before updating. No GitHub account or token is needed. Builds kept only in Actions artifacts, including demo builds, are not update releases.
-
-**Windows:** installed and portable x64 builds download their matching update on request from Actions-published stable GitHub Releases. Packages are checked against SHA256SUMS.txt and product/version metadata; signed installations also require a valid matching publisher. Choose **Install and restart** when ready. Portable updates replace the original executable and keep a backup until relaunch. Accounts and settings are retained. The app reports download, verification and installation errors and allows retries.
-
-**Linux:** Linux also downloads stable update packages on request and verifies SHA-256 before offering Install and restart. Writable AppImages update in place; installed DEBs use dpkg/pkexec and ask for system authorization only when installing. Accounts and settings remain in place. See [platform installation details](docs/in-app-updates.md). Source/unpacked builds retain manual installation.
-
-Demo mode simulates update checks without contacting GitHub or opening a browser; **Demo result** in Updates lets you preview current, available and failed states.
-
-## Data and sign-in
-
-For Codex, Limits starts a local **Codex App Server** process and reads account and usage information. It does not create chats or send model prompts. ChatGPT sign-in is required for Codex subscription limits; API-key authentication does not expose those allowances. Limits monitors Codex allowances, rather than all ChatGPT model message limits.
-
-**DeepSeek:** open Settings → Subscriptions, select DeepSeek, and choose **+ Add**. Limits opens the API-key page in your browser. Sign in, create a key, return to Limits and paste it into **Connect DeepSeek**. The profile is added after a successful balance check; cancellation leaves no empty profile. Keys are encrypted on this device using the OS credential storage through Electron; connecting fails if secure storage is unavailable. Use **Name and connection → Replace API key** to change a key, or disconnect the profile to delete its saved key locally. This does not revoke the key in DeepSeek. Balances refresh about one minute after each completed request, independently from Codex. Different currencies are kept separate. Account-wide token or spending history is not included.
-
-**macOS:** Settings → Subscriptions distinguishes **Connected in Limits** from **In Codex / VS Code**; **All** shows both. The current local Codex account is tracked from `CODEX_HOME` (normally `~/.codex`) and is reloaded on each poll. Sign in or out of that profile in Codex / VS Code. Connecting from Limits creates an isolated account and does not switch the external profile. Add subscriptions using the provider selector and **+ Add**. Extra local `CODEX_HOME` folders are not tracked. These are locally saved sign-ins, not proof of which account an individual running chat uses; remote VS Code and memory-only sessions are not discovered. Details: [macOS subscriptions](docs/macos-accounts.md).
-
-On Windows and Linux, choose All, Connected in Limits, or In Codex / VS Code to view subscriptions. The default local Codex home is tracked automatically and reloads sign-in changes on polling; sign in or out in Codex / VS Code. Extra CODEX_HOME folders are not tracked. Add subscriptions using the provider selector and **+ Add**. Codex accounts added in Limits use separate storage managed by Codex. The app does not read OAuth tokens into its UI.
-
-Limits has no app-level analytics or telemetry integration in its source. Codex connects to OpenAI services for sign-in and usage data; its behavior is managed by Codex. See [data storage and privacy](docs/privacy.md).
-
-**Limits is an independent community project and is not affiliated with or endorsed by OpenAI.**
-
-## Backgrounds
-
-Use **Background** to choose the platform default, a solid color, or a local PNG/JPG image. It applies to the details panel and Windows widget. Images are copied into the app profile and remain available if the original file is moved.
-
-## Help and contribute
-
-[Report a bug or suggest a feature](https://github.com/PyatkovVK/limits/issues/new/choose). Include your OS, app version, and steps to reproduce; hide personal information in screenshots.
-
-Translations, documentation improvements, and platform testing are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and issues labeled [good first issue](https://github.com/PyatkovVK/limits/labels/good%20first%20issue). Please follow the [code of conduct](CODE_OF_CONDUCT.md).
-
-For additional AI integrations, see the [shared controller guide](docs/ai-controllers.md). Codex is the only production integration currently registered.
-
-See [CHANGELOG.md](CHANGELOG.md) for release features. Limits uses the [MIT license](LICENSE); bundled dependencies have their own [third-party notices](THIRD-PARTY-NOTICES.md).
+Limits is an independent community project released under the [MIT license](LICENSE). See the [third-party notices](THIRD-PARTY-NOTICES.md) for bundled dependencies.
 
 ## Roadmap
 
-These are ideas for future work, not current features:
+- Explore a rewrite in Rust.
 
-- Claude Code integration, subject to availability of a suitable usage data source.
-- DeepSeek integration, subject to availability of a suitable usage data source.
-- Configurable low-usage and approaching-reset notifications.
-- Broader Linux desktop support.
-
-Tell us which feature would help you in a [feature request](https://github.com/PyatkovVK/limits/issues/new/choose).
+[Suggest a feature](https://github.com/PyatkovVK/limits/issues/new/choose).

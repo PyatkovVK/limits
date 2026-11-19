@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { watchSession } = require('../session.cjs');
+const { watchSession } = require('../core/session.cjs');
 
 test('macOS resume and unlock coalesce into one recovery and stop removes listeners', t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });

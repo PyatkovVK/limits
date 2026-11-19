@@ -2,7 +2,7 @@
 
 Keep local skills in `skills/<name>/SKILL.md`. The root `/skills/` directory is ignored by Git, including supporting scripts/assets, so personal skills and edits are not committed or pushed.
 
-The English/Russian [template catalog](skill-templates/README.md) stays in `docs/skill-templates/`. The local `skills/` directory contains skill folders only; the generator does not create a root README. Agents discover `SKILL.md` files directly so personal skills are not missed.
+The [template catalog](skill-templates/README.md) stays in `docs/skill-templates/`. The local `skills/` directory contains skill folders only; the generator does not create a root README. Agents discover `SKILL.md` files directly so personal skills are not missed.
 
 Run this once after cloning, or whenever a default skill is missing:
 
@@ -14,6 +14,13 @@ The command copies missing files from tracked `docs/skill-templates/` into local
 
 The bundled `platform-routing` skill selects Linux → `src/linux_feature/`, macOS → `src/apple_feature/`, and Windows → `src/windows_feature/`. It detects the execution host when no target is specified; an explicit user target takes precedence. Shared behavior stays in `src/common`, and the skill does not expand a single-platform task into changes for every platform.
 
+The bundled [macos-architecture](skill-templates/macos-architecture/SKILL.md) skill maps macOS responsibilities to folders, records the platform contracts, and lists the native checks for refactors.
+
+## Git and builds
+
+- Push commits or otherwise update branches and tags on GitHub only when the user explicitly requests sending those changes. Treat requests to build, test, fix, or commit as local unless the user also requests a push.
+- Use the branch the user specifies for builds and verification. Create a temporary branch to run CI only if the user explicitly asks for one. If CI runs only tests for the requested branch, build locally.
+
 ## How agents find the skills
 
 The bundled `focused-pull-requests` skill keeps independent bugs, features and other tasks in separate `limits/<description>` branches and MR/PRs. The existing `npm run setup:skills` script in `package.json` generates `skills/focused-pull-requests/SKILL.md` together with the other defaults.
@@ -22,9 +29,11 @@ The bundled [version-branches-from-main](skill-templates/version-branches-from-m
 
 The bundled `changelog` skill records user-visible fixes and features directly under their target release version in `CHANGELOG.md`, as part of the same focused change, without an `Unreleased` placeholder. Generate it with the existing `setup:skills` command in `package.json`, then read `skills/changelog/SKILL.md` before finalizing a change.
 
-The bundled [versionless-documentation](skill-templates/versionless-documentation/SKILL.md) skill keeps concrete Limits release numbers only in `CHANGELOG.md`, unless the user explicitly requests a specific occurrence elsewhere. README files, documentation, requirements, comments and skill examples describe current behavior without release labels and use placeholders for branch/tag examples. Machine-readable version metadata and update logic retain their technical values.
+The bundled [versionless-documentation](skill-templates/versionless-documentation/SKILL.md) skill keeps concrete Limits release numbers in the changelog when writing documentation. When preparing a release, it also aligns the versions in `package.json` and `package-lock.json` with the target changelog heading.
 
 The bundled [test-failure-analysis](skill-templates/test-failure-analysis/SKILL.md) skill traces a failing test or CI check to its introducing commit, explains the affected platform behavior, proposes a systemic repair, and audits which tests and builds actually ran before applying a minimal authorized fix.
+
+The bundled [requirements-documentation](skill-templates/requirements-documentation/SKILL.md) skill keeps the `requirements/` directory read-only: before editing, adding, deleting, renaming or moving any requirements file, describe the change and ask the user for explicit permission. Reading and reviewing require no approval.
 
 Start with this guide and [CONTRIBUTING.md](../CONTRIBUTING.md), restore missing defaults, then discover and read the relevant `SKILL.md` before choosing implementation files. Include personal skills absent from the tracked template catalog. A normal Git-aware search will not list `skills/`; use, for example:
 

@@ -1,7 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { browserEnvironment, openBrowser } = require('../browser.cjs');
+const { openBrowser } = require('../core/browser.cjs');
+const { systemEnvironment: browserEnvironment } = require('../core/environment.cjs');
 
 test('AppImage browser launch preserves desktop session and removes private runtime paths', () => {
   const env = { APPDIR: '/tmp/.mount_Limits', APPIMAGE: '/home/u/Limits.AppImage', ARGV0: 'Limits',

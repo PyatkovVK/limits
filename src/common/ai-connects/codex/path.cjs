@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-function findCodex({ resourcesPath, env = process.env, platform = process.platform, arch = process.arch, fileSystem = fs, resolvePackage = require.resolve } = {}) {
+function findCodex({ resourcesPath, env = process.env, platform = process.platform, arch = process.arch, fileSystem = fs, resolvePackage = require.resolve, platformFinders } = {}) {
   function executable(file) {
     try {
       if (!fileSystem.statSync(file).isFile()) return false;
@@ -38,12 +38,12 @@ function findCodex({ resourcesPath, env = process.env, platform = process.platfo
     const candidate = path.join(dir, exe);
     if (executable(candidate)) return candidate;
   }
-  if (platform === 'linux') {
-    const candidate = require('../../../linux_feature/codex-path.cjs').findLinuxCodex({ env, arch, fileSystem, executable });
+  if (platform === 'linux' && platformFinders?.linux) {
+    const candidate = platformFinders.linux({ env, arch, fileSystem, executable });
     if (candidate) return candidate;
   }
-  if (platform === 'darwin') {
-    const candidate = require('../../../apple_feature/codex-path.cjs').findMacCodex({ env, fileSystem, executable });
+  if (platform === 'darwin' && platformFinders?.darwin) {
+    const candidate = platformFinders.darwin({ env, fileSystem, executable });
     if (candidate) return candidate;
   }
   if (platform === 'win32' && env.LOCALAPPDATA) {

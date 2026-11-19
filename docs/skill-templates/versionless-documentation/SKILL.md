@@ -1,15 +1,15 @@
 ---
 name: versionless-documentation
-description: Keep concrete Limits release numbers out of README files, documentation, requirements, comments and skill examples. Apply when writing or reviewing repository text; release numbers belong only in CHANGELOG.md unless the user explicitly requests a specific occurrence elsewhere.
+description: Keep Limits release numbers out of general documentation and synchronize package metadata when preparing a release. Apply when writing repository text or preparing a release.
 ---
 
-# Keep release numbers in the changelog
+# Document release numbers and update package metadata
 
-Write current Limits behavior without a release number in the product name, headings, feature descriptions, privacy notes, requirements, comments, test descriptions or agent instructions. Keep concrete release numbers only in `CHANGELOG.md`. An explicit user instruction may authorize a particular occurrence elsewhere; limit that exception to the requested place and purpose.
+Write current Limits behavior without a release number in the product name, headings, feature descriptions, privacy notes, requirements, comments, test descriptions or agent instructions. Use concrete release numbers in `CHANGELOG.md` for release history. An explicit user request can specify another place where a release number belongs in prose.
 
 Use placeholders such as `<release>`, `<release>-demo`, `<major>.<minor>[.<patch>]` and `v<release>` when explaining branch names, tags, commands or version normalization. Link to the changelog for release history rather than copying release numbers into other files. Keep English and Russian text aligned. Do not replace an outdated release number with the newest one: remove the release-specific wording.
 
-This is a rule for authored text, not a request to disable versioning. Preserve machine-readable package metadata, dependency pins, workflow version handling, version-comparison fixtures, and values read dynamically for the update UI. Third-party software prerequisites, license identifiers and protocol/format versions are not Limits release labels. Do not change application behavior or legal notices as part of text cleanup.
+When preparing a release, set `package.json`'s `version` to the confirmed target release and sync the package and root versions in `package-lock.json`. Use the same version as the target changelog heading, including a zero patch component when the release branch omits it. Leave package versions unchanged during documentation-only edits. Preserve dependency pins, CI version handling, version-comparison fixtures and the dynamic update display. Third-party prerequisites, license identifiers and protocol or format versions are independent of the Limits release.
 
 When checking a change, search tracked text outside `CHANGELOG.md` and explicitly inspect ignored local `skills/**/SKILL.md` files. Review numeric matches in context: remove concrete Limits release labels and replace numeric documentation examples with placeholders; preserve technical values needed to build, test and update the app. Check translated documentation and existing skill templates for the same stale labels.
 

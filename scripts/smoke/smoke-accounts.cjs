@@ -1,0 +1,190 @@
+'use strict';
+// Real renderers and account registry; isolated demo monitors never sign out real accounts.
+const { app, BrowserWindow, ipcMain, shell, Notification } = require('electron');
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const { Subscriptions } = require('../../src/common/ai-connects/codex/subscriptions.cjs');
+const { DemoMonitor } = require('../../src/common/demo/demo-monitor.cjs');
+const isMac = process.platform === 'darwin';
+app.getVersion = () => require('../../package.json').version;
+const artifacts = path.resolve(__dirname, '../../artifacts');
+fs.mkdirSync(artifacts, { recursive: true });
+const root = fs.mkdtempSync(path.join(artifacts, 'accounts-smoke-'));
+const setPath = app.setPath.bind(app);
+app.setPath = (name, value) => setPath(name, name === 'userData' ? path.join(root, 'profile') : value);
+app.disableHardwareAcceleration();
+global.fetch = async () => assert.fail('Smoke must not access the network');
+shell.openExternal = async () => assert.fail('Smoke must not open a browser');
+Notification.prototype.show = () => assert.fail('Smoke must not show a notification');
+process.argv.push('--demo', '--hidden', '--smoke-tray-only');
+require('../../src/main.cjs');
+const pause = (ms = 50) => new Promise(resolve => setTimeout(resolve, ms));
+async function waitFor(condition, label) {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) { if (await condition()) return; await pause(); }
+  throw new Error(`Timed out: ${label}`);
+}
+app.whenReady().then(async () => {
+  let accounts, widget;
+  try {
+    let panel;
+    await waitFor(async () => {
+      panel = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/index.html'));
+      return panel && !panel.webContents.isLoading() && panel.webContents.executeJavaScript('window.limits?.get().then(next => next.profiles?.length === 2 && next.updates?.status === "current")');
+    }, 'demo ready');
+    const run = source => panel.webContents.executeJavaScript(source);
+    await run('window.renderReady');
+    const base = await run('window.limits.get()');
+    const appearance = await run('window.limits.appearance()');
+    const work = base.profiles[1].id;
+    const Service = isMac
+      ? require('../../src/apple_feature/ai-connects/codex/accounts.cjs').AppleAccounts : Subscriptions;
+    accounts = new Service({ root: path.join(root, 'accounts'), initialProfiles: base.profiles, createMonitor: profile => new DemoMonitor(profile) });
+    const state = () => ({ ...base, ...accounts.snapshot(), demo: false });
+    const publish = () => {
+      for (const target of [panel, widget]) if (target && !target.isDestroyed()) target.webContents.send('limits:state', state());
+    };
+    let failRemoval = true, removeCalls = 0;
+    ipcMain.removeHandler('limits:get');
+    ipcMain.handle('limits:get', state);
+    ipcMain.removeHandler('limits:appearance-get');
+    ipcMain.handle('limits:appearance-get', () => appearance);
+    ipcMain.removeHandler('limits:profile-action');
+    ipcMain.handle('limits:profile-action', async (_event, action, id) => {
+      if (action === 'select') accounts.selectProfile(id);
+      else if (action === 'remove') {
+        removeCalls++;
+        await pause(150);
+        if (failRemoval) return { error: 'accountActionFailed' };
+        await accounts.remove(id);
+      } else assert.fail(`Unexpected fixture action: ${action}`);
+      publish(); return {};
+    });
+    await run('window.limits.get().then(render); window.limits.open(); window.limitsSettings.open()');
+    const workCard = `[data-profile-id="${work}"]`;
+    const foldState = () => run(`(() => {
+      const toggle = document.querySelector('${workCard} .profile-toggle');
+      const fold = document.getElementById(toggle.getAttribute('aria-controls'));
+      return { expanded: toggle.getAttribute('aria-expanded'), inert: fold.inert, height: fold.offsetHeight };
+    })()`);
+    assert.equal((await foldState()).expanded, 'true');
+    const animates = await run(`(() => {
+      const toggle = document.querySelector('${workCard} .profile-toggle');
+      const fold = document.getElementById(toggle.getAttribute('aria-controls'));
+      fold.getBoundingClientRect();
+      toggle.click();
+      fold.getBoundingClientRect();
+      const reduce = document.body.classList.contains('reduced-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+      return fold.getAnimations().some(animation => animation.transitionProperty === 'grid-template-rows') === !reduce;
+    })()`);
+    assert.equal(animates, true);
+    await run('window.limits.get().then(render)');
+    await waitFor(async () => (await foldState()).height === 0, 'collapse subscription limits');
+    assert.deepEqual(await foldState(), { expanded: 'false', inert: true, height: 0 });
+    for (const language of ['ru', 'en']) {
+      base.language = language; publish();
+      await waitFor(() => run(`document.documentElement.lang === '${language}'`), 'language');
+      const button = await run(`(() => {
+        const card = document.querySelector('${workCard}');
+        const edit = card.querySelector('.profile-edit');
+        const button = card.querySelector('.profile-remove');
+        return { collapsed: !edit.open, editable: !edit.hidden, managed: edit.contains(button),
+          direct: button.matches('.profile-heading .profile-remove-icon') && Boolean(button.getClientRects().length),
+          label: button.getAttribute('aria-label'), enabled: !button.disabled,
+          sharedVisible: Boolean(document.querySelector('[data-profile-id="default"] .profile-heading .profile-remove').getClientRects().length) };
+      })()`);
+      assert.equal(button.collapsed && button.editable && button.enabled, true);
+      assert.equal(button.managed, !isMac);
+      assert.equal(button.direct, isMac);
+      assert.equal(button.sharedVisible, isMac);
+      assert.equal(button.label, `${language === 'ru' ? 'Отключить' : 'Disconnect'}: Work`);
+      await run('document.querySelector(".accounts-section").scrollIntoView({block:"center",behavior:"instant"})');
+      await pause(120);
+      fs.writeFileSync(path.join(root, `subscriptions-${language}.png`), (await panel.webContents.capturePage()).toPNG());
+    }
+    await run(`document.querySelector('${workCard} .profile-select').click()`);
+    await waitFor(() => run(`document.querySelector('${workCard}').classList.contains('selected')`), 'selected work account');
+    assert.deepEqual(await foldState(), { expanded: 'false', inert: true, height: 0 });
+    await run(`document.querySelector('${workCard} .profile-toggle').click()`);
+    await waitFor(async () => (await foldState()).height > 0, 'expand subscription limits');
+    assert.equal((await foldState()).inert, false);
+    if (isMac) await run(`document.querySelector('${workCard} .profile-toggle').click()`);
+    else await run(`document.querySelector('${workCard} .profile-edit summary').click()`);
+    await run(`document.querySelector('${workCard} .profile-remove').click(); document.querySelector('${workCard} .profile-remove').click()`);
+    publish(); await pause(50);
+    assert.equal(await run(`document.querySelector('${workCard} .profile-remove').disabled`), true);
+    await waitFor(() => run('!document.querySelector(".subscription-error").hidden'), 'disconnect error');
+    assert.equal(removeCalls, 1);
+    assert.equal(await run(`!document.querySelector('${workCard} .profile-remove').disabled`), true);
+    assert.equal(await run(`document.querySelector('${workCard} details').open`), !isMac);
+    assert.equal((await foldState()).expanded, String(!isMac));
+    failRemoval = false;
+    panel.show(); panel.focus(); panel.webContents.focus(); await pause(100);
+    await run(`document.querySelector('${workCard} .profile-remove').focus()`);
+    assert.equal(await run(`document.activeElement === document.querySelector('${workCard} .profile-remove')`), true);
+    panel.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Return' });
+    panel.webContents.sendInputEvent({ type: 'char', keyCode: '\r' });
+    panel.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Return' });
+    await pause(250);
+    assert.equal(removeCalls, 2, JSON.stringify(await run('({ focused: document.hasFocus(), active: document.activeElement.className, error: document.getElementById("error").textContent })')));
+    await waitFor(() => run(`!document.querySelector('${workCard}')`), 'keyboard disconnect');
+    assert.equal(accounts.snapshot().selectedProfileId, 'default');
+    assert.equal(removeCalls, 2);
+    const saved = JSON.parse(fs.readFileSync(accounts.file, 'utf8'));
+    assert.equal(saved.profiles.length, 1); assert.equal(saved.selectedProfileId, 'default');
+    await run('window.limitsSettings.dialog.close()');
+    const quota = accounts.monitors.get('default').state.buckets[0];
+    if (process.platform === 'win32') {
+      widget = new BrowserWindow({ width: 280, height: 39, show: false, frame: false, webPreferences: { preload: path.resolve(__dirname, '../../src/common/preload.cjs'), contextIsolation: true, sandbox: true } });
+      await widget.loadFile(path.resolve(__dirname, '../../src/windows_feature/widget/renderer/widget.html'));
+      await widget.webContents.executeJavaScript('window.renderReady');
+    }
+    for (const kind of ['short', 'weekly']) {
+      quota.short.remaining = kind === 'short' ? 67 : 68;
+      quota.weekly.remaining = kind === 'weekly' ? 67 : 66;
+      publish();
+      await waitFor(() => run(`document.querySelector('.${kind}.limit-67') !== null`), `67 ${kind}`);
+      assert.equal(await run('document.querySelectorAll(".quota-card.limit-67").length'), 1);
+      await waitFor(() => run(`typeof document.getElementById('${kind}-value').getAnimations()[0]?.startTime === 'number'`), 'animation started');
+      const animation = await run(`document.getElementById('${kind}-value').getAnimations()[0]?.startTime`);
+      await pause(300); publish(); await pause();
+      assert.equal(await run(`document.getElementById('${kind}-value').getAnimations()[0]?.startTime`), animation, 'Polling must not restart the celebration');
+      fs.writeFileSync(path.join(root, `67-${kind}.png`), (await panel.webContents.capturePage()).toPNG());
+      if (widget) {
+        assert.equal(await widget.webContents.executeJavaScript(`document.getElementById('${kind}-bar').closest('.quota').classList.contains('limit-67')`), true);
+        fs.writeFileSync(path.join(root, `67-widget-${kind}.png`), (await widget.webContents.capturePage()).toPNG());
+      }
+    }
+    base.reducedMotion = true; publish(); await pause();
+    assert.equal(await run('getComputedStyle(document.getElementById("weekly-value")).animationName'), 'none');
+    assert.equal(await run('getComputedStyle(document.querySelector(".profile-fold")).transitionDuration'), '0s');
+    if (widget) assert.equal(await widget.webContents.executeJavaScript('getComputedStyle(document.querySelector(".quota.limit-67 .percentage")).animationName'), 'none');
+    base.reducedMotion = false;
+    quota.short.remaining = null; quota.weekly.remaining = 68; publish(); await pause();
+    assert.equal(await run('document.querySelectorAll(".quota-card.limit-67, .profile-quota.limit-67").length'), 0);
+    if (widget) assert.equal(await widget.webContents.executeJavaScript('document.querySelectorAll(".limit-67").length'), 0);
+    // Also cover a 67 in an unselected account and a narrow Settings viewport.
+    const extra = accounts.add();
+    accounts.monitors.get(extra).state.buckets[0].weekly.remaining = 67; publish();
+    await run('window.limitsSettings.open()');
+    await waitFor(() => run('document.querySelectorAll(".profile-quota.limit-67").length === 1'), 'unselected quota');
+    panel.setMinimumSize(1, 1); panel.setMaximumSize(0, 0); panel.setSize(360, 650);
+    await run('document.querySelector(".accounts-section").scrollIntoView({block:"end",behavior:"instant"})'); await pause(150);
+    assert.equal(await run('(() => { const el = document.querySelector(".settings-content"); return el.scrollWidth <= el.clientWidth + 1; })()'), true);
+    fs.writeFileSync(path.join(root, 'accounts-narrow.png'), (await panel.webContents.capturePage()).toPNG());
+    if (isMac) {
+      await run('document.querySelector(\'[data-profile-id="default"] .profile-heading .profile-remove\').click()');
+      await waitFor(() => run('!document.querySelector(\'[data-profile-id="default"]\')'), 'external Codex removed');
+      assert.equal(accounts.selectedProfileId, extra);
+      await accounts.remove(extra); publish();
+      await waitFor(() => run('!document.getElementById("add-account").disabled && !document.querySelector(".subscription-empty").hidden'), 'add is available with no profiles');
+      await run('window.limitsSettings.dialog.close(); document.getElementById("login").click()');
+      await waitFor(() => run('document.getElementById("subscription-providers").matches(":popover-open")'), 'empty panel opens provider picker');
+    }
+    const report = { platform: process.platform, accordion: true, disconnectInHeading: isMac, localized: true, keyboardDisconnect: true, pendingAndErrors: true, selectedRemovalPersisted: true, sixtySeven: ['short', 'weekly', 'unselected account', ...(widget ? ['Windows widget'] : [])], pollingStable: true, reducedMotion: true, narrowLayout: true, artifacts: root };
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify(report, null, 2));
+    console.log('ACCOUNTS_SMOKE_OK', JSON.stringify(report));
+    accounts.stop(); widget?.destroy(); app.quit();
+  } catch (error) { accounts?.stop(); console.error('ACCOUNTS_SMOKE_FAILED', error.stack); app.exit(1); }
+});

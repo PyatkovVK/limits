@@ -2,6 +2,24 @@
 
 Only user-visible features and bug fixes are recorded here. Downloadable packages and publication status are listed in [GitHub Releases](https://github.com/PyatkovVK/limits/releases).
 
+## 2.0.0
+
+- **Linux DEB updates.** Open the GitHub release page from Settings → Updates to download and install the package manually.
+- **macOS subscriptions.** Disconnect accounts with the trash button beside the subscription name, even when the row is collapsed.
+- **HTTPS certificate security.** Update Electron to block compromised eMudhra intermediate certificates on Windows, macOS and Linux.
+- **Smooth Linux panel opening.** Measure and paint the complete panel while hidden, wait for native window placement, then fade it in at a fixed size and position. Avoid transient page scrollbars and horizontal jumps during opening. Respect reduced-motion preferences and cancel pending openings on a second tray click.
+
+- **One-time welcome tour.** See where Limits displays quotas on Windows, macOS, or Linux. New users see supported providers and existing users get a tour of the redesigned settings. Limits remembers that it showed the welcome, including when you skip it.
+- **Claude Code and Kimi Code.** Track available 5-hour and weekly quotas and their reset times on Windows, macOS and Linux. Claude Code supplies local quota data through its status line. Kimi Code connects with an API key from the Kimi Code Console.
+- **Linux tray and XFCE panel displays.** Choose Classic, Digits or Rings in Settings. The XFCE panel can show Line or Shelf through Genmon while keeping the tray indicators available. Saved tray bars switch to Classic.
+- **Linux details panel.** Bound the wait for compositor frames so clicking a tray indicator can open details even when the hidden window receives no frame.
+- **GLM Coding Plan (Z.ai).** Connect a personal API key on Windows, macOS and Linux to track the remaining 5-hour and weekly allowances and see reset times when available.
+- **Redesigned Settings.** General, Subscriptions, Updates and Codex Resets have dedicated cards, and Background shows a live preview.
+- **Reset times in the Windows widget.** Show the date and time, switch to a countdown, or hide reset times. Limits saves your choice.
+- **Windows panel and widget.** Open the details panel with a single click anywhere on the widget. The panel fades in smoothly and resizes when Settings opens or closes. Windows reduced motion preferences are respected.
+- **Windows panel fixes.** Keep the limit dropdown readable in dark mode and reopen details with one widget click after clicking outside.
+- **macOS notch side panel display fixes.** The collapsed panel lines up with the physical notch and returns to its wider layout when there is room in the menu bar.
+
 ## 1.7.0
 
 ### Changed
