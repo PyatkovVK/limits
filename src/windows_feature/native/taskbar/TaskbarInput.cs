@@ -49,9 +49,10 @@ partial class TaskbarProbe {
       "\",\"button\":\"" + button + "\",\"pressed\":" + (pressed ? "true" : "false") +
       ",\"x\":" + mouse.Position.X + ",\"y\":" + mouse.Position.Y + "}}");
     InputPending.Set();
-    // Real hardware movement must reach Windows so it updates the cursor.
-    // Suppress only button messages; Chromium must not receive duplicate clicks.
-    return id == 0x0200 ? CallNextHookEx(IntPtr.Zero, code, message, data) : new IntPtr(1);
+    // Let Windows route left clicks so Limits can activate its details window
+    // after another app takes focus. The native bridge still owns widget gestures.
+    // Suppress right clicks because the bridge opens the context menu itself.
+    return id == 0x0204 || id == 0x0205 ? new IntPtr(1) : CallNextHookEx(IntPtr.Zero, code, message, data);
   }
   static void StartInput() {
     // Neither accessibility queries nor pipe writes may block the hook thread.

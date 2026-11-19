@@ -82,7 +82,7 @@ const platformAssets = {
     scripts: ['../../apple_feature/renderer/i18n.js', '../../apple_feature/view-panel/keychain.js', '../../apple_feature/view-panel/island.js', '../../apple_feature/view-panel/surface.js', '../../apple_feature/view-panel/notch.js'],
   },
   win32: {
-    styles: ['../../windows_feature/view-panel/provider-picker.css'],
+    styles: ['../../windows_feature/view-panel/style.css'],
     scripts: ['../../windows_feature/renderer/i18n.js', '../../windows_feature/renderer/reset-clock.js', '../../windows_feature/settings/widget/styles.js', '../../windows_feature/settings/widget/group.js', '../../windows_feature/view-panel/provider-picker.js'],
   },
   linux: {

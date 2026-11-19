@@ -12,7 +12,7 @@ function installWindowsBridge({ window, screen, ipcMain, getWidgetHost, resizePa
   });
   ipcMain.handle('limits:widget-drag', (event, phase) => {
     const host = getWidgetHost?.();
-    if (!trusted(event, host?.window)) return false;
+    if (!trusted(event, host?.window) || host.placement?.metrics?.parented) return false;
     return host.drag(phase, screen.getCursorScreenPoint());
   });
   const dispose = () => {

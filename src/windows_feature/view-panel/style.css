@@ -1,3 +1,6 @@
+#bucket option { background: #edf0f6; color: var(--ink); }
+body[data-theme="dark"] #bucket option { background: #242527; }
+
 #provider-picker { margin-top: 8px; }
 
 #provider-picker-select,

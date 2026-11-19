@@ -20,10 +20,12 @@ const runHelper = args => new Promise((resolve, reject) => execFile(taskbarHelpe
     if (error) return reject(error);
     try { resolve(JSON.parse(stdout.trim())); } catch (error) { reject(error); }
   }));
-async function inspect(window) {
+function nativeWindowId(window) {
   const handle = window.getNativeWindowHandle();
-  const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
-  return runHelper(['--test-widget-order', String(process.pid), id]);
+  return handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
+}
+async function inspect(window) {
+  return runHelper(['--test-widget-order', String(process.pid), nativeWindowId(window)]);
 }
 async function checkOrder(before, window) {
   const after = await inspect(window);
@@ -76,11 +78,9 @@ function pointIn(target, selector) {
   })()`);
 }
 async function nativeClick(target, point, delta, fast) {
-  const handle = target.getNativeWindowHandle();
-  const id = handle.length === 8 ? handle.readBigInt64LE().toString() : String(handle.readUInt32LE());
   const bounds = target.getBounds();
   const native = screen.dipToScreenPoint({ x: bounds.x + point.x, y: bounds.y + point.y });
-  await runHelper([delta ? fast ? '--test-widget-drag-fast' : '--test-widget-drag' : '--test-widget-click', String(process.pid), id, String(native.x), String(native.y), ...(delta ? [String(delta)] : [])]);
+  await runHelper([delta ? fast ? '--test-widget-drag-fast' : '--test-widget-drag' : '--test-widget-click', String(process.pid), nativeWindowId(target), String(native.x), String(native.y), ...(delta ? [String(delta)] : [])]);
 }
 async function click(target, selector, delta, fast = false) {
   const point = await pointIn(target, selector);
@@ -101,8 +101,25 @@ app.whenReady().then(async () => {
     clearInterval(host.probe.timer); // Keep the native input bridge alive while freezing geometry.
     const window = host.window;
     await window.webContents.executeJavaScript('window.renderReady');
+    const panel = BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/view-panel/index.html'));
+    assert.ok(panel);
     await click(window, '#short-value');
-    assert.equal(BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/index.html')).isVisible(), true, 'Freshly attached widget must accept a real click');
+    assert.ok(panel.isVisible(), 'Freshly attached widget must accept a real click');
+    const outside = new BrowserWindow({ width: 180, height: 120, frame: false, show: false, skipTaskbar: true });
+    try {
+      await outside.loadURL('about:blank');
+      for (let attempt = 0; attempt < 3; attempt++) {
+        outside.show();
+        outside.focus();
+        await pause();
+        assert.equal(panel.isVisible(), false, 'Outside focus must dismiss details');
+        await click(window, '#short-value');
+        assert.ok(panel.isVisible(), 'A single widget click must reopen details');
+        assert.equal((await inspect(window)).foreground, nativeWindowId(panel), 'Reopened details must have native foreground focus');
+      }
+    } finally {
+      outside.destroy();
+    }
     const dragBefore = window.getBounds();
     await click(window, '.account', -40);
     assert.ok(window.getBounds().x < dragBefore.x - 20, 'A real held-button gesture must move the widget');
@@ -151,8 +168,6 @@ app.whenReady().then(async () => {
     const top = metrics.bar.y < metrics.monitor.y + metrics.monitor.height / 2;
     assert.ok(top ? fallback.y >= metrics.bar.y + metrics.bar.height : fallback.y + fallback.height <= metrics.bar.y,
       'The Windows-accepted height must not overlap shell buttons');
-    const panel = BrowserWindow.getAllWindows().find(target => target.webContents.getURL().endsWith('/view-panel/index.html'));
-    assert.ok(panel);
     panel.hide();
     await click(window, '.account');
     assert.ok(panel.isVisible(), 'Clicking the account area of the floating widget must open details');
@@ -244,7 +259,7 @@ app.whenReady().then(async () => {
     controller.disconnect();
     const screenshot = path.join(artifactRoot, 'widget-startup.png');
     fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG());
-    const report = { initial, restoredMode, restoredFullscreen, restoredParent, fallback, shellChecks, clicks, monetaryClicks, nativeDragging: true, fastDragging: true, cursorMovement: true, panelClicks: 9, raises, unchangedPolls: 100, screenshot };
+    const report = { initial, restoredMode, restoredFullscreen, restoredParent, fallback, shellChecks, clicks, monetaryClicks, nativeDragging: true, fastDragging: true, cursorMovement: true, outsideReopens: 3, panelClicks: 9, raises, unchangedPolls: 100, screenshot };
     fs.writeFileSync(path.join(artifactRoot, 'widget-startup-smoke.json'), JSON.stringify(report, null, 2));
     console.log('WIDGET_STARTUP_SMOKE_OK', JSON.stringify(report));
     app.quit();
