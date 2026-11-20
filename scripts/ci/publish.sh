@@ -11,6 +11,10 @@ Commit: $GITHUB_SHA
 Windows: portable EXE and installer. macOS: DMG and ZIP for each architecture. Linux: AppImage and DEB.
 
 File checksums: \`SHA256SUMS.txt\`.
+
+### Code signing policy
+
+See the [code signing policy](https://github.com/PyatkovVK/limits#code-signing-policy) for the current Windows signing status and SignPath Foundation application.
 EOF
 
 if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then

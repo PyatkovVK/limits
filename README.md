@@ -45,6 +45,8 @@ Your profiles, settings, and saved credentials stay on your computer. Limits enc
 
 Open the [latest GitHub release](https://github.com/PyatkovVK/limits/releases/latest) and choose a file under **Assets**. Release packages include the Codex connection component.
 
+See the [code signing policy](#code-signing-policy) for the current Windows signing status.
+
 | Platform | Download and open |
 | --- | --- |
 | Windows x64 | Run `Limits-Setup-*.exe` to install or `Limits-*-portable.exe` to run directly. |
@@ -53,10 +55,18 @@ Open the [latest GitHub release](https://github.com/PyatkovVK/limits/releases/la
 
 ### First-launch warnings
 
-I maintain Limits independently and haven't bothered with the paperwork for Apple Developer ID or a Windows code-signing certificate.
-
 - **Windows** may show a SmartScreen warning about an unrecognized app or publisher when you open an unsigned build. [Microsoft SmartScreen documentation](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/)
 - **macOS** may block a build distributed without Apple notarization. If you trust the download, try opening Limits once, then go to **System Settings → Privacy & Security → Open Anyway** and confirm. [Apple's first-launch instructions](https://support.apple.com/en-us/102445)
+
+## Code signing policy
+
+We are applying to the [SignPath Foundation](https://signpath.org) program to sign Windows releases of Limits. SignPath signing is not yet enabled.
+
+- **Maintainer and reviewer:** [Vsevolod Pyatkov (@PyatkovVK)](https://github.com/PyatkovVK).
+- **Release signing approver:** [Vsevolod Pyatkov (@PyatkovVK)](https://github.com/PyatkovVK).
+- **Privacy policy:** [Data storage and privacy](docs/privacy.md).
+
+Once SignPath signing is enabled, each production signing request will require manual approval by the release signing approver.
 
 ## Build from source
 
